@@ -1,7 +1,7 @@
 ---
 id: TASK-006
 title: 한국어 완료 파일 생성
-status: done
+status: backlog
 priority: medium
 depends_on:
     - TASK-005
