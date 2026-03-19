@@ -163,7 +163,8 @@ Sprint는 Plan의 단계를 실행 가능한 단위로 쪼갠 것.
 
 ### Sprint 규칙
 
-* Sprint는 최대 3개 Task
+* **동시 병렬 실행은 최대 5개 Task** — Task 총 개수는 제한 없음
+* **병렬 실행을 우선으로 설계한다** — 순차 의존이 꼭 필요한 경우가 아니면 Task를 병렬로 쪼갠다
 * Sprint는 반드시 실행 가능해야 한다 (모호함 금지)
 * Sprint 끝나면 Plan 수정 가능
 * Plan은 틀려도 된다 — Sprint는 반드시 실행 가능해야 한다
@@ -337,7 +338,7 @@ affected_files:          # 이 Task가 수정하는 파일/디렉토리
 
 **정리 규칙**
 
-* Task 머지 완료 후 Task 파일의 `status`를 `done`으로 변경하고 커밋
+* Task 머지 완료 후 Task 파일을 삭제하고 커밋
 * Sprint 완료 후 Sprint 브랜치 및 Task 브랜치 삭제
 * Worktree 정리 (`git worktree remove`)
 
