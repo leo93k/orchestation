@@ -2,7 +2,7 @@
 id: TASK-015
 title: Task 클릭 사이드 패널
 sprint: SPRINT-002
-status: backlog
+status: done
 priority: high
 depends_on:
   - TASK-012
