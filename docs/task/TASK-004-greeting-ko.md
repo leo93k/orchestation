@@ -1,7 +1,7 @@
 ---
 id: TASK-004
 title: 한국어 인사말 파일 생성
-status: done
+status: backlog
 priority: high
 depends_on: []
 blocks:

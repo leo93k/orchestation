@@ -1,7 +1,7 @@
 ---
 id: TASK-002
 title: 숫자 파일 생성
-status: done
+status: backlog
 priority: medium
 depends_on:
     - TASK-001
