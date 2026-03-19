@@ -34,7 +34,7 @@ get_list() {
     NR==1 && /^---$/ { in_fm=1; next }
     in_fm && /^---$/ { exit }
     in_fm && $0 ~ "^"key":" { in_list=1; next }
-    in_list && /^  - / { sub(/^  - /, ""); print; next }
+    in_list && /^ +- / { sub(/^ +- /, ""); print; next }
     in_list && /^[^ ]/ { exit }
   ' "$1"
 }

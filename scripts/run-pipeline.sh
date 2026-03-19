@@ -29,7 +29,7 @@ get_depends_on() {
 
   awk '
     /^depends_on:/ { in_deps=1; next }
-    in_deps && /^  - / { gsub(/^  - /, ""); print; next }
+    in_deps && /^ +- / { gsub(/^ +- /, ""); print; next }
     in_deps && /^[^ ]/ { in_deps=0 }
   ' "$task_file"
 }
