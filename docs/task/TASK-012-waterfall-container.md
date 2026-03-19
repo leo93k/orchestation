@@ -2,7 +2,7 @@
 id: TASK-012
 title: 워터폴 컨테이너 + Sprint 그룹 헤더 컴포넌트
 sprint: SPRINT-002
-status: backlog
+status: done
 priority: critical
 depends_on:
   - TASK-009
