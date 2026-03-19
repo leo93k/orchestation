@@ -8,6 +8,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TASK_DIR="$REPO_ROOT/docs/task"
 RUN_TASK="$REPO_ROOT/scripts/run-task.sh"
+RUN_REVIEW="$REPO_ROOT/scripts/run-review.sh"
+MAX_REVIEW_RETRY=2
 SIGNAL_DIR="/tmp/orchestrate-$$"
 mkdir -p "$SIGNAL_DIR"
 
@@ -160,8 +162,8 @@ while true; do
     done_signal="${SIGNAL_DIR}/${task_id}-done"
     fail_signal="${SIGNAL_DIR}/${task_id}-failed"
 
-    # run-task.sh 실행 후 시그널 파일 생성
-    cmd="cd ${REPO_ROOT} && bash scripts/run-task.sh ${task_id} && touch ${done_signal} || touch ${fail_signal}"
+    # run-task.sh → run-review.sh → 승인 시 done / 실패 시 재작업 (최대 MAX_REVIEW_RETRY회)
+    cmd="cd ${REPO_ROOT} && for i in \$(seq 0 ${MAX_REVIEW_RETRY}); do bash scripts/run-task.sh ${task_id} && bash scripts/run-review.sh ${task_id} && touch ${done_signal} && break || { if [ \$i -eq ${MAX_REVIEW_RETRY} ]; then touch ${fail_signal}; else echo '🔄 리뷰 실패, 재작업 시도...'; fi; }; done"
 
     osascript <<EOF
 tell application "iTerm"

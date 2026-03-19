@@ -79,16 +79,10 @@ if echo "$RESULT" | grep -q "승인"; then
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "✅ 리뷰 승인됨"
-  echo ""
-  echo "머지하려면:"
-  echo "  cd $REPO_ROOT"
-  echo "  git merge $BRANCH --squash"
-  echo "  git commit -m \"feat(${TASK_ID}): <설명>\""
-  echo "  git worktree remove $WORKTREE_PATH"
-  echo "  git branch -D $BRANCH"
+  exit 0
 else
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "🔄 수정 요청됨 — 작업자에게 다시 전달하세요:"
-  echo "  ./scripts/run-task.sh ${TASK_ID}"
+  echo "🔄 수정 요청됨"
+  exit 1
 fi
