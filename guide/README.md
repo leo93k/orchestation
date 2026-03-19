@@ -255,6 +255,7 @@ affected_files:          # 이 Task가 수정하는 파일/디렉토리
 
 **정리 규칙**
 
+* 머지 완료 후 Task 파일의 `status`를 `done`으로 변경하고 커밋
 * 머지 완료 후 해당 브랜치 삭제
 * Worktree 정리 (`git worktree remove`)
 

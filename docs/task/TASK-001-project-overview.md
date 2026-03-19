@@ -1,7 +1,7 @@
 ---
 id: TASK-001
 title: 인사말 파일 생성
-status: backlog
+status: done
 priority: high
 depends_on: []
 blocks:

@@ -130,6 +130,12 @@ run_batch() {
         # 머지 완료 후 브랜치 삭제
         git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
       fi
+
+      # 태스크 상태 변경을 커밋
+      if [ -n "$task_file" ]; then
+        git -C "$REPO_ROOT" add "$task_file"
+        git -C "$REPO_ROOT" commit -m "chore(${batch[$i]}): status → done"
+      fi
     else
       echo "  ❌ ${batch[$i]} 실패"
       FAILED=1
