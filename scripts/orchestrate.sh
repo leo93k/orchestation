@@ -221,7 +221,7 @@ EOF
       if [ -n "$branch" ]; then
         if git -C "$REPO_ROOT" log --oneline "main..$branch" 2>/dev/null | grep -q .; then
           echo "  🔀 ${task_id}: $branch → main 머지"
-          git -C "$REPO_ROOT" merge "$branch" --no-edit
+          git -C "$REPO_ROOT" merge "$branch" --no-ff --no-edit
         fi
         git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
       fi
