@@ -40,8 +40,26 @@ fi
 echo "🌿 Branch: $BRANCH"
 echo "📂 Worktree: $WORKTREE_PATH"
 
+# reviewer role 프롬프트 로드
+REVIEWER_ROLE=$(grep '^reviewer_role:' "$TASK_FILE" | sed 's/reviewer_role: *//')
+ROLE_DIR="$REPO_ROOT/docs/roles"
+ROLE_PROMPT=""
+
+if [ -n "$REVIEWER_ROLE" ] && [ -f "$ROLE_DIR/${REVIEWER_ROLE}.md" ]; then
+  ROLE_PROMPT=$(cat "$ROLE_DIR/${REVIEWER_ROLE}.md")
+  echo "🎭 Reviewer Role: $REVIEWER_ROLE"
+elif [ -n "$REVIEWER_ROLE" ] && [ ! -f "$ROLE_DIR/${REVIEWER_ROLE}.md" ]; then
+  echo "⚠️  Reviewer Role '${REVIEWER_ROLE}' 파일 없음 → reviewer-general 사용"
+  ROLE_PROMPT=$(cat "$ROLE_DIR/reviewer-general.md")
+else
+  ROLE_PROMPT=$(cat "$ROLE_DIR/reviewer-general.md")
+  echo "🎭 Reviewer Role: reviewer-general (기본)"
+fi
+
 # Reviewer 프롬프트 구성
-PROMPT="너는 Reviewer(검증자) 역할이다. 아래 규칙을 반드시 따라라:
+PROMPT="${ROLE_PROMPT}
+
+## 리뷰 규칙
 - 코드를 직접 수정하지 않는다
 - Task 파일의 완료 조건을 기준으로 검증한다
 

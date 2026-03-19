@@ -8,9 +8,11 @@ depends_on:
 blocks:
     - TASK-003
 parallel_with: []
+role: general
 owner: ""
 branch: task/TASK-002-glossary
 worktree: ../repo-wt-TASK-002
+reviewer_role: reviewer-strict
 reviewer: ""
 affected_files:
     - output/numbers.txt

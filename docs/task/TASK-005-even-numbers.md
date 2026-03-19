@@ -9,9 +9,11 @@ blocks:
     - TASK-006
 parallel_with:
     - TASK-002
+role: general
 owner: ""
 branch: task/TASK-005-even-numbers
 worktree: ../repo-wt-TASK-005
+reviewer_role: reviewer-strict
 reviewer: ""
 affected_files:
     - output/even-numbers.txt

@@ -46,8 +46,26 @@ else
   echo "✅ Worktree 이미 존재"
 fi
 
+# role 프롬프트 로드
+ROLE=$(grep '^role:' "$TASK_FILE" | sed 's/role: *//')
+ROLE_DIR="$REPO_ROOT/docs/roles"
+ROLE_PROMPT=""
+
+if [ -n "$ROLE" ] && [ -f "$ROLE_DIR/${ROLE}.md" ]; then
+  ROLE_PROMPT=$(cat "$ROLE_DIR/${ROLE}.md")
+  echo "🎭 Role: $ROLE"
+elif [ -n "$ROLE" ] && [ ! -f "$ROLE_DIR/${ROLE}.md" ]; then
+  echo "⚠️  Role '${ROLE}' 파일 없음 → general 사용"
+  ROLE_PROMPT=$(cat "$ROLE_DIR/general.md")
+else
+  ROLE_PROMPT=$(cat "$ROLE_DIR/general.md")
+  echo "🎭 Role: general (기본)"
+fi
+
 # 작업자 프롬프트 구성
-PROMPT="너는 작업자 역할이다. 아래 규칙을 반드시 따라라:
+PROMPT="${ROLE_PROMPT}
+
+## 작업 규칙
 - 이 Worktree 안에서만 코드를 수정한다
 - main 브랜치를 직접 수정하지 않는다
 - Task 상태를 완료 처리하지 않는다

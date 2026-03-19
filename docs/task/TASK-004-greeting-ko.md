@@ -8,9 +8,11 @@ blocks:
     - TASK-005
 parallel_with:
     - TASK-001
+role: general
 owner: ""
 branch: task/TASK-004-greeting-ko
 worktree: ../repo-wt-TASK-004
+reviewer_role: reviewer-strict
 reviewer: ""
 affected_files:
     - output/hello-ko.txt

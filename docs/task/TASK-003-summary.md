@@ -7,9 +7,11 @@ depends_on:
     - TASK-002
 blocks: []
 parallel_with: []
+role: general
 owner: ""
 branch: task/TASK-003-summary
 worktree: ../repo-wt-TASK-003
+reviewer_role: reviewer-strict
 reviewer: ""
 affected_files:
     - output/done.txt

@@ -6,24 +6,17 @@
 
 ## 역할 목록
 
-### 1) 감독관
+### 1) Task 매니저
 
-전체 방향성과 정책을 관리하는 역할.
-
-* **하는 일**: PRD 기준 방향성 유지, 과설계 방지, 병목 발생 시 개입
-* **참고 문서**: `docs/prd/`, 전체 Task 현황
-* **금지**: 코드/Task/문서 직접 수정
-
-### 2) Task 매니저
-
-Task 생성, 분배, 진행 상태를 관리하는 역할.
+전체 방향성 관리 + Task 생성/분배/상태 관리를 담당하는 역할.
 
 * **하는 일**
 
+  * PRD 기준 방향성 유지, 과설계 방지, 병목 발생 시 개입
   * Task 생성 및 쪼개기
   * 의존 관계(`depends_on`, `blocks`, `parallel_with`) 정의
   * 브랜치 및 Worktree 정의
-  * 작업자 배정
+  * **작업자/리뷰어 역할 지정** (`role`, `reviewer_role` — `docs/roles/` 참고)
   * 병목 및 충돌 사전 방지
   * **Task 할당 전 TBD 해소 (필수)**
     * PRD나 기획에 TBD·미정·불명확한 항목이 있으면, **절대 가정하거나 임의로 결정하지 않는다**
@@ -35,19 +28,20 @@ Task 생성, 분배, 진행 상태를 관리하는 역할.
       * **입출력**: 예상 input/output 예시 또는 스펙
       * **완료 조건**: 어떤 상태가 되면 이 Task가 끝난 것인지 (테스트 통과 기준 포함)
     * "적절히 구현", "알아서 판단" 같은 모호한 표현 금지 — 작업자가 해석할 여지를 남기지 않는다
-* **참고 문서**: `docs/current/`, `docs/task/`
+* **참고 문서**: `docs/prd/`, `docs/current/`, `docs/task/`, `docs/roles/`
 * **산출물**: Task 파일 생성 및 상태 관리
 * **금지**: 코드 수정
 
-### 3) 작업자
+### 2) 작업자
 
-Task를 받아 실제 코드 작업을 수행하는 역할.
+Task를 받아 실제 코드 작업을 수행하는 역할. `docs/roles/`의 역할 프롬프트에 따라 전문성이 부여된다.
 
 * **하는 일**
 
   * Worktree에서 코드 수정
   * 테스트 작성 및 실행
   * Reviewer 피드백 반영
+* **역할 지정**: Task frontmatter의 `role` 필드 (예: `backend-dev`, `frontend-dev`)
 * **참고 문서**: `docs/task/`
 * **산출물**: 코드, 테스트
 * **금지**
@@ -55,20 +49,21 @@ Task를 받아 실제 코드 작업을 수행하는 역할.
   * `main` 브랜치 직접 수정 금지
   * Task 상태 완료 처리 금지
 
-### 4) Reviewer (검증자)
+### 3) Reviewer (검증자)
 
-작업 결과를 검증하고 승인하는 역할.
+작업 결과를 검증하고 승인하는 역할. `docs/roles/`의 리뷰어 프롬프트에 따라 검증 성격이 부여된다.
 
 * **하는 일**
 
   * 코드 리뷰
   * 테스트 검증
   * 승인 또는 수정 요청
+* **역할 지정**: Task frontmatter의 `reviewer_role` 필드 (예: `reviewer-strict`, `reviewer-security`)
 * **참고 문서**: Task 파일, 코드
 * **완료 처리**: 승인 시 Task 완료 상태 변경
 * **금지**: 코드 직접 수정
 
-### 5) Writer (문서화 담당)
+### 4) Writer (문서화 담당)
 
 모든 변경사항을 공식 문서로 반영하는 역할.
 
@@ -88,13 +83,11 @@ Task를 받아 실제 코드 작업을 수행하는 역할.
 ## 역할 간 흐름
 
 ```
-감독관
-  ↓
-Task 매니저 → Task 생성 및 의존 관계 정의
+Task 매니저 → Task 생성 + 의존 관계 정의 + 역할 지정 (role, reviewer_role)
   ↓
 작업자 → Worktree에서 코드 작업 (parallel_with Task는 동시 실행)
   ↓
-Reviewer → 코드 리뷰 및 승인
+Reviewer → 코드 리뷰 및 승인 (수정 요청 시 작업자에게 반환)
   ↓
 Writer → 문서 업데이트
   ↓
@@ -135,9 +128,11 @@ blocks:                  # 이 Task가 완료되어야 시작할 수 있는 Task
   - TASK-003
 parallel_with:           # 동시 실행 가능한 Task (영향 파일 분리 전제)
   - TASK-004
+role: backend-dev        # 작업자 역할 (docs/roles/ 참고)
 owner: worker-a          # 배정된 작업자
 branch: task/TASK-XXX-short-desc
 worktree: ../repo-wt-TASK-XXX
+reviewer_role: reviewer-strict  # 리뷰어 역할 (docs/roles/ 참고)
 reviewer: reviewer-1
 affected_files:          # 이 Task가 수정하는 파일/디렉토리
   - src/models/
@@ -154,6 +149,8 @@ affected_files:          # 이 Task가 수정하는 파일/디렉토리
 | `depends_on` | 선행 Task 목록. 모두 `done`이어야 시작 가능 |
 | `blocks` | 이 Task가 완료되어야 해제되는 후행 Task 목록 |
 | `parallel_with` | 동시 실행 가능한 Task. `affected_files`가 겹치지 않아야 함 |
+| `role` | 작업자 역할. `docs/roles/`의 파일명 (확장자 제외). 미지정 시 `general` |
+| `reviewer_role` | 리뷰어 역할. `docs/roles/`의 파일명 (확장자 제외). 미지정 시 `reviewer-general` |
 | `affected_files` | 수정 대상 파일/디렉토리. 충돌 방지의 근거 |
 
 ### 4) 실행 규칙
@@ -202,7 +199,7 @@ affected_files:          # 이 Task가 수정하는 파일/디렉토리
 
 ### 5) Escalation 규칙
 
-다음 조건 발생 시 감독관 개입:
+다음 조건 발생 시 Task 매니저가 레오에게 보고:
 
 * 2회 이상 Reviewer 피드백 무응답
 * 24시간 이상 작업 미진행
@@ -265,18 +262,20 @@ affected_files:          # 이 Task가 수정하는 파일/디렉토리
 
 ### 읽기 권한
 
-| 경로              | 감독관 | Task 매니저 | 작업자 | Reviewer | Writer |
-| --------------- | --- | -------- | --- | -------- | ------ |
-| `docs/prd/`     | O   | O        | R   | R        | R      |
-| `docs/current/` | O   | O        | R   | R        | O      |
-| `docs/task/`    | O   | O        | O   | O        | O      |
-| 소스 코드           | R   | R        | O   | O        | O      |
+| 경로              | Task 매니저 | 작업자 | Reviewer | Writer |
+| --------------- | -------- | --- | -------- | ------ |
+| `docs/prd/`     | O        | R   | R        | R      |
+| `docs/current/` | O        | R   | R        | O      |
+| `docs/task/`    | O        | O   | O        | O      |
+| `docs/roles/`   | O        | O   | O        | R      |
+| 소스 코드           | R        | O   | O        | O      |
 
 ### 쓰기 권한
 
-| 경로              | 감독관 | Task 매니저 | 작업자   | Reviewer | Writer |
-| --------------- | --- | -------- | ----- | -------- | ------ |
-| `docs/prd/`     | O   | ×        | ×     | ×        | ×      |
-| `docs/current/` | ×   | ×        | ×     | ×        | O      |
-| `docs/task/`    | ×   | O        | O(내용) | O(상태)    | O(결과)  |
-| 소스 코드           | ×   | ×        | O     | ×        | ×      |
+| 경로              | Task 매니저 | 작업자   | Reviewer | Writer |
+| --------------- | -------- | ----- | -------- | ------ |
+| `docs/prd/`     | O        | ×     | ×        | ×      |
+| `docs/current/` | ×        | ×     | ×        | O      |
+| `docs/task/`    | O        | O(내용) | O(상태)    | O(결과)  |
+| `docs/roles/`   | O        | ×     | ×        | ×      |
+| 소스 코드           | ×        | O     | ×        | ×      |

@@ -8,9 +8,11 @@ depends_on:
 blocks: []
 parallel_with:
     - TASK-003
+role: general
 owner: ""
 branch: task/TASK-006-complete-ko
 worktree: ../repo-wt-TASK-006
+reviewer_role: reviewer-strict
 reviewer: ""
 affected_files:
     - output/done-ko.txt
