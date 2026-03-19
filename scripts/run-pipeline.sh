@@ -34,6 +34,26 @@ get_depends_on() {
   ' "$task_file"
 }
 
+# 특정 TASK의 branch 가져오기
+get_branch() {
+  local task_id="$1"
+  local task_file
+  task_file=$(find "$TASK_DIR" -name "${task_id}-*.md" | head -1)
+  if [ -z "$task_file" ]; then return; fi
+  grep '^branch:' "$task_file" | sed 's/branch: *//'
+}
+
+# 특정 TASK의 worktree 경로 가져오기
+get_worktree() {
+  local task_id="$1"
+  local task_file
+  task_file=$(find "$TASK_DIR" -name "${task_id}-*.md" | head -1)
+  if [ -z "$task_file" ]; then return; fi
+  local rel
+  rel=$(grep '^worktree:' "$task_file" | sed 's/worktree: *//')
+  echo "$REPO_ROOT/$rel"
+}
+
 # 특정 TASK의 status 가져오기
 get_status() {
   local task_id="$1"
@@ -87,6 +107,28 @@ run_batch() {
       task_file=$(find "$TASK_DIR" -name "${batch[$i]}-*.md" | head -1)
       if [ -n "$task_file" ]; then
         sed -i '' "s/^status: .*/status: done/" "$task_file"
+      fi
+
+      # 브랜치를 main에 머지
+      local branch
+      branch=$(get_branch "${batch[$i]}")
+      if [ -n "$branch" ]; then
+        local wt_path
+        wt_path=$(get_worktree "${batch[$i]}")
+
+        # worktree 제거 (머지 전에 해야 브랜치 삭제 가능)
+        if [ -d "$wt_path" ]; then
+          git -C "$REPO_ROOT" worktree remove "$wt_path" --force 2>/dev/null || true
+        fi
+
+        # main에 머지 (새 커밋이 있는 경우만)
+        if git -C "$REPO_ROOT" log --oneline "main..$branch" 2>/dev/null | grep -q .; then
+          echo "  🔀 ${batch[$i]}: $branch → main 머지"
+          git -C "$REPO_ROOT" merge "$branch" --no-edit
+        fi
+
+        # 머지 완료 후 브랜치 삭제
+        git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
       fi
     else
       echo "  ❌ ${batch[$i]} 실패"
