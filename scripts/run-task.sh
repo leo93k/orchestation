@@ -59,4 +59,4 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 # claude 실행
 cd "$WORKTREE_PATH"
-claude -p "$PROMPT"
+claude -p "$PROMPT" --dangerously-skip-permissions
