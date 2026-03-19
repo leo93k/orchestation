@@ -4,8 +4,7 @@ title: 워터폴 데이터 변환 유틸
 sprint: SPRINT-002
 status: backlog
 priority: critical
-depends_on:
-  - TASK-008
+depends_on: []
 blocks:
   - TASK-012
   - TASK-016

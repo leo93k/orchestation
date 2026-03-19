@@ -169,6 +169,7 @@ Sprint는 Plan의 단계를 실행 가능한 단위로 쪼갠 것.
 * **Sprint 결과는 레오가 눈으로 확인 가능해야 한다** — API만 단독으로 Sprint에 넣지 않는다. 확인 가능한 UI/결과물과 함께 묶어서 Sprint에 포함한다
 * Sprint 끝나면 Plan 수정 가능
 * Plan은 틀려도 된다 — Sprint는 반드시 실행 가능해야 한다
+* **Sprint 간 Task 의존성을 걸지 않는다** — 각 Sprint는 독립적으로 완결되어야 하며, `depends_on`에 다른 Sprint의 Task를 넣지 않는다
 * **한 번에 모든 Sprint를 정의하지 않는다** — 현재 Sprint + 다음 Sprint 정도까지만 정의하고, 작업자가 작업하는 동안 레오와 대화하며 이후 Sprint를 준비한다
 
 ---

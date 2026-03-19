@@ -4,8 +4,7 @@ title: 상태별 색상 및 스타일 상수 정의
 sprint: SPRINT-002
 status: backlog
 priority: high
-depends_on:
-  - TASK-008
+depends_on: []
 blocks:
   - TASK-013
   - TASK-014
