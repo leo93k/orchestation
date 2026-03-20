@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, Calendar, FileText, SquareTerminal } from "lucide-react";
+import {
+  ClipboardList,
+  Calendar,
+  FileText,
+  SquareTerminal,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -62,8 +67,11 @@ export function Sidebar() {
               <span
                 key={item.label}
                 className={cn(
-                  buttonVariants({ variant: "sidebarDisabled", size: "sidebar" }),
-                  "pointer-events-none"
+                  buttonVariants({
+                    variant: "sidebarDisabled",
+                    size: "sidebar",
+                  }),
+                  "pointer-events-none",
                 )}
                 aria-disabled="true"
               >
@@ -81,7 +89,7 @@ export function Sidebar() {
                 buttonVariants({
                   variant: isActive ? "sidebarActive" : "sidebar",
                   size: "sidebar",
-                })
+                }),
               )}
               aria-current={isActive ? "page" : undefined}
             >

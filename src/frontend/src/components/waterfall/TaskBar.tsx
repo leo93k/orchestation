@@ -27,7 +27,7 @@ export function TaskBar({ task, onClick }: TaskBarProps) {
         "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-white transition-colors",
         statusStyle.bg,
         "hover:brightness-110 hover:shadow-md",
-        "cursor-pointer"
+        "cursor-pointer",
       )}
     >
       <span className="shrink-0 font-mono text-xs opacity-80">{task.id}</span>
@@ -36,7 +36,7 @@ export function TaskBar({ task, onClick }: TaskBarProps) {
         className={cn(
           "ml-auto shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold",
           priorityStyle.bg,
-          priorityStyle.text
+          priorityStyle.text,
         )}
       >
         {priorityStyle.label}
