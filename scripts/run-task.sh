@@ -78,6 +78,26 @@ echo ""
 echo "🚀 작업자 Agent 실행 중..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# claude 실행
+# claude 실행 (JSON 출력으로 토큰 사용량 캡처)
 cd "$WORKTREE_PATH"
-claude -p "$PROMPT" --dangerously-skip-permissions
+JSON_OUTPUT=$(claude -p "$PROMPT" --dangerously-skip-permissions --output-format json)
+
+# 결과 텍스트 출력
+echo "$JSON_OUTPUT" | jq -r '.result // empty'
+
+# 토큰 사용량 기록
+TOKEN_LOG="$REPO_ROOT/output/token-usage.log"
+mkdir -p "$(dirname "$TOKEN_LOG")"
+
+INPUT_TOKENS=$(echo "$JSON_OUTPUT" | jq '.usage.input_tokens // 0')
+CACHE_CREATE=$(echo "$JSON_OUTPUT" | jq '.usage.cache_creation_input_tokens // 0')
+CACHE_READ=$(echo "$JSON_OUTPUT" | jq '.usage.cache_read_input_tokens // 0')
+OUTPUT_TOKENS=$(echo "$JSON_OUTPUT" | jq '.usage.output_tokens // 0')
+COST=$(echo "$JSON_OUTPUT" | jq '.total_cost_usd // 0')
+DURATION=$(echo "$JSON_OUTPUT" | jq '.duration_ms // 0')
+NUM_TURNS=$(echo "$JSON_OUTPUT" | jq '.num_turns // 0')
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${TASK_ID} | phase=task | input=${INPUT_TOKENS} cache_create=${CACHE_CREATE} cache_read=${CACHE_READ} output=${OUTPUT_TOKENS} | turns=${NUM_TURNS} | duration=${DURATION}ms | cost=\$${COST}" >> "$TOKEN_LOG"
+
+echo ""
+echo "📊 토큰: in=${INPUT_TOKENS} cache_create=${CACHE_CREATE} cache_read=${CACHE_READ} out=${OUTPUT_TOKENS} | cost=\$${COST}"
