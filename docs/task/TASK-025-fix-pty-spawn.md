@@ -2,7 +2,7 @@
 id: TASK-025
 title: server.ts posix_spawnp 오류 수정
 sprint: SPRINT-004
-status: backlog
+status: in_progress
 priority: critical
 depends_on: []
 blocks: []

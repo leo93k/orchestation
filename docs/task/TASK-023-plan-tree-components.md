@@ -2,7 +2,7 @@
 id: TASK-023
 title: Plan 트리 뷰 컴포넌트
 sprint: SPRINT-004
-status: backlog
+status: in_progress
 priority: high
 depends_on:
   - TASK-021
