@@ -39,9 +39,7 @@ export function SprintProgress({
 
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : internalOpen;
-  const handleOpenChange = isControlled
-    ? onOpenChange
-    : setInternalOpen;
+  const handleOpenChange = isControlled ? onOpenChange : setInternalOpen;
 
   const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
 

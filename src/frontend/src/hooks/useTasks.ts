@@ -41,7 +41,9 @@ export function useTasks(): UseTasksResult {
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.",
+            err instanceof Error
+              ? err.message
+              : "알 수 없는 오류가 발생했습니다.",
           );
         }
       } finally {
