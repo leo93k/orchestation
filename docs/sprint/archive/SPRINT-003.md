@@ -1,3 +1,7 @@
+---
+status: done
+---
+
 # Sprint 3: 웹 터미널 (xterm.js)
 
 ## 목표

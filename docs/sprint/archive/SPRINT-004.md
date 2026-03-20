@@ -1,3 +1,7 @@
+---
+status: done
+---
+
 # Sprint 4: Plan 뷰 + 포매터
 
 ## 목표

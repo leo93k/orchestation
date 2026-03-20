@@ -1,3 +1,7 @@
+---
+status: done
+---
+
 # Sprint 2: 워터폴 뷰 구현
 
 ## 목표
