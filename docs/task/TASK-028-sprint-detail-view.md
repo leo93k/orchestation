@@ -1,7 +1,7 @@
 ---
 id: TASK-028
 title: Sprint 상세 뷰
-status: ready
+status: backlog
 priority: high
 sprint: SPRINT-005
 depends_on:
