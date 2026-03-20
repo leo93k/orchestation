@@ -1,7 +1,7 @@
 ---
 id: TASK-027
 title: Sprint 목록 페이지
-status: backlog
+status: in_progress
 priority: high
 sprint: SPRINT-005
 depends_on:
