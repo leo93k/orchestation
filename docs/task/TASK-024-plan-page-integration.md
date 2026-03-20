@@ -2,7 +2,7 @@
 id: TASK-024
 title: Plan 페이지 통합 + 사이드바 Plan 탭 활성화
 sprint: SPRINT-004
-status: backlog
+status: in_progress
 priority: critical
 depends_on:
   - TASK-022
