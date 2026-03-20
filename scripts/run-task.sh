@@ -85,9 +85,13 @@ JSON_OUTPUT=$(claude -p "$PROMPT" --dangerously-skip-permissions --output-format
 # 결과 텍스트 출력
 echo "$JSON_OUTPUT" | jq -r '.result // empty'
 
+# JSON 원본 저장
+OUTPUT_DIR="$REPO_ROOT/output"
+mkdir -p "$OUTPUT_DIR"
+echo "$JSON_OUTPUT" | jq . > "$OUTPUT_DIR/${TASK_ID}-task.json"
+
 # 토큰 사용량 기록
-TOKEN_LOG="$REPO_ROOT/output/token-usage.log"
-mkdir -p "$(dirname "$TOKEN_LOG")"
+TOKEN_LOG="$OUTPUT_DIR/token-usage.log"
 
 INPUT_TOKENS=$(echo "$JSON_OUTPUT" | jq '.usage.input_tokens // 0')
 CACHE_CREATE=$(echo "$JSON_OUTPUT" | jq '.usage.cache_creation_input_tokens // 0')
