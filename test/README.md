@@ -33,6 +33,20 @@
 - **Action:** - [분해 중인 경우] 하위 작업 리스트 (JSON 형식 선호)
     - [작업 완료인 경우] 핵심 요약 보고 (Bullet points)
 
+# Reporting (Token Usage)
+
+- 모든 하위 에이전트는 `--output-format json`으로 실행하라.
+- 각 에이전트의 실행 결과에서 토큰 사용량(input, output, cache_create, cache_read)과 비용, 소요 시간을 수집하라.
+- 최종 통합 단계에서 `output/token-report.json`에 아래 형식으로 저장하라:
+  ```json
+  {
+    "total": { "input_tokens": 0, "output_tokens": 0, "cost_usd": 0, "duration_ms": 0 },
+    "agents": [
+      { "name": "agent-name", "depth": 1, "input_tokens": 0, "output_tokens": 0, "cost_usd": 0, "duration_ms": 0 }
+    ]
+  }
+  ```
+
 # Variables
 
 - Task: {{USER_TASK}}
