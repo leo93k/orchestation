@@ -1,7 +1,7 @@
 ---
 id: TASK-028
 title: Sprint 상세 뷰
-status: in_progress
+status: done
 priority: high
 sprint: SPRINT-005
 depends_on:
