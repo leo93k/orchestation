@@ -17,25 +17,25 @@
 
 ```bash
 # 사전 준비 (최초 1회)
-mkdir -p test/prompts/{prd1,prd2}
+mkdir -p src/prompts/{prd1,prd2}
 ```
 
 ```bash
 # 터미널 1 — prd1
-time claude -p "$(cat test/prompts/prd1.md)" \
+time claude -p "$(cat src/prompts/prd1.md)" \
   --output-format json \
-  > src/prompts/prd1/result.json 2>test/prompts/prd1/stderr.log
+  > src/prompts/prd1/result.json 2>src/prompts/prd1/stderr.log
 
 # 터미널 2 — prd2
-time claude -p "$(cat test/prompts/prd2.md)" \
+time claude -p "$(cat src/prompts/prd2.md)" \
   --output-format json \
-  > test/prompts/prd2/result.json 2>test/prompts/prd2/stderr.log
+  > src/prompts/prd2/result.json 2>src/prompts/prd2/stderr.log
 ```
 
 ## 결과 확인
 
 ```bash
 # 토큰 사용량 확인
-cat test/prompts/prd1/result.json | jq '.result.usage'
-cat test/prompts/prd2/result.json | jq '.result.usage'
+cat src/prompts/prd1/result.json | jq '.result.usage'
+cat src/prompts/prd2/result.json | jq '.result.usage'
 ```
