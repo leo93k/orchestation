@@ -2,7 +2,7 @@
 id: TASK-017
 title: Custom Server + WebSocket + node-pty 터미널 백엔드
 sprint: SPRINT-003
-status: backlog
+status: done
 priority: critical
 depends_on: []
 blocks:
