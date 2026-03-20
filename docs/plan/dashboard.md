@@ -7,6 +7,7 @@ sprints:
     - SPRINT-002
     - SPRINT-003
     - SPRINT-004
+    - SPRINT-005
 ---
 
 # Plan: 오케스트레이션 대시보드
