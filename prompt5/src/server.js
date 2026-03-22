@@ -1,111 +1,64 @@
 const express = require('express');
 const path = require('path');
-const urlModel = require('./url-model');
+const store = require('./store');
+const apiRoutes = require('./routes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
+// ── 포트는 반드시 환경변수(PORT)로 받는다 ──
+const PORT = process.env.PORT;
+if (!PORT) {
+  console.error('[server] ERROR: PORT environment variable is required.');
+  process.exit(1);
+}
+
+// ── 미들웨어 ──
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Cleanup expired URLs every 5 minutes
-setInterval(() => urlModel.cleanupExpired(), 5 * 60 * 1000);
+// ── API 라우트 ──
+app.use(apiRoutes);
 
-// === API Routes ===
-
-// Create short URL
-app.post('/api/urls', (req, res) => {
-  try {
-    const { url, customAlias, expiresInMinutes } = req.body;
-
-    if (!url) {
-      return res.status(400).json({ error: 'URL is required' });
-    }
-
-    // Basic URL validation
-    try {
-      new URL(url);
-    } catch {
-      return res.status(400).json({ error: 'Invalid URL format' });
-    }
-
-    // Custom alias validation
-    if (customAlias && !/^[a-zA-Z0-9_-]{3,30}$/.test(customAlias)) {
-      return res.status(400).json({ error: 'Custom alias must be 3-30 chars (letters, numbers, _ , -)' });
-    }
-
-    const record = urlModel.createShortUrl({
-      originalUrl: url,
-      customAlias: customAlias || null,
-      expiresInMinutes: expiresInMinutes || null,
-    });
-
-    res.status(201).json({
-      shortCode: record.short_code,
-      shortUrl: `${req.protocol}://${req.get('host')}/${record.short_code}`,
-      originalUrl: record.original_url,
-      expiresAt: record.expires_at,
-      createdAt: record.created_at,
-    });
-  } catch (err) {
-    if (err.message.includes('already exists')) {
-      return res.status(409).json({ error: err.message });
-    }
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// List all URLs
-app.get('/api/urls', (_req, res) => {
-  const urls = urlModel.listAll();
-  res.json(urls.map(u => ({
-    shortCode: u.short_code,
-    originalUrl: u.original_url,
-    clicks: u.clicks,
-    expiresAt: u.expires_at,
-    createdAt: u.created_at,
-    isCustom: !!u.custom_alias,
-  })));
-});
-
-// Get stats for a short URL
-app.get('/api/urls/:code/stats', (req, res) => {
-  const record = urlModel.findByCode(req.params.code);
-  if (!record) {
-    return res.status(404).json({ error: 'Not found' });
-  }
-  res.json({
-    shortCode: record.short_code,
-    originalUrl: record.original_url,
-    clicks: record.clicks,
-    expiresAt: record.expires_at,
-    createdAt: record.created_at,
-    isCustom: !!record.custom_alias,
-  });
-});
-
-// === Redirect ===
+// ── 리디렉션: /:code ──
 app.get('/:code', (req, res) => {
-  const record = urlModel.findByCode(req.params.code);
+  const { code } = req.params;
 
-  if (!record) {
-    return res.status(404).send('Short URL not found');
+  // 정적 파일 경로와 충돌 방지 (favicon, etc.)
+  if (code === 'favicon.ico') return res.sendStatus(204);
+
+  const entry = store.get(code);
+
+  if (!entry) {
+    return res.status(404).send(`
+      <html><body style="font-family:sans-serif;text-align:center;padding:4rem">
+        <h1>404</h1><p>단축 URL을 찾을 수 없습니다.</p>
+        <a href="/">홈으로 돌아가기</a>
+      </body></html>
+    `);
   }
 
-  // Check expiration
-  if (record.expires_at) {
-    const now = new Date();
-    const expires = new Date(record.expires_at.replace(' ', 'T') + 'Z');
-    if (now > expires) {
-      return res.status(410).send('This short URL has expired');
-    }
+  // 만료 확인
+  if (entry.expiresAt && Date.now() > entry.expiresAt) {
+    return res.status(410).send(`
+      <html><body style="font-family:sans-serif;text-align:center;padding:4rem">
+        <h1>410</h1><p>이 단축 URL은 만료되었습니다.</p>
+        <a href="/">홈으로 돌아가기</a>
+      </body></html>
+    `);
   }
 
-  urlModel.recordClick(record.short_code);
-  res.redirect(301, record.original_url);
+  // 클릭 수 증가 후 리디렉션
+  store.incrementClicks(code);
+  return res.redirect(301, entry.originalUrl);
 });
 
+// ── 만료 항목 주기적 정리 (1시간마다) ──
+setInterval(() => {
+  const purged = store.purgeExpired();
+  if (purged > 0) console.log(`[store] Purged ${purged} expired URL(s)`);
+}, 60 * 60 * 1000);
+
+// ── 서버 시작 ──
 app.listen(PORT, () => {
-  console.log(`URL Shortener running at http://localhost:${PORT}`);
+  console.log(`[server] URL Shortener running on http://localhost:${PORT}`);
 });

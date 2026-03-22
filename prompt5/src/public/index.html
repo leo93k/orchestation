@@ -1,81 +1,341 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>URL Shortener</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>URL 단축 서비스</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem 1rem;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    header h1 { font-size: 2rem; letter-spacing: -0.5px; }
+    header p  { margin-top: .4rem; opacity: .85; font-size: .95rem; }
+
+    main { max-width: 860px; margin: 2rem auto; padding: 0 1rem; }
+
+    /* ── Card ── */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.8rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    }
+    .card h2 { font-size: 1.1rem; margin-bottom: 1.2rem; color: #444; }
+
+    /* ── Form ── */
+    .form-grid { display: grid; gap: .9rem; }
+    label { font-size: .85rem; font-weight: 600; color: #555; display: block; margin-bottom: .3rem; }
+    input[type="text"], input[type="url"], input[type="number"] {
+      width: 100%;
+      padding: .6rem .9rem;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: .95rem;
+      transition: border-color .2s;
+      outline: none;
+    }
+    input:focus { border-color: #667eea; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+
+    button {
+      padding: .7rem 1.6rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .95rem;
+      font-weight: 600;
+      transition: opacity .2s, transform .1s;
+    }
+    button:active { transform: scale(.97); }
+    .btn-primary { background: linear-gradient(135deg,#667eea,#764ba2); color: white; }
+    .btn-primary:hover { opacity: .9; }
+
+    /* ── Result box ── */
+    #result {
+      display: none;
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 10px;
+      padding: 1.2rem 1.4rem;
+      margin-top: 1rem;
+    }
+    #result .short-url-row {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      margin-top: .5rem;
+    }
+    #result a { font-size: 1.1rem; font-weight: 700; color: #16a34a; word-break: break-all; }
+    #result .meta { font-size: .82rem; color: #555; margin-top: .5rem; }
+    .copy-btn {
+      padding: .35rem .8rem;
+      font-size: .8rem;
+      background: #16a34a;
+      color: white;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    /* ── Error box ── */
+    #error {
+      display: none;
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      border-radius: 10px;
+      padding: .9rem 1.2rem;
+      margin-top: 1rem;
+      color: #b91c1c;
+      font-size: .9rem;
+    }
+
+    /* ── URL 목록 ── */
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .refresh-btn {
+      background: #e0e7ff;
+      color: #4338ca;
+      padding: .4rem 1rem;
+      font-size: .82rem;
+      border-radius: 6px;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th {
+      background: #f8f9fa;
+      padding: .7rem .8rem;
+      text-align: left;
+      font-weight: 600;
+      color: #555;
+      border-bottom: 2px solid #e9ecef;
+    }
+    td { padding: .65rem .8rem; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    .badge {
+      display: inline-block;
+      padding: .2rem .55rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+    .badge-active   { background: #dcfce7; color: #15803d; }
+    .badge-expired  { background: #fee2e2; color: #b91c1c; }
+    .badge-noexpiry { background: #e0e7ff; color: #4338ca; }
+
+    .clicks-count { font-weight: 700; color: #667eea; }
+    .url-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .empty-state {
+      text-align: center;
+      color: #999;
+      padding: 2rem;
+      font-size: .9rem;
+    }
+
+    @media (max-width: 600px) {
+      .row-2 { grid-template-columns: 1fr; }
+      table { font-size: .8rem; }
+      th, td { padding: .5rem .5rem; }
+      .url-cell { max-width: 120px; }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>URL Shortener</h1>
 
-    <!-- Create Form -->
-    <section class="card">
-      <h2>URL 단축하기</h2>
-      <form id="shorten-form">
-        <div class="form-group">
-          <label for="url">URL</label>
-          <input type="url" id="url" placeholder="https://example.com/very/long/url" required>
+<header>
+  <h1>🔗 URL 단축 서비스</h1>
+  <p>긴 URL을 짧게 만들고, 클릭 수를 추적하세요.</p>
+</header>
+
+<main>
+
+  <!-- 단축 URL 생성 폼 -->
+  <div class="card">
+    <h2>✂️ URL 단축하기</h2>
+    <form id="shortenForm" class="form-grid">
+      <div>
+        <label for="originalUrl">원본 URL *</label>
+        <input type="url" id="originalUrl" placeholder="https://example.com/very/long/path" required />
+      </div>
+      <div class="row-2">
+        <div>
+          <label for="customCode">커스텀 코드 (선택)</label>
+          <input type="text" id="customCode" placeholder="my-link" maxlength="30" />
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="custom-alias">커스텀 별칭 (선택)</label>
-            <input type="text" id="custom-alias" placeholder="my-link">
-          </div>
-          <div class="form-group">
-            <label for="expires">만료 (분, 선택)</label>
-            <input type="number" id="expires" placeholder="60" min="1">
-          </div>
+        <div>
+          <label for="expiresInDays">만료 기간 (일, 선택)</label>
+          <input type="number" id="expiresInDays" placeholder="예: 7 (무제한이면 빈칸)" min="1" max="3650" />
         </div>
+      </div>
+      <div>
         <button type="submit" class="btn-primary">단축 URL 생성</button>
-      </form>
-      <div id="result" class="result hidden">
-        <p>단축 URL:</p>
-        <div class="result-url">
-          <a id="result-link" href="#" target="_blank"></a>
-          <button id="copy-btn" class="btn-copy" title="복사">📋</button>
-        </div>
       </div>
-      <div id="error" class="error hidden"></div>
-    </section>
+    </form>
 
-    <!-- URL List -->
-    <section class="card">
-      <h2>단축 URL 목록</h2>
-      <button id="refresh-btn" class="btn-secondary">새로고침</button>
-      <table id="url-table">
-        <thead>
-          <tr>
-            <th>단축 코드</th>
-            <th>원본 URL</th>
-            <th>클릭수</th>
-            <th>만료</th>
-            <th>생성일</th>
-          </tr>
-        </thead>
-        <tbody id="url-tbody"></tbody>
-      </table>
-      <p id="empty-msg" class="empty hidden">등록된 URL이 없습니다.</p>
-    </section>
+    <div id="error"></div>
 
-    <!-- Stats -->
-    <section class="card">
-      <h2>클릭 통계 조회</h2>
-      <div class="form-row">
-        <input type="text" id="stats-code" placeholder="단축 코드 입력">
-        <button id="stats-btn" class="btn-secondary">조회</button>
+    <div id="result">
+      <strong>✅ 단축 URL이 생성되었습니다!</strong>
+      <div class="short-url-row">
+        <a id="resultLink" href="#" target="_blank"></a>
+        <button class="copy-btn" onclick="copyUrl()">복사</button>
       </div>
-      <div id="stats-result" class="stats hidden">
-        <div class="stat-item"><span class="stat-label">원본 URL</span><span id="stat-url"></span></div>
-        <div class="stat-item"><span class="stat-label">클릭수</span><span id="stat-clicks" class="stat-value"></span></div>
-        <div class="stat-item"><span class="stat-label">생성일</span><span id="stat-created"></span></div>
-        <div class="stat-item"><span class="stat-label">만료일</span><span id="stat-expires"></span></div>
-      </div>
-      <div id="stats-error" class="error hidden"></div>
-    </section>
+      <div class="meta" id="resultMeta"></div>
+    </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- URL 목록 + 통계 -->
+  <div class="card">
+    <div class="list-header">
+      <h2>📋 단축 URL 목록 & 통계</h2>
+      <button class="refresh-btn" onclick="loadUrls()">↻ 새로고침</button>
+    </div>
+    <div id="urlTable">
+      <div class="empty-state">단축 URL이 없습니다.</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const form    = document.getElementById('shortenForm');
+  const resultEl = document.getElementById('result');
+  const errorEl  = document.getElementById('error');
+  let lastShortUrl = '';
+
+  // ── 폼 제출 ──
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    resultEl.style.display = 'none';
+    errorEl.style.display  = 'none';
+
+    const originalUrl   = document.getElementById('originalUrl').value.trim();
+    const customCode    = document.getElementById('customCode').value.trim();
+    const expiresInDays = document.getElementById('expiresInDays').value.trim();
+
+    const body = { originalUrl };
+    if (customCode)    body.customCode    = customCode;
+    if (expiresInDays) body.expiresInDays = Number(expiresInDays);
+
+    try {
+      const res  = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorEl.textContent = `오류: ${data.error}`;
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      lastShortUrl = data.shortUrl;
+      const link = document.getElementById('resultLink');
+      link.href        = data.shortUrl;
+      link.textContent = data.shortUrl;
+
+      const meta = document.getElementById('resultMeta');
+      const exp  = data.expiresAt
+        ? `만료: ${new Date(data.expiresAt).toLocaleString('ko-KR')}`
+        : '만료: 무제한';
+      meta.textContent = `원본: ${data.originalUrl}  |  ${exp}`;
+
+      resultEl.style.display = 'block';
+      form.reset();
+      loadUrls();
+    } catch (err) {
+      errorEl.textContent = '서버 오류가 발생했습니다.';
+      errorEl.style.display = 'block';
+    }
+  });
+
+  // ── URL 복사 ──
+  function copyUrl() {
+    navigator.clipboard.writeText(lastShortUrl).then(() => {
+      alert('클립보드에 복사되었습니다!');
+    });
+  }
+
+  // ── 목록 로드 ──
+  async function loadUrls() {
+    const container = document.getElementById('urlTable');
+    try {
+      const res  = await fetch('/api/urls');
+      const list = await res.json();
+
+      if (!list.length) {
+        container.innerHTML = '<div class="empty-state">단축 URL이 없습니다.</div>';
+        return;
+      }
+
+      const rows = list.map((item) => {
+        const created = new Date(item.createdAt).toLocaleString('ko-KR');
+        const exp     = item.expiresAt
+          ? new Date(item.expiresAt).toLocaleString('ko-KR')
+          : '무제한';
+        const badge   = item.expired
+          ? '<span class="badge badge-expired">만료됨</span>'
+          : item.expiresAt
+            ? '<span class="badge badge-active">유효</span>'
+            : '<span class="badge badge-noexpiry">무제한</span>';
+        const shortUrl = `${location.origin}/${item.shortCode}`;
+
+        return `
+          <tr>
+            <td><a href="${shortUrl}" target="_blank" title="${shortUrl}">/${item.shortCode}</a></td>
+            <td class="url-cell" title="${item.originalUrl}">${item.originalUrl}</td>
+            <td class="clicks-count">${item.clicks.toLocaleString()}</td>
+            <td>${badge}</td>
+            <td>${exp}</td>
+            <td>${created}</td>
+          </tr>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>단축 코드</th>
+              <th>원본 URL</th>
+              <th>클릭 수</th>
+              <th>상태</th>
+              <th>만료일</th>
+              <th>생성일</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state" style="color:#b91c1c">목록을 불러오지 못했습니다.</div>';
+    }
+  }
+
+  // 초기 로드
+  loadUrls();
+</script>
+
 </body>
 </html>

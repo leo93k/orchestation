@@ -1,60 +1,912 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>URL 단축 서비스</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #242736;
+      --border: #2e3247;
+      --accent: #6c63ff;
+      --accent-hover: #5a52e0;
+      --text: #e8eaf6;
+      --text-muted: #8b8fa8;
+      --success: #4caf8a;
+      --error: #e05a6c;
+      --warning: #e0a85a;
+      --radius: 10px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 40px 16px 80px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #6c63ff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="url"],
+    select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+
+    input[type="text"]:focus,
+    input[type="url"]:focus,
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    input::placeholder {
+      color: var(--text-muted);
+    }
+
+    select option {
+      background: var(--surface2);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 520px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 22px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      text-decoration: none;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.82rem;
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .result-box {
+      margin-top: 20px;
+      display: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .result-box.visible {
+      display: block;
+    }
+
+    .result-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .result-url-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .result-url {
+      flex: 1;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent);
+      word-break: break-all;
+    }
+
+    .result-url a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .result-url a:hover {
+      text-decoration: underline;
+    }
+
+    .copy-btn {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .copy-btn.copied {
+      background: var(--success);
+    }
+
+    .result-meta {
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .alert {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      margin-top: 14px;
+    }
+
+    .alert.visible {
+      display: block;
+    }
+
+    .alert-success {
+      background: rgba(76, 175, 138, 0.15);
+      border: 1px solid rgba(76, 175, 138, 0.4);
+      color: var(--success);
+    }
+
+    .alert-error {
+      background: rgba(224, 90, 108, 0.15);
+      border: 1px solid rgba(224, 90, 108, 0.4);
+      color: var(--error);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-header .card-title {
+      margin-bottom: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 8px 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: var(--surface2);
+    }
+
+    tbody td {
+      padding: 10px 10px;
+      vertical-align: middle;
+    }
+
+    .td-original {
+      max-width: 220px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-muted);
+    }
+
+    .td-short a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .td-short a:hover {
+      text-decoration: underline;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .badge-clicks {
+      background: rgba(108, 99, 255, 0.2);
+      color: var(--accent);
+    }
+
+    .expired-row {
+      opacity: 0.4;
+    }
+
+    .expiry-date {
+      white-space: nowrap;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .expiry-date.expired {
+      color: var(--error);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .emoji {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 460px;
+      box-shadow: var(--shadow);
+      animation: modalIn 0.18s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.3rem;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.15s;
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: 20px 24px 24px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .stats-detail {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+
+    .stats-row:last-child {
+      border-bottom: none;
+    }
+
+    .stats-row .key {
+      color: var(--text-muted);
+    }
+
+    .stats-row .val {
+      font-weight: 500;
+      word-break: break-all;
+      text-align: right;
+      max-width: 260px;
+    }
+
+    .stats-row .val a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .stats-row .val a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 40px;
+    }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>URL 단축 서비스</h1>
-  </header>
-  <main>
-    <section id="shorten-section">
-      <h2>URL 단축하기</h2>
-      <form id="shorten-form">
-        <input id="url-input" type="url" placeholder="https://example.com" required>
-        <input id="custom-code" type="text" placeholder="커스텀 코드 (선택)">
-        <select id="expires-in">
-          <option value="">만료 없음</option>
-          <option value="60">1시간</option>
-          <option value="1440">1일</option>
-          <option value="10080">1주</option>
-          <option value="43200">1개월</option>
-        </select>
-        <button type="submit">단축하기</button>
-      </form>
-      <div id="result" class="hidden">
-        <p>단축 URL: <a id="short-url" target="_blank"></a></p>
-        <button id="copy-btn">복사</button>
-      </div>
-    </section>
+  <div class="container">
+    <header>
+      <h1>URL 단축 서비스</h1>
+      <p>긴 URL을 짧고 간편하게 만들어드립니다</p>
+    </header>
 
-    <section id="list-section">
-      <h2>단축 URL 목록</h2>
-      <div class="table-wrapper">
-        <table id="url-table">
+    <!-- Section 1: Shorten Form -->
+    <div class="card">
+      <div class="card-title">
+        <span class="icon">✂</span>
+        URL 단축하기
+      </div>
+
+      <form id="shortenForm">
+        <div class="form-group">
+          <label for="originalUrl">원본 URL <span style="color:var(--error)">*</span></label>
+          <input
+            type="url"
+            id="originalUrl"
+            placeholder="https://example.com"
+            required
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="customCode">커스텀 코드 (선택)</label>
+            <input
+              type="text"
+              id="customCode"
+              placeholder="my-link"
+              autocomplete="off"
+              pattern="[a-zA-Z0-9\-_]+"
+            />
+          </div>
+          <div class="form-group">
+            <label for="expiresIn">만료 시간</label>
+            <select id="expiresIn">
+              <option value="">없음</option>
+              <option value="3600">1시간</option>
+              <option value="86400">24시간</option>
+              <option value="604800">7일</option>
+              <option value="2592000">30일</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="shortenBtn">
+          단축하기
+        </button>
+      </form>
+
+      <div class="alert" id="formAlert"></div>
+
+      <div class="result-box" id="resultBox">
+        <div class="result-label">단축된 URL</div>
+        <div class="result-url-row">
+          <div class="result-url" id="resultUrl"></div>
+          <button class="copy-btn" id="copyBtn" onclick="copyShortUrl()">복사</button>
+        </div>
+        <div class="result-meta" id="resultMeta"></div>
+      </div>
+    </div>
+
+    <!-- Section 2: URL List -->
+    <div class="card">
+      <div class="section-header">
+        <div class="card-title">
+          <span class="icon">☰</span>
+          URL 목록
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="loadUrls()" id="refreshBtn">
+          목록 새로고침
+        </button>
+      </div>
+
+      <div id="urlListContainer">
+        <div class="empty-state">
+          <div class="emoji">🔗</div>
+          <div>URL 목록을 불러오려면 새로고침을 눌러주세요.</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>URL 단축 서비스 &mdash; 2026</footer>
+  </div>
+
+  <!-- Section 3: Stats Modal -->
+  <div class="modal-overlay" id="statsModal" onclick="closeModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">통계 정보</div>
+        <button class="modal-close" onclick="closeStats()">&times;</button>
+      </div>
+      <div class="modal-body" id="statsBody">
+        <div class="empty-state"><div class="loading-spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    let currentShortUrl = '';
+
+    /* ─── Utilities ─── */
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      const d = new Date(dateStr);
+      if (isNaN(d)) return '—';
+      return d.toLocaleString('ko-KR', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function isExpired(dateStr) {
+      if (!dateStr) return false;
+      return new Date(dateStr) < new Date();
+    }
+
+    function truncate(str, max) {
+      if (!str) return '';
+      return str.length > max ? str.slice(0, max) + '…' : str;
+    }
+
+    function showAlert(id, type, msg) {
+      const el = document.getElementById(id);
+      el.className = `alert alert-${type} visible`;
+      el.textContent = msg;
+    }
+
+    function hideAlert(id) {
+      const el = document.getElementById(id);
+      el.className = 'alert';
+      el.textContent = '';
+    }
+
+    /* ─── Section 1: Shorten ─── */
+
+    document.getElementById('shortenForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert('formAlert');
+      document.getElementById('resultBox').classList.remove('visible');
+
+      const btn = document.getElementById('shortenBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner"></span> 단축 중...';
+
+      const url = document.getElementById('originalUrl').value.trim();
+      const customCode = document.getElementById('customCode').value.trim();
+      const expiresIn = document.getElementById('expiresIn').value;
+
+      const body = { url };
+      if (customCode) body.customCode = customCode;
+      if (expiresIn) body.expiresIn = parseInt(expiresIn, 10);
+
+      try {
+        const res = await fetch('/api/shorten', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || data.error || '단축 URL 생성에 실패했습니다.');
+        }
+
+        currentShortUrl = data.shortUrl || '';
+        showResult(data);
+        showAlert('formAlert', 'success', '단축 URL이 생성되었습니다!');
+      } catch (err) {
+        showAlert('formAlert', 'error', err.message || '오류가 발생했습니다.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '단축하기';
+      }
+    });
+
+    function showResult(data) {
+      const box = document.getElementById('resultBox');
+      const urlEl = document.getElementById('resultUrl');
+      const metaEl = document.getElementById('resultMeta');
+
+      const shortUrl = data.shortUrl || '';
+      urlEl.innerHTML = `<a href="${shortUrl}" target="_blank" rel="noopener">${shortUrl}</a>`;
+
+      const meta = [];
+      if (data.originalUrl) meta.push(`원본: ${truncate(data.originalUrl, 50)}`);
+      if (data.expiresAt) meta.push(`만료: ${formatDate(data.expiresAt)}`);
+      if (data.clicks !== undefined) meta.push(`클릭: ${data.clicks}`);
+      metaEl.textContent = meta.join(' · ');
+
+      box.classList.add('visible');
+    }
+
+    function copyShortUrl() {
+      if (!currentShortUrl) return;
+      navigator.clipboard.writeText(currentShortUrl).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '복사됨!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = '복사';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(() => {
+        /* fallback */
+        const ta = document.createElement('textarea');
+        ta.value = currentShortUrl;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      });
+    }
+
+    /* ─── Section 2: URL List ─── */
+
+    async function loadUrls() {
+      const container = document.getElementById('urlListContainer');
+      const btn = document.getElementById('refreshBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner"></span>';
+      container.innerHTML = '<div class="empty-state"><span class="loading-spinner"></span></div>';
+
+      try {
+        const res = await fetch('/api/urls');
+        if (!res.ok) throw new Error('목록을 불러오지 못했습니다.');
+        const urls = await res.json();
+        renderUrlList(urls);
+      } catch (err) {
+        container.innerHTML = `<div class="empty-state" style="color:var(--error)">${err.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '목록 새로고침';
+      }
+    }
+
+    function renderUrlList(urls) {
+      const container = document.getElementById('urlListContainer');
+
+      if (!urls || urls.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="emoji">📭</div>
+            <div>단축된 URL이 없습니다. 위에서 URL을 단축해보세요.</div>
+          </div>`;
+        return;
+      }
+
+      const rows = urls.map(item => {
+        const expired = isExpired(item.expiresAt);
+        const rowClass = expired ? 'expired-row' : '';
+        const expiryClass = expired ? 'expiry-date expired' : 'expiry-date';
+        const expiryText = item.expiresAt ? formatDate(item.expiresAt) : '무제한';
+
+        return `
+          <tr class="${rowClass}">
+            <td class="td-original" title="${item.originalUrl || ''}">${truncate(item.originalUrl || '', 45)}</td>
+            <td class="td-short">
+              <a href="${item.shortUrl || ''}" target="_blank" rel="noopener">
+                ${item.shortUrl || item.code || ''}
+              </a>
+            </td>
+            <td><span class="badge badge-clicks">${item.clicks ?? 0}</span></td>
+            <td class="${expiryClass}">${expiryText}</td>
+            <td>
+              <button
+                class="btn btn-secondary btn-sm"
+                onclick="openStats('${item.code}')"
+              >통계</button>
+            </td>
+          </tr>`;
+      }).join('');
+
+      container.innerHTML = `
+        <table>
           <thead>
             <tr>
-              <th>코드</th>
               <th>원본 URL</th>
+              <th>단축 URL</th>
               <th>클릭수</th>
-              <th>만료</th>
-              <th>통계</th>
+              <th>만료일</th>
+              <th></th>
             </tr>
           </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
 
-    <section id="stats-section" class="hidden">
-      <h2>클릭 통계</h2>
-      <div id="stats-detail"></div>
-      <button id="close-stats">닫기</button>
-    </section>
-  </main>
-  <script src="app.js"></script>
+    /* ─── Section 3: Stats Modal ─── */
+
+    async function openStats(code) {
+      const modal = document.getElementById('statsModal');
+      const body = document.getElementById('statsBody');
+      modal.classList.add('open');
+      body.innerHTML = '<div class="empty-state"><span class="loading-spinner"></span></div>';
+
+      try {
+        const res = await fetch(`/api/stats/${encodeURIComponent(code)}`);
+        if (!res.ok) throw new Error('통계를 불러오지 못했습니다.');
+        const data = await res.json();
+        renderStats(data);
+      } catch (err) {
+        body.innerHTML = `<div class="empty-state" style="color:var(--error)">${err.message}</div>`;
+      }
+    }
+
+    function renderStats(data) {
+      const body = document.getElementById('statsBody');
+      const expired = isExpired(data.expiresAt);
+
+      body.innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">${data.clicks ?? 0}</div>
+            <div class="stat-label">총 클릭 수</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="font-size:1rem;color:var(--text)">${data.code || '—'}</div>
+            <div class="stat-label">단축 코드</div>
+          </div>
+        </div>
+        <div class="stats-detail">
+          <div class="stats-row">
+            <span class="key">단축 URL</span>
+            <span class="val"><a href="${data.shortUrl || '#'}" target="_blank" rel="noopener">${data.shortUrl || '—'}</a></span>
+          </div>
+          <div class="stats-row">
+            <span class="key">원본 URL</span>
+            <span class="val" title="${data.originalUrl || ''}">${truncate(data.originalUrl || '', 55)}</span>
+          </div>
+          <div class="stats-row">
+            <span class="key">생성일</span>
+            <span class="val">${formatDate(data.createdAt)}</span>
+          </div>
+          <div class="stats-row">
+            <span class="key">만료일</span>
+            <span class="val" style="${expired ? 'color:var(--error)' : ''}">
+              ${data.expiresAt ? formatDate(data.expiresAt) + (expired ? ' (만료됨)' : '') : '무제한'}
+            </span>
+          </div>
+        </div>`;
+    }
+
+    function closeStats() {
+      document.getElementById('statsModal').classList.remove('open');
+    }
+
+    function closeModal(e) {
+      if (e.target === document.getElementById('statsModal')) {
+        closeStats();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeStats();
+    });
+  </script>
 </body>
 </html>

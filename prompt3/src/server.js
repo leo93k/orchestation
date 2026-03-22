@@ -1,39 +1,52 @@
-const { createApp } = require('./app');
-const { getDatabase, closeDatabase } = require('./db/database');
-const config = require('./config');
-const pino = require('pino');
+import express from 'express';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const logger = pino({ name: 'server' });
+import apiRouter from './routes/api.js';
+import redirectRouter from './routes/redirect.js';
 
-// Initialize database (runs migrations)
-getDatabase();
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const app = createApp();
+const app = express();
 
-const server = app.listen(config.port, () => {
-  logger.info({ port: config.port, baseUrl: config.baseUrl }, 'URL Shortener is running');
-  console.log(`\n  URL Shortener is running at ${config.baseUrl}\n`);
+// ── Middleware ──────────────────────────────────────────────
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Trust proxy for accurate IP logging (behind nginx/load balancer)
+app.set('trust proxy', 1);
+
+// Static files (UI)
+app.use(express.static(join(__dirname, 'public')));
+
+// ── Routes ─────────────────────────────────────────────────
+app.use('/api', apiRouter);
+
+// Health check endpoint (for load balancers / monitoring)
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// === Graceful shutdown ===
-function shutdown(signal) {
-  logger.info({ signal }, 'Received shutdown signal');
+// Redirect route — must come LAST (catch-all for /:code)
+app.use(redirectRouter);
 
-  server.close(() => {
-    logger.info('HTTP server closed');
-    closeDatabase();
-    logger.info('Database connection closed');
-    process.exit(0);
-  });
+// ── Global error handler ───────────────────────────────────
+app.use((err, _req, res, _next) => {
+  console.error('[unhandled error]', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
 
-  // Force exit if graceful shutdown takes too long
-  setTimeout(() => {
-    logger.error('Forced shutdown after timeout');
-    process.exit(1);
-  }, 10000);
+// ── Start ──────────────────────────────────────────────────
+const PORT = process.env.PORT;
+if (!PORT) {
+  console.error('❌  PORT environment variable is required. Example: PORT=3000 node server.js');
+  process.exit(1);
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+app.listen(PORT, () => {
+  console.log(`✅  URL Shortener running on http://localhost:${PORT}`);
+  console.log(`   Health: http://localhost:${PORT}/health`);
+  console.log(`   API:    http://localhost:${PORT}/api`);
+});
 
-module.exports = server;
+export default app;

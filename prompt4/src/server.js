@@ -1,84 +1,63 @@
 const express = require('express');
+const cors = require('cors');
 const path = require('path');
-const { createUrl, getUrl, getAllUrls, recordClick, isExpired, deleteExpired } = require('./db');
-const { generateCode } = require('./utils');
+const { findByCode, incrementClicks, deleteExpired } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 미들웨어
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 매 요청 시 만료된 URL 삭제
-app.use((req, res, next) => {
-  deleteExpired();
-  next();
-});
+// API routes
+app.use('/api', require('./routes/api'));
 
-// POST /api/shorten - URL 단축
-app.post('/api/shorten', (req, res) => {
-  let { url, customCode, expiresIn } = req.body;
-
-  if (!url) {
-    return res.status(400).json({ error: 'url is required' });
-  }
-
-  // URL 유효성 검사: http:// 또는 https://로 시작하지 않으면 https:// 자동 추가
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'https://' + url;
-  }
-
-  // 코드 결정
-  let code;
-  if (customCode) {
-    const existing = getUrl(customCode);
-    if (existing && !isExpired(existing)) {
-      return res.status(409).json({ error: 'Custom code already in use' });
-    }
-    code = customCode;
-  } else {
-    code = generateCode();
-  }
-
-  // 만료 시간 계산
-  const expiresAt = expiresIn ? Date.now() + expiresIn * 60000 : null;
-
-  const entry = createUrl(code, url, expiresAt);
-
-  res.status(201).json({
-    shortUrl: `http://localhost:${PORT}/${code}`,
-    code: entry.code,
-    originalUrl: entry.originalUrl,
-    expiresAt: entry.expiresAt,
-  });
-});
-
-// GET /api/urls - 전체 URL 목록 (만료 제외)
-app.get('/api/urls', (req, res) => {
-  const entries = getAllUrls().filter((entry) => !isExpired(entry));
-  res.json(entries);
-});
-
-// GET /api/urls/:code/stats - 특정 URL 통계
-app.get('/api/urls/:code/stats', (req, res) => {
-  const entry = getUrl(req.params.code);
-  if (!entry || isExpired(entry)) {
-    return res.status(404).json({ error: 'URL not found or expired' });
-  }
-  res.json(entry);
-});
-
-// GET /:code - 리다이렉트 (API 라우트 뒤에 배치)
+// Redirect route: GET /:code
 app.get('/:code', (req, res) => {
-  const entry = getUrl(req.params.code);
-  if (!entry || isExpired(entry)) {
-    return res.status(404).send('URL not found or expired');
+  const { code } = req.params;
+
+  const entry = findByCode(code);
+
+  if (!entry) {
+    return res.status(404).json({ error: 'Short URL not found' });
   }
-  recordClick(req.params.code, req.headers['user-agent'], req.ip);
-  res.redirect(302, entry.originalUrl);
+
+  // Check expiry
+  if (entry.expiresAt && new Date(entry.expiresAt) <= new Date()) {
+    return res.status(410).json({ error: 'This short URL has expired' });
+  }
+
+  // Increment click count
+  incrementClicks(code);
+
+  // 301 redirect to original URL
+  return res.redirect(301, entry.originalUrl);
 });
 
-app.listen(PORT, () => {
-  console.log(`URL Shortener running on http://localhost:${PORT}`);
+// Root route: serve index.html (handled by static middleware, but explicit fallback)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`URL Shortener running on port ${PORT}`);
+
+  // Delete expired entries immediately on startup
+  const deletedOnStart = deleteExpired();
+  if (deletedOnStart > 0) {
+    console.log(`Deleted ${deletedOnStart} expired entries on startup`);
+  }
+
+  // Run deleteExpired every hour
+  setInterval(() => {
+    const deleted = deleteExpired();
+    if (deleted > 0) {
+      console.log(`Deleted ${deleted} expired entries`);
+    }
+  }, 60 * 60 * 1000);
+});
+
+module.exports = app;

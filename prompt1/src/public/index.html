@@ -1,135 +1,652 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>URL Shortener</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>URL 단축기</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-light: #eef2ff;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --success: #22c55e;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.05);
+      --transition: 0.18s ease;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+    header p {
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px 28px;
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      background: var(--primary-light);
+      border-radius: 8px;
+      color: var(--primary);
+      font-size: 1rem;
+    }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group.full { grid-column: 1 / -1; }
+    label {
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    input, select {
+      height: 42px;
+      padding: 0 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color var(--transition), box-shadow var(--transition);
+      outline: none;
+      width: 100%;
+    }
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 42px;
+      padding: 0 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--transition), opacity var(--transition), transform var(--transition);
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+    }
+    .btn-outline:hover { background: var(--primary-light); }
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1.5px solid var(--danger);
+      height: 32px;
+      padding: 0 12px;
+      font-size: 0.82rem;
+    }
+    .btn-danger:hover { background: #fff1f2; }
+    .btn-copy {
+      background: var(--primary-light);
+      color: var(--primary);
+      border: none;
+      height: 36px;
+      padding: 0 14px;
+      font-size: 0.85rem;
+    }
+    .btn-copy:hover { background: #e0e7ff; }
+
+    .form-actions {
+      margin-top: 18px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Result box */
+    #result-box {
+      display: none;
+      margin-top: 18px;
+      padding: 16px 18px;
+      background: var(--primary-light);
+      border-radius: 8px;
+      border: 1.5px solid #c7d2fe;
+    }
+    #result-box .result-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 8px;
+    }
+    #result-box .result-url-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    #result-short-url {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary);
+      word-break: break-all;
+      flex: 1;
+      text-decoration: none;
+    }
+    #result-short-url:hover { text-decoration: underline; }
+
+    /* List section */
+    .list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    thead th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg); }
+    tbody td {
+      padding: 11px 12px;
+      vertical-align: middle;
+    }
+
+    .code-cell {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 0.82rem;
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .original-url {
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-muted);
+    }
+    .clicks-cell {
+      font-weight: 600;
+      text-align: center;
+    }
+    .date-cell {
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    tr.expired td {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+    tr.expired .btn-danger { opacity: 0.5; }
+    .expired-badge {
+      font-size: 0.7rem;
+      background: #fee2e2;
+      color: var(--danger);
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .empty-state p { font-size: 0.92rem; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,.5);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-dark {
+      border-color: rgba(99,102,241,.3);
+      border-top-color: var(--primary);
+    }
+
+    /* Toast */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 9999;
+    }
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 18px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,.15);
+      animation: slideIn 0.25s ease, fadeOut 0.3s ease 2.5s forwards;
+      max-width: 320px;
+    }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    .toast.info { background: var(--primary); }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0);   opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to   { opacity: 0; pointer-events: none; }
+    }
+
+    @media (max-width: 560px) {
+      .card { padding: 20px 16px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: 1; }
+      header h1 { font-size: 1.5rem; }
+      .original-url { max-width: 120px; }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>URL Shortener</h1>
-      <p class="subtitle">Shorten, share, and track your links</p>
-    </header>
 
-    <section class="card shorten-form">
-      <h2>Shorten a URL</h2>
-      <form id="shorten-form" onsubmit="return shortenUrl(event)">
-        <div class="form-group">
-          <label for="url-input">Destination URL</label>
+<header>
+  <h1>✂️ URL 단축기</h1>
+  <p>긴 URL을 짧고 간편하게 만들어보세요</p>
+</header>
+
+<div class="container">
+
+  <!-- Section 1: Create -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">🔗</span>
+      URL 단축 생성
+    </div>
+
+    <form id="shorten-form" novalidate>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label for="url-input">원본 URL <span style="color:var(--danger)">*</span></label>
           <input
             type="url"
             id="url-input"
-            placeholder="https://example.com/very/long/url"
+            placeholder="https://example.com/very/long/url/here"
             required
           />
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="slug-input">Custom slug <span class="optional">(optional)</span></label>
-            <input
-              type="text"
-              id="slug-input"
-              placeholder="my-link"
-              pattern="[a-zA-Z0-9_-]+"
-              title="Letters, numbers, hyphens, and underscores only"
-            />
-          </div>
-          <div class="form-group">
-            <label for="expires-select">Expiration</label>
-            <select id="expires-select">
-              <option value="">No expiration</option>
-              <option value="1h">1 hour</option>
-              <option value="24h">24 hours</option>
-              <option value="7d">7 days</option>
-              <option value="30d">30 days</option>
-              <option value="90d">90 days</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label for="custom-code">커스텀 코드 (선택)</label>
+          <input
+            type="text"
+            id="custom-code"
+            placeholder="my-link"
+            pattern="[A-Za-z0-9\-_]+"
+            maxlength="32"
+          />
         </div>
-        <button type="submit" class="btn btn-primary" id="submit-btn">
-          <span class="btn-text">Shorten URL</span>
-          <span class="btn-loading" hidden>Shortening...</span>
+        <div class="form-group">
+          <label for="expires-select">만료 기간</label>
+          <select id="expires-select">
+            <option value="">만료 없음</option>
+            <option value="1">1일</option>
+            <option value="7">7일</option>
+            <option value="30">30일</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="shorten-btn">
+          단축하기
         </button>
-      </form>
+      </div>
+    </form>
 
-      <div id="result-section" class="result-section" hidden>
-        <div class="result-label">Your shortened URL</div>
-        <div class="result-row">
-          <a id="result-url" class="result-url" href="#" target="_blank" rel="noopener"></a>
-          <button class="btn btn-copy" onclick="copyToClipboard()" title="Copy to clipboard">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-            </svg>
-            <span class="copy-label">Copy</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section class="card urls-section">
-      <div class="section-header">
-        <h2>Your Links</h2>
-        <button class="btn btn-sm btn-secondary" onclick="loadUrls()">Refresh</button>
-      </div>
-      <div id="urls-loading" class="loading" hidden>
-        <div class="spinner"></div>
-        <span>Loading links...</span>
-      </div>
-      <div id="urls-empty" class="empty-state" hidden>
-        <p>No shortened URLs yet. Create one above!</p>
-      </div>
-      <div class="table-wrapper">
-        <table id="urls-table" hidden>
-          <thead>
-            <tr>
-              <th>Short URL</th>
-              <th>Original URL</th>
-              <th>Clicks</th>
-              <th>Created</th>
-              <th>Expires</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="urls-tbody"></tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-  <div id="stats-overlay" class="modal-overlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="stats-title">Click Statistics</h3>
-        <button class="btn-close" id="close-stats-btn">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="stats-summary">
-          <div class="stat-card">
-            <span class="stat-value" id="stats-total">0</span>
-            <span class="stat-label">Total Clicks</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" id="stats-today">0</span>
-            <span class="stat-label">Today</span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-value" id="stats-week">0</span>
-            <span class="stat-label">This Week</span>
-          </div>
-        </div>
-        <div class="chart-section">
-          <h4>Daily Clicks (Last 7 Days)</h4>
-          <div id="stats-chart" class="bar-chart"></div>
-        </div>
+    <div id="result-box">
+      <div class="result-label">생성된 단축 URL</div>
+      <div class="result-url-row">
+        <a id="result-short-url" href="#" target="_blank" rel="noopener"></a>
+        <button class="btn btn-copy" id="copy-btn">복사</button>
       </div>
     </div>
   </div>
 
-  <div id="toast-container" class="toast-container"></div>
+  <!-- Section 2: List -->
+  <div class="card">
+    <div class="list-header">
+      <div class="card-title" style="margin-bottom:0">
+        <span class="icon">📋</span>
+        단축 URL 목록
+      </div>
+      <button class="btn btn-outline" id="refresh-btn">
+        새로고침
+      </button>
+    </div>
 
-  <script src="app.js"></script>
+    <div class="table-wrapper">
+      <table id="url-table">
+        <thead>
+          <tr>
+            <th>단축 코드</th>
+            <th>원본 URL</th>
+            <th style="text-align:center">클릭수</th>
+            <th>생성일</th>
+            <th>만료일</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="url-tbody">
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <div class="empty-icon">⏳</div>
+                <p>불러오는 중...</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+  const API = '';
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function showToast(msg, type = 'info') {
+    const tc = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    tc.appendChild(t);
+    setTimeout(() => t.remove(), 2900);
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return '—';
+    return d.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' });
+  }
+
+  function truncate(str, n = 40) {
+    if (!str) return '';
+    return str.length > n ? str.slice(0, n) + '…' : str;
+  }
+
+  function isExpired(expiresAt) {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) < new Date();
+  }
+
+  function setLoading(btn, loading, originalHTML) {
+    if (loading) {
+      btn.disabled = true;
+      btn.dataset.original = btn.innerHTML;
+      btn.innerHTML = `<span class="spinner"></span> 처리 중...`;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = originalHTML || btn.dataset.original || btn.innerHTML;
+    }
+  }
+
+  // ── Fetch URL list ────────────────────────────────────────────────────────
+  async function loadUrls() {
+    const tbody = document.getElementById('url-tbody');
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div><p>불러오는 중...</p></div></td></tr>`;
+
+    try {
+      const res = await fetch(`${API}/api/urls`);
+      if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
+      const urls = await res.json();
+      renderTable(urls);
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div></td></tr>`;
+      showToast('목록을 불러오지 못했습니다: ' + e.message, 'error');
+    }
+  }
+
+  function renderTable(urls) {
+    const tbody = document.getElementById('url-tbody');
+    if (!urls || urls.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><p>단축 URL이 없습니다. 위에서 첫 번째 URL을 만들어보세요!</p></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = urls.map(u => {
+      const expired = isExpired(u.expiresAt);
+      const expiredClass = expired ? ' class="expired"' : '';
+      const expiredBadge = expired ? ' <span class="expired-badge" style="text-decoration:none">만료됨</span>' : '';
+      return `<tr${expiredClass}>
+        <td class="code-cell">${escHtml(u.shortCode)}${expiredBadge}</td>
+        <td><span class="original-url" title="${escHtml(u.originalUrl)}">${escHtml(truncate(u.originalUrl))}</span></td>
+        <td class="clicks-cell">${u.clicks ?? 0}</td>
+        <td class="date-cell">${formatDate(u.createdAt)}</td>
+        <td class="date-cell">${formatDate(u.expiresAt)}</td>
+        <td><button class="btn btn-danger" onclick="deleteUrl('${escHtml(u.shortCode)}', this)">삭제</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function escHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  // ── Delete ────────────────────────────────────────────────────────────────
+  async function deleteUrl(code, btn) {
+    if (!confirm(`"${code}" 를 삭제하시겠습니까?`)) return;
+    const orig = btn.innerHTML;
+    setLoading(btn, true);
+    try {
+      const res = await fetch(`${API}/api/urls/${encodeURIComponent(code)}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`삭제 실패 (${res.status})`);
+      showToast('삭제되었습니다.', 'success');
+      await loadUrls();
+    } catch (e) {
+      setLoading(btn, false, orig);
+      showToast(e.message, 'error');
+    }
+  }
+
+  // ── Shorten form ──────────────────────────────────────────────────────────
+  document.getElementById('shorten-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const urlInput   = document.getElementById('url-input');
+    const customCode = document.getElementById('custom-code').value.trim();
+    const expiresVal = document.getElementById('expires-select').value;
+    const btn        = document.getElementById('shorten-btn');
+    const resultBox  = document.getElementById('result-box');
+
+    // Validate URL
+    const rawUrl = urlInput.value.trim();
+    if (!rawUrl) {
+      showToast('URL을 입력해주세요.', 'error');
+      urlInput.focus();
+      return;
+    }
+    try { new URL(rawUrl); } catch {
+      showToast('올바른 URL 형식이 아닙니다.', 'error');
+      urlInput.focus();
+      return;
+    }
+
+    const body = { url: rawUrl };
+    if (customCode) body.customCode = customCode;
+    if (expiresVal)  body.expiresInDays = parseInt(expiresVal, 10);
+
+    setLoading(btn, true);
+    resultBox.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API}/api/shorten`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.message || `오류 (${res.status})`);
+      }
+
+      // Show result
+      const shortUrl = data.shortUrl || `${location.origin}/${data.shortCode}`;
+      const anchor   = document.getElementById('result-short-url');
+      anchor.href        = shortUrl;
+      anchor.textContent = shortUrl;
+      resultBox.style.display = 'block';
+
+      // Reset form
+      e.target.reset();
+
+      showToast('단축 URL이 생성되었습니다!', 'success');
+      await loadUrls();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setLoading(btn, false, '단축하기');
+    }
+  });
+
+  // ── Copy button ───────────────────────────────────────────────────────────
+  document.getElementById('copy-btn').addEventListener('click', async () => {
+    const url = document.getElementById('result-short-url').textContent;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('클립보드에 복사되었습니다!', 'success');
+      const btn = document.getElementById('copy-btn');
+      const orig = btn.textContent;
+      btn.textContent = '✓ 복사됨';
+      setTimeout(() => { btn.textContent = orig; }, 1800);
+    } catch {
+      showToast('복사에 실패했습니다. 수동으로 복사해주세요.', 'error');
+    }
+  });
+
+  // ── Refresh button ────────────────────────────────────────────────────────
+  document.getElementById('refresh-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('refresh-btn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner spinner-dark"></span> 새로고침 중`;
+    await loadUrls();
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadUrls();
+</script>
 </body>
 </html>

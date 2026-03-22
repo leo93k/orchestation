@@ -1,56 +1,75 @@
-const store = new Map();
+const fs = require('fs');
+const path = require('path');
 
-function createUrl(code, originalUrl, expiresAt) {
-  const entry = {
-    code,
-    originalUrl,
-    clicks: 0,
-    createdAt: Date.now(),
-    expiresAt: expiresAt || null,
-    clickHistory: [],
-  };
-  store.set(code, entry);
-  return entry;
-}
+const DATA_FILE = path.join(__dirname, 'data.json');
 
-function getUrl(code) {
-  return store.get(code) || null;
-}
-
-function getAllUrls() {
-  return Array.from(store.values());
-}
-
-function recordClick(code, userAgent, ip) {
-  const entry = store.get(code);
-  if (!entry) return null;
-  entry.clicks += 1;
-  entry.clickHistory.push({
-    timestamp: Date.now(),
-    userAgent: userAgent || '',
-    ip: ip || '',
-  });
-  return entry;
-}
-
-function isExpired(entry) {
-  if (entry.expiresAt === null) return false;
-  return Date.now() > entry.expiresAt;
-}
-
-function deleteExpired() {
-  for (const [code, entry] of store) {
-    if (isExpired(entry)) {
-      store.delete(code);
-    }
+function readData() {
+  if (!fs.existsSync(DATA_FILE)) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify([]), 'utf8');
+    return [];
+  }
+  try {
+    const content = fs.readFileSync(DATA_FILE, 'utf8');
+    return JSON.parse(content);
+  } catch (e) {
+    return [];
   }
 }
 
+function writeData(data) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+function getAllUrls() {
+  return readData();
+}
+
+function findByCode(code) {
+  const data = readData();
+  return data.find(entry => entry.code === code) || null;
+}
+
+function findByOriginalUrl(url) {
+  const data = readData();
+  return data.find(entry => entry.originalUrl === url) || null;
+}
+
+function save(entry) {
+  const data = readData();
+  data.push(entry);
+  writeData(data);
+  return entry;
+}
+
+function incrementClicks(code) {
+  const data = readData();
+  const index = data.findIndex(entry => entry.code === code);
+  if (index !== -1) {
+    data[index].clicks = (data[index].clicks || 0) + 1;
+    writeData(data);
+    return data[index];
+  }
+  return null;
+}
+
+function deleteExpired() {
+  const data = readData();
+  const now = new Date().toISOString();
+  const active = data.filter(entry => {
+    if (!entry.expiresAt) return true;
+    return entry.expiresAt > now;
+  });
+  if (active.length !== data.length) {
+    writeData(active);
+  }
+  return data.length - active.length;
+}
+
 module.exports = {
-  createUrl,
-  getUrl,
   getAllUrls,
-  recordClick,
-  isExpired,
+  findByCode,
+  findByOriginalUrl,
+  save,
+  incrementClicks,
   deleteExpired,
 };

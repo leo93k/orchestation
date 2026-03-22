@@ -24,9 +24,11 @@ if [ ! -f "$ROOT_DIR/docs/prompts/prompt${i}.md" ]; then
   exit 1
 fi
 
-RULE='[절대 규칙]
-1. 현재 작업 디렉토리 외부의 파일을 읽거나 참조하지 마라. 특히 ../prompt*, ../docs/prompts/ 등 다른 프롬프트나 다른 에이전트의 결과물을 절대 참고하지 마라. 오직 주어진 PRD와 현재 디렉토리 내 파일만 사용하라.
-2. 모든 코드 파일은 반드시 src/ 디렉토리 안에 생성하라. package.json, 설정 파일, 데이터 파일 등 프로젝트의 모든 파일은 예외 없이 src/ 하위에 위치해야 한다. src/ 외부에 파일을 생성하지 마라.'
+WORK_DIR="$ROOT_DIR/prompt${i}"
+RULE="[절대 규칙]
+1. 현재 작업 디렉토리는 ${WORK_DIR} 이다. 모든 파일 경로는 반드시 이 경로를 기준으로 사용하라. 다른 경로에 파일을 생성하지 마라.
+2. 현재 작업 디렉토리 외부의 파일을 읽거나 참조하지 마라. 특히 ../prompt*, ../docs/prompts/ 등 다른 프롬프트나 다른 에이전트의 결과물을 절대 참고하지 마라.
+3. 모든 코드 파일은 반드시 ${WORK_DIR}/src/ 디렉토리 안에 생성하라. package.json, 설정 파일, 데이터 파일 등 프로젝트의 모든 파일은 예외 없이 src/ 하위에 위치해야 한다. src/ 외부에 파일을 생성하지 마라."
 
 mkdir -p "$ROOT_DIR/prompt${i}/src" "$ROOT_DIR/prompt${i}/spec"
 

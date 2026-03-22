@@ -1,88 +1,541 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>URL Shortener</title>
-  <link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>URL 단축 서비스</title>
+  <style>
+    /* ── 리셋 & 기본 ────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary:   #4f46e5;
+      --primary-h: #4338ca;
+      --danger:    #ef4444;
+      --success:   #10b981;
+      --warning:   #f59e0b;
+      --bg:        #f8fafc;
+      --card:      #ffffff;
+      --border:    #e2e8f0;
+      --text:      #1e293b;
+      --muted:     #64748b;
+      --radius:    12px;
+      --shadow:    0 4px 24px rgba(0,0,0,.08);
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── 헤더 ───────────────────────────────────────── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      text-align: center;
+      padding: 2.5rem 1rem 2rem;
+    }
+    header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.5px; }
+    header p  { margin-top: .4rem; opacity: .85; font-size: .95rem; }
+
+    /* ── 레이아웃 ────────────────────────────────────── */
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* ── 카드 ───────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.75rem;
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    /* ── 폼 ─────────────────────────────────────────── */
+    .form-row { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
+    label { font-size: .82rem; font-weight: 600; color: var(--muted); }
+    input[type="text"], input[type="url"], input[type="number"] {
+      width: 100%;
+      padding: .6rem .85rem;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: .95rem;
+      color: var(--text);
+      background: #fff;
+      transition: border-color .18s;
+      outline: none;
+    }
+    input:focus { border-color: var(--primary); }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 540px) { .form-grid { grid-template-columns: 1fr; } }
+
+    /* ── 버튼 ────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+      padding: .65rem 1.4rem;
+      border: none;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .18s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-h); }
+    .btn-sm { padding: .35rem .85rem; font-size: .8rem; }
+    .btn-copy { background: #e0e7ff; color: var(--primary); }
+    .btn-copy:hover { background: #c7d2fe; }
+    .btn-full { width: 100%; }
+
+    /* ── 결과 박스 ──────────────────────────────────── */
+    #result-box {
+      display: none;
+      margin-top: 1.25rem;
+      padding: 1.1rem 1.25rem;
+      background: #f0fdf4;
+      border: 1.5px solid #bbf7d0;
+      border-radius: 10px;
+    }
+    #result-box .result-label { font-size: .78rem; font-weight: 700; color: var(--success); margin-bottom: .4rem; }
+    #result-box .result-url-row {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+    #result-box .short-url {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+      word-break: break-all;
+    }
+    #result-box .short-url:hover { text-decoration: underline; }
+
+    /* ── 알림 ───────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(6px);
+      background: #1e293b;
+      color: #fff;
+      padding: .6rem 1.4rem;
+      border-radius: 999px;
+      font-size: .88rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s, transform .25s;
+      white-space: nowrap;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── 에러 ───────────────────────────────────────── */
+    .error-msg {
+      display: none;
+      margin-top: .6rem;
+      color: var(--danger);
+      font-size: .85rem;
+      font-weight: 500;
+    }
+
+    /* ── URL 목록 테이블 ─────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    th, td {
+      padding: .65rem .85rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th { font-weight: 700; color: var(--muted); background: #f8fafc; }
+    tr:hover td { background: #f8fafc; }
+    .badge {
+      display: inline-block;
+      padding: .18rem .55rem;
+      border-radius: 999px;
+      font-size: .73rem;
+      font-weight: 700;
+    }
+    .badge-ok      { background: #d1fae5; color: #065f46; }
+    .badge-expired { background: #fee2e2; color: #991b1b; }
+    .badge-never   { background: #e0e7ff; color: #3730a3; }
+    .url-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .code-link { color: var(--primary); font-weight: 700; text-decoration: none; }
+    .code-link:hover { text-decoration: underline; }
+    .empty-row td { text-align: center; color: var(--muted); padding: 2rem; }
+
+    /* ── 통계 모달 ──────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: 0 8px 48px rgba(0,0,0,.18);
+      width: min(600px, 95vw);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 2rem;
+      position: relative;
+    }
+    .modal h2 { font-size: 1.15rem; margin-bottom: 1rem; }
+    .modal-close {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+    }
+    .stat-item {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .85rem .75rem;
+      text-align: center;
+    }
+    .stat-item .val { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
+    .stat-item .lbl { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
+    .log-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .log-table th, .log-table td { padding: .45rem .6rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .log-table th { background: #f8fafc; font-weight: 700; color: var(--muted); }
+
+    /* ── 로딩 ───────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2.5px solid #fff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>🔗 URL Shortener</h1>
-      <p>긴 URL을 짧게 줄이고, 클릭을 추적하세요.</p>
-    </header>
 
-    <!-- Shorten Form -->
-    <div class="card">
-      <h2>URL 단축하기</h2>
-      <form id="shortenForm">
-        <div class="form-group">
-          <label for="urlInput">URL</label>
-          <input type="url" id="urlInput" placeholder="https://example.com/very/long/url" required>
+<header>
+  <h1>🔗 URL 단축 서비스</h1>
+  <p>긴 URL을 짧게 만들고 클릭 통계까지 확인하세요</p>
+</header>
+
+<main>
+
+  <!-- ─── 단축 URL 생성 카드 ─── -->
+  <section class="card">
+    <h2>✂️ URL 단축하기</h2>
+    <form id="shorten-form" novalidate>
+      <div class="form-row">
+        <label for="url-input">원본 URL *</label>
+        <input type="url" id="url-input" placeholder="https://example.com/very-long-url..." required />
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label for="custom-code">커스텀 코드 (선택)</label>
+          <input type="text" id="custom-code" placeholder="my-link" />
         </div>
         <div class="form-row">
-          <div class="form-group">
-            <label for="aliasInput">커스텀 별칭 (선택)</label>
-            <input type="text" id="aliasInput" placeholder="my-link">
-          </div>
-          <div class="form-group">
-            <label for="expiresSelect">만료 기간</label>
-            <select id="expiresSelect">
-              <option value="0">만료 없음</option>
-              <option value="60">1시간</option>
-              <option value="1440">1일</option>
-              <option value="10080">7일</option>
-              <option value="43200">30일</option>
-              <option value="525600">1년</option>
-            </select>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary">단축하기</button>
-      </form>
-
-      <div class="result" id="result">
-        <p>단축 URL이 생성되었습니다!</p>
-        <div class="short-url" id="shortUrlDisplay"></div>
-        <div class="actions">
-          <button class="btn btn-sm btn-copy" id="copyBtn">복사</button>
-          <a id="visitBtn" href="#" target="_blank" class="btn btn-sm btn-stats">방문</a>
+          <label for="expires-days">만료 기간 – 일 (선택)</label>
+          <input type="number" id="expires-days" placeholder="7 (비워두면 영구)" min="1" max="3650" />
         </div>
       </div>
-    </div>
+      <div class="error-msg" id="shorten-error"></div>
+      <button type="submit" class="btn btn-primary btn-full">단축 URL 생성</button>
+    </form>
 
-    <!-- URL List -->
-    <div class="card">
-      <h2>단축 URL 목록</h2>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>단축 코드</th>
-              <th>원본 URL</th>
-              <th>클릭</th>
-              <th>상태</th>
-              <th>생성일</th>
-              <th>작업</th>
-            </tr>
-          </thead>
-          <tbody id="urlTableBody">
-            <tr><td colspan="6" class="empty-state">로딩 중...</td></tr>
-          </tbody>
-        </table>
+    <div id="result-box">
+      <div class="result-label">✅ 생성 완료!</div>
+      <div class="result-url-row">
+        <a id="result-link" href="#" target="_blank" class="short-url"></a>
+        <button class="btn btn-copy btn-sm" onclick="copyResult()">복사</button>
       </div>
+      <div style="margin-top:.6rem;font-size:.8rem;color:var(--muted)" id="result-meta"></div>
+    </div>
+  </section>
+
+  <!-- ─── URL 목록 카드 ─── -->
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h2 style="margin:0">📋 단축 URL 목록</h2>
+      <button class="btn btn-primary btn-sm" onclick="loadUrls()">새로고침</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>코드</th>
+            <th>원본 URL</th>
+            <th>클릭</th>
+            <th>만료</th>
+            <th>생성일</th>
+            <th>통계</th>
+          </tr>
+        </thead>
+        <tbody id="url-table-body">
+          <tr class="empty-row"><td colspan="6">로딩 중…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- ─── 통계 모달 ─── -->
+<div class="modal-overlay" id="stat-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    <h2 id="modal-title">클릭 통계</h2>
+    <div class="stat-grid" id="modal-stats"></div>
+    <h3 style="font-size:.95rem;margin-bottom:.75rem">최근 클릭 로그 (최대 20건)</h3>
+    <div class="table-wrap">
+      <table class="log-table">
+        <thead><tr><th>#</th><th>시각</th><th>IP</th><th>User-Agent</th></tr></thead>
+        <tbody id="modal-log-body"></tbody>
+      </table>
     </div>
   </div>
+</div>
 
-  <!-- Stats Modal -->
-  <div class="modal-overlay" id="statsModal">
-    <div class="modal">
-      <h3>📊 클릭 통계</h3>
-      <div id="statsContent"></div>
-      <button class="close-btn" onclick="closeModal()">닫기</button>
-    </div>
-  </div>
+<!-- ─── 토스트 ─── -->
+<div id="toast"></div>
 
-  <script src="/app.js"></script>
+<script>
+  /* ── 유틸 ─────────────────────────────────────────── */
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '-';
+    return new Date(iso).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  function escHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+  }
+
+  /* ── 단축 URL 생성 ─────────────────────────────────── */
+  const form       = document.getElementById('shorten-form');
+  const errEl      = document.getElementById('shorten-error');
+  const resultBox  = document.getElementById('result-box');
+  const resultLink = document.getElementById('result-link');
+  const resultMeta = document.getElementById('result-meta');
+  let lastShortUrl = '';
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errEl.style.display = 'none';
+    resultBox.style.display = 'none';
+
+    const url         = document.getElementById('url-input').value.trim();
+    const customCode  = document.getElementById('custom-code').value.trim();
+    const expiresDays = document.getElementById('expires-days').value.trim();
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> 생성 중…';
+
+    try {
+      const body = { url };
+      if (customCode)  body.customCode    = customCode;
+      if (expiresDays) body.expiresInDays = parseInt(expiresDays, 10);
+
+      const res  = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errEl.textContent = data.error || '오류가 발생했습니다.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      lastShortUrl = data.shortUrl;
+      resultLink.href        = data.shortUrl;
+      resultLink.textContent = data.shortUrl;
+
+      const parts = [];
+      if (data.expires_at) parts.push(`만료: ${fmtDate(data.expires_at)}`);
+      else                  parts.push('만료: 영구');
+      resultMeta.textContent = parts.join(' · ');
+
+      resultBox.style.display = 'block';
+      form.reset();
+      loadUrls();
+    } catch {
+      errEl.textContent = '네트워크 오류가 발생했습니다.';
+      errEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '단축 URL 생성';
+    }
+  });
+
+  function copyResult() {
+    navigator.clipboard.writeText(lastShortUrl)
+      .then(() => showToast('✅ 복사했습니다!'))
+      .catch(() => showToast('복사에 실패했습니다.'));
+  }
+
+  /* ── URL 목록 ─────────────────────────────────────── */
+  async function loadUrls() {
+    const tbody = document.getElementById('url-table-body');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">로딩 중…</td></tr>';
+
+    try {
+      const res  = await fetch('/api/urls?limit=50');
+      const data = await res.json();
+
+      if (!data.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="6">등록된 URL이 없습니다.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map(u => {
+        const badgeHtml = u.expired
+          ? '<span class="badge badge-expired">만료됨</span>'
+          : u.expires_at
+            ? `<span class="badge badge-ok">${fmtDate(u.expires_at)}</span>`
+            : '<span class="badge badge-never">영구</span>';
+
+        return `
+          <tr>
+            <td>
+              <a class="code-link" href="/${escHtml(u.code)}" target="_blank">${escHtml(u.code)}</a>
+            </td>
+            <td class="url-cell" title="${escHtml(u.original)}">
+              <a href="${escHtml(u.original)}" target="_blank" rel="noopener"
+                 style="color:var(--muted);text-decoration:none;font-size:.83rem">
+                ${escHtml(u.original)}
+              </a>
+            </td>
+            <td style="font-weight:700;color:var(--primary)">${u.clicks.toLocaleString()}</td>
+            <td>${badgeHtml}</td>
+            <td style="font-size:.8rem;color:var(--muted)">${fmtDate(u.created_at)}</td>
+            <td>
+              <button class="btn btn-copy btn-sm" onclick="openStat('${escHtml(u.code)}')">📊 통계</button>
+            </td>
+          </tr>`;
+      }).join('');
+    } catch {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">목록을 불러오지 못했습니다.</td></tr>';
+    }
+  }
+
+  /* ── 통계 모달 ─────────────────────────────────────── */
+  async function openStat(code) {
+    document.getElementById('modal-title').textContent = `📊 통계 — /${code}`;
+    document.getElementById('modal-stats').innerHTML = '<p style="color:var(--muted)">로딩 중…</p>';
+    document.getElementById('modal-log-body').innerHTML = '';
+    document.getElementById('stat-modal').classList.add('open');
+
+    try {
+      const res  = await fetch(`/api/urls/${encodeURIComponent(code)}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        document.getElementById('modal-stats').innerHTML = `<p style="color:var(--danger)">${escHtml(data.error)}</p>`;
+        return;
+      }
+
+      // 통계 카드
+      document.getElementById('modal-stats').innerHTML = `
+        <div class="stat-item"><div class="val">${data.clicks.toLocaleString()}</div><div class="lbl">총 클릭 수</div></div>
+        <div class="stat-item">
+          <div class="val" style="font-size:1rem;word-break:break-all">
+            <a href="${escHtml(data.shortUrl)}" target="_blank" style="color:var(--primary);text-decoration:none">
+              ${escHtml(data.shortUrl)}
+            </a>
+          </div>
+          <div class="lbl">단축 URL</div>
+        </div>
+        <div class="stat-item">
+          <div class="val" style="font-size:1rem">${data.expired ? '❌ 만료됨' : data.expires_at ? '⏰ ' + fmtDate(data.expires_at) : '♾️ 영구'}</div>
+          <div class="lbl">만료 상태</div>
+        </div>
+      `;
+
+      // 로그 테이블
+      const logs = data.recentClicks || [];
+      if (!logs.length) {
+        document.getElementById('modal-log-body').innerHTML =
+          '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1rem">클릭 기록이 없습니다.</td></tr>';
+      } else {
+        document.getElementById('modal-log-body').innerHTML = logs.map((l, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${fmtDate(l.clicked_at)}</td>
+            <td>${escHtml(l.ip || '-')}</td>
+            <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                title="${escHtml(l.user_agent || '')}">${escHtml(l.user_agent || '-')}</td>
+          </tr>`).join('');
+      }
+    } catch {
+      document.getElementById('modal-stats').innerHTML =
+        '<p style="color:var(--danger)">데이터를 불러오지 못했습니다.</p>';
+    }
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('stat-modal')) {
+      document.getElementById('stat-modal').classList.remove('open');
+    }
+  }
+  function closeModalBtn() {
+    document.getElementById('stat-modal').classList.remove('open');
+  }
+
+  /* ── 초기 로드 ─────────────────────────────────────── */
+  loadUrls();
+</script>
 </body>
 </html>

@@ -179,6 +179,63 @@
 
     .no-data { text-align: center; color: #6e6e80; padding: 80px 0; }
 
+    /* AI Report */
+    .ai-report {
+      background: #191a1f;
+      border: 1px solid #2a2a30;
+      border-radius: 10px;
+      padding: 24px 28px;
+      font-size: 0.85rem;
+      line-height: 1.75;
+      color: #c8c9d0;
+    }
+    .ai-report h1, .ai-report h2, .ai-report h3 {
+      color: #fff;
+      margin-top: 20px;
+      margin-bottom: 8px;
+    }
+    .ai-report h1 { font-size: 1.2rem; }
+    .ai-report h2 { font-size: 1rem; border-bottom: 1px solid #2a2a30; padding-bottom: 6px; }
+    .ai-report h3 { font-size: 0.9rem; color: #b4b5bd; }
+    .ai-report p { margin-bottom: 10px; }
+    .ai-report ul, .ai-report ol { padding-left: 20px; margin-bottom: 10px; }
+    .ai-report li { margin-bottom: 4px; }
+    .ai-report strong { color: #fff; }
+    .ai-report code {
+      background: #111113;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      color: #12a594;
+    }
+    .ai-report table { margin: 12px 0; }
+    .ai-report table th {
+      text-align: left;
+      padding: 6px 10px;
+      border-bottom: 1px solid #2a2a30;
+      color: #6e6e80;
+      font-size: 0.75rem;
+    }
+    .ai-report table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #1e1e24;
+    }
+    .ai-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      color: #6e6e80;
+      margin-bottom: 16px;
+    }
+    .ai-badge span {
+      background: #1a2e1f;
+      color: #30a46c;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
     @media (max-width: 700px) {
       .stat-grid { grid-template-columns: repeat(2, 1fr); }
       .chart-grid, .p-grid { grid-template-columns: 1fr; }
@@ -187,7 +244,8 @@
   </style>
 </head>
 <body>
-  <div class="container"><a href="../" style="display:inline-flex;align-items:center;gap:6px;color:#6e6e80;font-size:0.78rem;text-decoration:none;margin-bottom:12px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#6e6e80'">← Reports</a>
+  <div class="container">
+    <a href="../" style="display:inline-flex;align-items:center;gap:6px;color:#6e6e80;font-size:0.78rem;text-decoration:none;margin-bottom:12px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#6e6e80'">&#x2190; Reports</a>
     <h1>Prompt Performance Report</h1>
     <p class="subtitle" id="subtitle"></p>
 
@@ -202,6 +260,7 @@
       { id: 'charts', label: 'Charts' },
       { id: 'prompts', label: 'Prompts' },
       { id: 'results', label: 'Results' },
+      { id: 'ai', label: 'AI Report' },
     ];
     let currentTab = 'overview';
 
@@ -210,8 +269,9 @@
       .then(raw => {
         const prd = raw.prd || '';
         const data = raw.prompts || raw;
+        const aiReport = raw.ai_report || '';
         initTabs();
-        render(prd, Array.isArray(data) ? data : []);
+        render(prd, Array.isArray(data) ? data : [], aiReport);
       })
       .catch(() => {
         document.getElementById('app').innerHTML =
@@ -232,7 +292,7 @@
       });
     }
 
-    function render(prd, data) {
+    function render(prd, data, aiReport) {
       if (!data.length) {
         document.getElementById('app').innerHTML = '<div class="no-data">결과 없음</div>';
         return;
@@ -306,6 +366,10 @@
 
         <div id="panel-results" class="tab-panel">
           <div class="r-grid">${mkResults(data)}</div>
+        </div>
+
+        <div id="panel-ai" class="tab-panel">
+          ${mkAiReport(aiReport)}
         </div>
       `;
     }
@@ -398,6 +462,40 @@
           </div>
         `;
       }).join('');
+    }
+
+    function mkAiReport(text) {
+      if (!text) return '<div class="no-data">AI 분석이 없습니다.<br>report.sh 실행 시 자동 생성됩니다.</div>';
+      return `
+        <div class="ai-report">
+          <div class="ai-badge">Analyzed by <span>Claude Sonnet</span></div>
+          ${mdToHtml(text)}
+        </div>
+      `;
+    }
+
+    function mdToHtml(md) {
+      return md
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^\|(.+)\|$/gm, (match) => {
+          const cells = match.split('|').filter(c => c.trim());
+          if (cells.every(c => /^[\s-:]+$/.test(c))) return '';
+          const tag = match.includes('---') ? '' : cells.map(c => {
+            const isHeader = false;
+            return `<td>${c.trim()}</td>`;
+          }).join('');
+          return tag ? `<tr>${tag}</tr>` : '';
+        })
+        .replace(/(<tr>.*<\/tr>\n?)+/g, (match) => `<table>${match}</table>`)
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`)
+        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+        .replace(/^(?!<[hultp]|$)(.+)$/gm, '<p>$1</p>')
+        .replace(/\n{2,}/g, '');
     }
 
     function fmtTime(s) {

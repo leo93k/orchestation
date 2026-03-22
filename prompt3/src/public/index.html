@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>URL Shortener</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔗 URL Shortener</h1>
+      <p class="subtitle">긴 URL을 짧게 만들어 공유하세요</p>
+    </header>
+
+    <!-- Shorten Form -->
+    <section class="card" id="shorten-section">
+      <h2>URL 단축</h2>
+      <form id="shorten-form">
+        <div class="form-group">
+          <label for="url-input">원본 URL <span class="required">*</span></label>
+          <input
+            type="url"
+            id="url-input"
+            placeholder="https://example.com/very-long-url"
+            required
+            autocomplete="off"
+          />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="custom-code">커스텀 코드 (선택)</label>
+            <input
+              type="text"
+              id="custom-code"
+              placeholder="my-link"
+              maxlength="50"
+              pattern="[a-zA-Z0-9_-]+"
+            />
+          </div>
+          <div class="form-group">
+            <label for="expires-days">만료 기간 (선택)</label>
+            <select id="expires-days">
+              <option value="">만료 없음</option>
+              <option value="1">1일</option>
+              <option value="7">7일</option>
+              <option value="30">30일</option>
+              <option value="90">90일</option>
+              <option value="365">1년</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="shorten-btn">
+          <span class="btn-text">단축하기</span>
+          <span class="btn-loading hidden">처리 중...</span>
+        </button>
+      </form>
+
+      <!-- Result -->
+      <div id="result" class="result hidden">
+        <div class="result-inner">
+          <span class="result-label">단축 URL</span>
+          <div class="result-url-row">
+            <a id="result-url" href="#" target="_blank" rel="noopener"></a>
+            <button class="btn btn-copy" id="copy-btn" title="복사">📋</button>
+          </div>
+          <div class="result-meta" id="result-meta"></div>
+        </div>
+      </div>
+
+      <div id="error-msg" class="error hidden"></div>
+    </section>
+
+    <!-- URL List -->
+    <section class="card" id="list-section">
+      <div class="section-header">
+        <h2>단축 URL 목록</h2>
+        <button class="btn btn-secondary" id="refresh-btn">🔄 새로고침</button>
+      </div>
+      <div id="url-list">
+        <div class="loading">불러오는 중...</div>
+      </div>
+    </section>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal" class="modal hidden">
+      <div class="modal-overlay" id="modal-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-title">통계</h3>
+          <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
