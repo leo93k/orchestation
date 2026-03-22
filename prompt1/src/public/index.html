@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>URL Shortener</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>URL Shortener</h1>
+      <p class="subtitle">Shorten, share, and track your links</p>
+    </header>
+
+    <section class="card shorten-form">
+      <h2>Shorten a URL</h2>
+      <form id="shorten-form" onsubmit="return shortenUrl(event)">
+        <div class="form-group">
+          <label for="url-input">Destination URL</label>
+          <input
+            type="url"
+            id="url-input"
+            placeholder="https://example.com/very/long/url"
+            required
+          />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="slug-input">Custom slug <span class="optional">(optional)</span></label>
+            <input
+              type="text"
+              id="slug-input"
+              placeholder="my-link"
+              pattern="[a-zA-Z0-9_-]+"
+              title="Letters, numbers, hyphens, and underscores only"
+            />
+          </div>
+          <div class="form-group">
+            <label for="expires-select">Expiration</label>
+            <select id="expires-select">
+              <option value="">No expiration</option>
+              <option value="1h">1 hour</option>
+              <option value="24h">24 hours</option>
+              <option value="7d">7 days</option>
+              <option value="30d">30 days</option>
+              <option value="90d">90 days</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          <span class="btn-text">Shorten URL</span>
+          <span class="btn-loading" hidden>Shortening...</span>
+        </button>
+      </form>
+
+      <div id="result-section" class="result-section" hidden>
+        <div class="result-label">Your shortened URL</div>
+        <div class="result-row">
+          <a id="result-url" class="result-url" href="#" target="_blank" rel="noopener"></a>
+          <button class="btn btn-copy" onclick="copyToClipboard()" title="Copy to clipboard">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card urls-section">
+      <div class="section-header">
+        <h2>Your Links</h2>
+        <button class="btn btn-sm btn-secondary" onclick="loadUrls()">Refresh</button>
+      </div>
+      <div id="urls-loading" class="loading" hidden>
+        <div class="spinner"></div>
+        <span>Loading links...</span>
+      </div>
+      <div id="urls-empty" class="empty-state" hidden>
+        <p>No shortened URLs yet. Create one above!</p>
+      </div>
+      <div class="table-wrapper">
+        <table id="urls-table" hidden>
+          <thead>
+            <tr>
+              <th>Short URL</th>
+              <th>Original URL</th>
+              <th>Clicks</th>
+              <th>Created</th>
+              <th>Expires</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="urls-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div id="stats-overlay" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="stats-title">Click Statistics</h3>
+        <button class="btn-close" id="close-stats-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="stats-summary">
+          <div class="stat-card">
+            <span class="stat-value" id="stats-total">0</span>
+            <span class="stat-label">Total Clicks</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="stats-today">0</span>
+            <span class="stat-label">Today</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="stats-week">0</span>
+            <span class="stat-label">This Week</span>
+          </div>
+        </div>
+        <div class="chart-section">
+          <h4>Daily Clicks (Last 7 Days)</h4>
+          <div id="stats-chart" class="bar-chart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

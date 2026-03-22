@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Shortener</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>URL Shortener</h1>
+
+    <!-- Create Form -->
+    <section class="card">
+      <h2>URL 단축하기</h2>
+      <form id="shorten-form">
+        <div class="form-group">
+          <label for="url">URL</label>
+          <input type="url" id="url" placeholder="https://example.com/very/long/url" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="custom-alias">커스텀 별칭 (선택)</label>
+            <input type="text" id="custom-alias" placeholder="my-link">
+          </div>
+          <div class="form-group">
+            <label for="expires">만료 (분, 선택)</label>
+            <input type="number" id="expires" placeholder="60" min="1">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">단축 URL 생성</button>
+      </form>
+      <div id="result" class="result hidden">
+        <p>단축 URL:</p>
+        <div class="result-url">
+          <a id="result-link" href="#" target="_blank"></a>
+          <button id="copy-btn" class="btn-copy" title="복사">📋</button>
+        </div>
+      </div>
+      <div id="error" class="error hidden"></div>
+    </section>
+
+    <!-- URL List -->
+    <section class="card">
+      <h2>단축 URL 목록</h2>
+      <button id="refresh-btn" class="btn-secondary">새로고침</button>
+      <table id="url-table">
+        <thead>
+          <tr>
+            <th>단축 코드</th>
+            <th>원본 URL</th>
+            <th>클릭수</th>
+            <th>만료</th>
+            <th>생성일</th>
+          </tr>
+        </thead>
+        <tbody id="url-tbody"></tbody>
+      </table>
+      <p id="empty-msg" class="empty hidden">등록된 URL이 없습니다.</p>
+    </section>
+
+    <!-- Stats -->
+    <section class="card">
+      <h2>클릭 통계 조회</h2>
+      <div class="form-row">
+        <input type="text" id="stats-code" placeholder="단축 코드 입력">
+        <button id="stats-btn" class="btn-secondary">조회</button>
+      </div>
+      <div id="stats-result" class="stats hidden">
+        <div class="stat-item"><span class="stat-label">원본 URL</span><span id="stat-url"></span></div>
+        <div class="stat-item"><span class="stat-label">클릭수</span><span id="stat-clicks" class="stat-value"></span></div>
+        <div class="stat-item"><span class="stat-label">생성일</span><span id="stat-created"></span></div>
+        <div class="stat-item"><span class="stat-label">만료일</span><span id="stat-expires"></span></div>
+      </div>
+      <div id="stats-error" class="error hidden"></div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

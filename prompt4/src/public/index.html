@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL 단축 서비스</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>URL 단축 서비스</h1>
+  </header>
+  <main>
+    <section id="shorten-section">
+      <h2>URL 단축하기</h2>
+      <form id="shorten-form">
+        <input id="url-input" type="url" placeholder="https://example.com" required>
+        <input id="custom-code" type="text" placeholder="커스텀 코드 (선택)">
+        <select id="expires-in">
+          <option value="">만료 없음</option>
+          <option value="60">1시간</option>
+          <option value="1440">1일</option>
+          <option value="10080">1주</option>
+          <option value="43200">1개월</option>
+        </select>
+        <button type="submit">단축하기</button>
+      </form>
+      <div id="result" class="hidden">
+        <p>단축 URL: <a id="short-url" target="_blank"></a></p>
+        <button id="copy-btn">복사</button>
+      </div>
+    </section>
+
+    <section id="list-section">
+      <h2>단축 URL 목록</h2>
+      <div class="table-wrapper">
+        <table id="url-table">
+          <thead>
+            <tr>
+              <th>코드</th>
+              <th>원본 URL</th>
+              <th>클릭수</th>
+              <th>만료</th>
+              <th>통계</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="stats-section" class="hidden">
+      <h2>클릭 통계</h2>
+      <div id="stats-detail"></div>
+      <button id="close-stats">닫기</button>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

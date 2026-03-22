@@ -1,0 +1,104 @@
+<section class="page-header">
+  <div class="header-with-back">
+    <a href="/dashboard" class="btn btn-small">&larr; 목록</a>
+    <h1>클릭 통계</h1>
+  </div>
+</section>
+
+<section class="card stats-overview">
+  <div class="stats-grid">
+    <div class="stat-item">
+      <span class="stat-value"><%= stats.totalClicks %></span>
+      <span class="stat-label">총 클릭</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value"><%= stats.url.code %></span>
+      <span class="stat-label">단축 코드</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value"><%= stats.url.created_at.slice(0, 10) %></span>
+      <span class="stat-label">생성일</span>
+    </div>
+  </div>
+
+  <div class="stat-urls">
+    <p><strong>단축 URL:</strong>
+      <a href="<%= stats.url.shortUrl %>" target="_blank"><%= stats.url.shortUrl %></a>
+    </p>
+    <p><strong>원본 URL:</strong>
+      <a href="<%= stats.url.original_url %>" target="_blank" class="original-url-display">
+        <%= stats.url.original_url %>
+      </a>
+    </p>
+    <% if (stats.url.expires_at) { %>
+      <p><strong>만료:</strong> <%= stats.url.expires_at %></p>
+    <% } %>
+  </div>
+</section>
+
+<section class="card">
+  <h2>일별 클릭 (최근 <%= days %>일)</h2>
+
+  <div class="period-selector">
+    <a href="/dashboard/<%= stats.url.id %>?days=7"
+       class="btn btn-small <%= days === 7 ? 'btn-primary' : '' %>">7일</a>
+    <a href="/dashboard/<%= stats.url.id %>?days=30"
+       class="btn btn-small <%= days === 30 ? 'btn-primary' : '' %>">30일</a>
+    <a href="/dashboard/<%= stats.url.id %>?days=90"
+       class="btn btn-small <%= days === 90 ? 'btn-primary' : '' %>">90일</a>
+  </div>
+
+  <% if (stats.clicksByDay.length === 0) { %>
+    <p class="empty-state-text">이 기간에 클릭 기록이 없습니다.</p>
+  <% } else { %>
+    <div class="chart-container">
+      <% const maxClicks = Math.max(...stats.clicksByDay.map(d => d.count), 1); %>
+      <% stats.clicksByDay.forEach(day => { %>
+        <div class="chart-bar-row">
+          <span class="chart-label"><%= day.day.slice(5) %></span>
+          <div class="chart-bar-container">
+            <div class="chart-bar" style="width: <%= (day.count / maxClicks * 100) %>%"></div>
+          </div>
+          <span class="chart-value"><%= day.count %></span>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</section>
+
+<section class="card">
+  <h2>최근 클릭 (최대 50건)</h2>
+
+  <% if (stats.recentClicks.length === 0) { %>
+    <p class="empty-state-text">아직 클릭 기록이 없습니다.</p>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="url-table">
+        <thead>
+          <tr>
+            <th>시간</th>
+            <th>IP (해시)</th>
+            <th>User Agent</th>
+            <th>Referer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% stats.recentClicks.forEach(click => { %>
+            <tr>
+              <td class="date-cell"><%= click.clicked_at %></td>
+              <td><code><%= click.ip_hash ? click.ip_hash.slice(0, 8) + '...' : '-' %></code></td>
+              <td class="original-url" title="<%= click.user_agent || '-' %>">
+                <%= click.user_agent
+                    ? (click.user_agent.length > 40
+                        ? click.user_agent.substring(0, 40) + '...'
+                        : click.user_agent)
+                    : '-' %>
+              </td>
+              <td><%= click.referer || '-' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
