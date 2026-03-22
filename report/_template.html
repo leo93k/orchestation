@@ -245,6 +245,7 @@
 </head>
 <body>
   <div class="container">
+    <a href="../" style="display:inline-flex;align-items:center;gap:6px;color:#6e6e80;font-size:0.78rem;text-decoration:none;margin-bottom:12px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#6e6e80'">&#x2190; Reports</a>
     <h1>Prompt Performance Report</h1>
     <p class="subtitle" id="subtitle"></p>
 
@@ -260,6 +261,7 @@
       { id: 'prompts', label: 'Prompts' },
       { id: 'results', label: 'Results' },
       { id: 'ai', label: 'AI Report' },
+      { id: 'code', label: 'Code Review' },
     ];
     let currentTab = 'overview';
 
@@ -269,8 +271,9 @@
         const prd = raw.prd || '';
         const data = raw.prompts || raw;
         const aiReport = raw.ai_report || '';
+        const codeReview = raw.code_review || '';
         initTabs();
-        render(prd, Array.isArray(data) ? data : [], aiReport);
+        render(prd, Array.isArray(data) ? data : [], aiReport, codeReview);
       })
       .catch(() => {
         document.getElementById('app').innerHTML =
@@ -291,7 +294,7 @@
       });
     }
 
-    function render(prd, data, aiReport) {
+    function render(prd, data, aiReport, codeReview) {
       if (!data.length) {
         document.getElementById('app').innerHTML = '<div class="no-data">결과 없음</div>';
         return;
@@ -369,6 +372,10 @@
 
         <div id="panel-ai" class="tab-panel">
           ${mkAiReport(aiReport)}
+        </div>
+
+        <div id="panel-code" class="tab-panel">
+          ${mkCodeReview(codeReview)}
         </div>
       `;
     }
@@ -461,6 +468,16 @@
           </div>
         `;
       }).join('');
+    }
+
+    function mkCodeReview(text) {
+      if (!text) return '<div class="no-data">코드 리뷰가 없습니다.<br>report.sh 실행 시 자동 생성됩니다.</div>';
+      return `
+        <div class="ai-report">
+          <div class="ai-badge">Reviewed by <span>Claude Sonnet</span></div>
+          ${mdToHtml(text)}
+        </div>
+      `;
     }
 
     function mkAiReport(text) {

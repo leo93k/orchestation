@@ -138,6 +138,104 @@ text = sys.stdin.read()
 print(json.dumps(text))
 " <<< "$AI_ANALYSIS")
 
-echo "\"ai_report\": ${AI_JSON}}" >> "$REPORT_DIR/data.json"
+echo "\"ai_report\": ${AI_JSON}," >> "$REPORT_DIR/data.json"
+
+# 코드 리뷰 생성
+echo "코드 리뷰 생성 중..."
+CODE_SUMMARY=$(python3 -c "
+import os, json
+
+root = '$ROOT_DIR'
+results = []
+for d in sorted(os.listdir(root)):
+    if not d.startswith('prompt'):
+        continue
+    src = os.path.join(root, d, 'src')
+    if not os.path.isdir(src):
+        results.append(f'### {d}\n파일 없음 (코드 미생성)\n')
+        continue
+
+    files_content = []
+    for r, dirs, files in os.walk(src):
+        dirs[:] = [x for x in dirs if x != 'node_modules']
+        for f in files:
+            fp = os.path.join(r, f)
+            rel = os.path.relpath(fp, src)
+            try:
+                with open(fp) as fh:
+                    content = fh.read()
+                if len(content) > 3000:
+                    content = content[:3000] + '\n... (truncated)'
+                files_content.append(f'--- {rel} ---\n{content}')
+            except:
+                pass
+
+    results.append(f'### {d}\n' + '\n'.join(files_content))
+
+print('\n\n'.join(results))
+" 2>/dev/null)
+
+PRD_TEXT=$(cat "$ROOT_DIR/docs/prd.md" 2>/dev/null)
+
+CODE_REVIEW=$(echo "$CODE_SUMMARY" | claude --print --model claude-sonnet-4-6 --system-prompt "당신은 시니어 코드 리뷰어입니다. 아래는 동일한 PRD를 서로 다른 프롬프트로 구현한 코드입니다.
+
+PRD:
+${PRD_TEXT}
+
+각 prompt에 대해 아래 항목을 평가하세요. 점수는 10점 만점.
+
+## 평가 항목
+1. **실행 가능성** (10점) - 서버가 뜨고 정상 동작하는가
+2. **PRD 충족도** (10점) - 요구된 기능이 모두 구현되었는가
+3. **UI 완성도** (10점) - 웹 UI가 있고 CSS가 적용되어 사용 가능한가
+4. **코드 구조** (10점) - 파일 분리, 모듈화, 가독성
+5. **에러 처리** (10점) - 예외 상황 대응, 입력 검증
+6. **보안** (10점) - 인젝션 방지, rate limit 등
+
+## 출력 형식
+
+각 prompt별로:
+- 항목별 점수와 한줄 사유
+- 총점 (/60)
+- 한줄 총평
+
+마지막에 종합 순위표를 작성하세요.
+
+마크다운, 한국어, 간결하게." 2>/dev/null)
+
+CODE_REVIEW_JSON=$(python3 -c "
+import json, sys
+text = sys.stdin.read()
+print(json.dumps(text))
+" <<< "$CODE_REVIEW")
+
+echo "\"code_review\": ${CODE_REVIEW_JSON}}" >> "$REPORT_DIR/data.json"
+
+# 리포트 목록 JSON 생성
+python3 -c "
+import os, json, glob
+
+report_root = '$ROOT_DIR/report'
+dirs = sorted(glob.glob(os.path.join(report_root, 'report_*')), reverse=True)
+items = []
+for d in dirs:
+    name = os.path.basename(d)
+    data_file = os.path.join(d, 'data.json')
+    prompts = 0
+    cost = 0
+    if os.path.exists(data_file):
+        try:
+            with open(data_file) as f:
+                data = json.load(f)
+            ps = data.get('prompts', [])
+            prompts = len(ps)
+            cost = sum(p.get('cost_usd', 0) for p in ps)
+        except:
+            pass
+    items.append({'dir': name, 'prompts': prompts, 'cost': round(cost, 4)})
+
+with open(os.path.join(report_root, 'reports.json'), 'w') as f:
+    json.dump(items, f)
+"
 
 echo "report/report_${TIMESTAMP}/ 생성 완료"
