@@ -211,18 +211,21 @@ print(json.dumps(text))
 
 echo "\"code_review\": ${CODE_REVIEW_JSON}}" >> "$REPORT_DIR/data.json"
 
-# 리포트 목록 JSON 생성
+# 리포트 목록 JSON 생성 (PRD별 그룹핑)
 python3 -c "
-import os, json, glob
+import os, json, glob, hashlib
 
 report_root = '$ROOT_DIR/report'
 dirs = sorted(glob.glob(os.path.join(report_root, 'report_*')), reverse=True)
-items = []
+
+prd_groups = {}
 for d in dirs:
     name = os.path.basename(d)
     data_file = os.path.join(d, 'data.json')
     prompts = 0
     cost = 0
+    prd_text = ''
+    prd_title = ''
     if os.path.exists(data_file):
         try:
             with open(data_file) as f:
@@ -230,12 +233,32 @@ for d in dirs:
             ps = data.get('prompts', [])
             prompts = len(ps)
             cost = sum(p.get('cost_usd', 0) for p in ps)
+            prd_text = data.get('prd', '')
+            # PRD 첫 줄에서 제목 추출
+            for line in prd_text.split('\n'):
+                line = line.strip().lstrip('#').strip()
+                if line:
+                    prd_title = line
+                    break
         except:
             pass
-    items.append({'dir': name, 'prompts': prompts, 'cost': round(cost, 4)})
+
+    prd_key = prd_title if prd_title else 'unknown'
+
+    if prd_key not in prd_groups:
+        prd_groups[prd_key] = {
+            'title': prd_title or 'Unknown PRD',
+            'prd_preview': prd_text[:200] if prd_text else '',
+            'reports': []
+        }
+    prd_groups[prd_key]['reports'].append({
+        'dir': name,
+        'prompts': prompts,
+        'cost': round(cost, 4)
+    })
 
 with open(os.path.join(report_root, 'reports.json'), 'w') as f:
-    json.dump(items, f)
+    json.dump(list(prd_groups.values()), f)
 "
 
 echo "report/report_${TIMESTAMP}/ 생성 완료"

@@ -1,7 +1,7 @@
 {
   "name": "url-shortener",
   "version": "1.0.0",
-  "description": "URL 단축 서비스",
+  "description": "URL shortening service",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "express": "^4.18.2",
+    "better-sqlite3": "^9.4.3",
     "nanoid": "^3.3.7"
   }
 }

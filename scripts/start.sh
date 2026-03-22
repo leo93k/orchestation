@@ -57,10 +57,18 @@ done
 
 # 모든 프롬프트 완료 대기 후 리포트 생성
 echo "⏳ ${COUNT}개 프롬프트 완료 대기 중..."
+NOTIFIED=""
 while true; do
   DONE=0
   for i in $TARGETS; do
-    [ -f "$ROOT_DIR/prompt${i}/spec/.done" ] && DONE=$((DONE + 1))
+    if [ -f "$ROOT_DIR/prompt${i}/spec/.done" ]; then
+      DONE=$((DONE + 1))
+      if ! echo "$NOTIFIED" | grep -q " ${i} "; then
+        COST=$(tail -1 "$ROOT_DIR/prompt${i}/spec/output.jsonl" 2>/dev/null | python3 -c "import sys,json; o=json.load(sys.stdin); print(f'\${o.get(\"total_cost_usd\",0):.4f} | {o.get(\"duration_ms\",0)/1000:.0f}s | {o.get(\"num_turns\",0)}턴')" 2>/dev/null)
+        echo "  ✅ prompt${i} 완료 (${DONE}/${COUNT}) — ${COST}"
+        NOTIFIED="$NOTIFIED ${i} "
+      fi
+    fi
   done
   if [ "$DONE" -ge "$COUNT" ]; then
     break

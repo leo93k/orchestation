@@ -1,159 +1,128 @@
+'use strict';
+
 const express = require('express');
-const cors = require('cors');
-const { nanoid } = require('nanoid');
-const fs = require('fs');
 const path = require('path');
+const storage = require('./storage');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const DATA_DIR = path.join(__dirname, 'data');
-const DATA_FILE = path.join(DATA_DIR, 'urls.json');
-
-// In-memory store
-const urlMap = new Map();
-
-// Load persisted data on startup
-function loadData() {
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      const raw = fs.readFileSync(DATA_FILE, 'utf8');
-      const entries = JSON.parse(raw);
-      for (const entry of entries) {
-        urlMap.set(entry.shortCode, entry);
-      }
-      console.log(`Loaded ${urlMap.size} URLs from storage.`);
-    }
-  } catch (err) {
-    console.error('Failed to load data file:', err.message);
-  }
-}
-
-// Save in-memory data to disk
-function saveData() {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    const entries = Array.from(urlMap.values());
-    fs.writeFileSync(DATA_FILE, JSON.stringify(entries, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Failed to save data file:', err.message);
-  }
-}
-
 // Middleware
-app.use(cors());
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // POST /api/shorten
 app.post('/api/shorten', (req, res) => {
-  const { url, customCode, expiresInDays } = req.body;
+  const { url, customCode, expiresIn } = req.body;
 
-  if (!url || !/^https?:\/\/.+/.test(url)) {
-    return res.status(400).json({ error: 'Invalid URL. Must start with http:// or https://' });
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required' });
   }
 
-  const shortCode = customCode || nanoid(6);
-
-  if (urlMap.has(shortCode)) {
-    return res.status(409).json({ error: 'Short code already exists' });
+  // Validate URL
+  try {
+    new URL(url);
+  } catch {
+    return res.status(400).json({ error: 'Invalid URL' });
   }
 
-  const now = new Date();
-  const expiresAt = expiresInDays
-    ? new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000).toISOString()
-    : null;
+  let code;
+  try {
+    code = storage.createShortUrl(url, customCode || null, expiresIn || null);
+  } catch (err) {
+    if (err.code === 'DUPLICATE_CODE') {
+      return res.status(409).json({ error: 'Custom code already exists' });
+    }
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 
-  const entry = {
-    shortCode,
-    originalUrl: url,
-    clicks: 0,
-    createdAt: now.toISOString(),
-    expiresAt,
-  };
-
-  urlMap.set(shortCode, entry);
-  saveData();
-
+  const entry = storage.getUrl(code);
   return res.status(201).json({
-    shortCode,
-    shortUrl: `http://localhost:${PORT}/${shortCode}`,
+    code,
+    shortUrl: `http://localhost:${PORT}/${code}`,
     originalUrl: entry.originalUrl,
-    clicks: entry.clicks,
-    createdAt: entry.createdAt,
     expiresAt: entry.expiresAt,
   });
 });
 
 // GET /api/urls
 app.get('/api/urls', (req, res) => {
-  const now = new Date();
-  const entries = Array.from(urlMap.values())
-    .map((entry) => ({
-      ...entry,
-      expired: entry.expiresAt ? new Date(entry.expiresAt) < now : false,
-    }))
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  return res.json(entries);
+  const urls = storage.getAllUrls().map((entry) => ({
+    code: entry.code,
+    originalUrl: entry.originalUrl,
+    shortUrl: `http://localhost:${PORT}/${entry.code}`,
+    clicks: entry.clicks,
+    createdAt: entry.createdAt,
+    expiresAt: entry.expiresAt,
+  }));
+  return res.json(urls);
 });
 
 // GET /api/stats/:code
 app.get('/api/stats/:code', (req, res) => {
   const { code } = req.params;
-  const entry = urlMap.get(code);
+  const entry = storage.getUrl(code);
 
   if (!entry) {
-    return res.status(404).json({ error: 'Short code not found' });
+    return res.status(404).json({ error: 'Short URL not found' });
   }
 
-  const now = new Date();
   return res.json({
-    ...entry,
-    expired: entry.expiresAt ? new Date(entry.expiresAt) < now : false,
+    code: entry.code,
+    originalUrl: entry.originalUrl,
+    shortUrl: `http://localhost:${PORT}/${entry.code}`,
+    clicks: entry.clicks,
+    createdAt: entry.createdAt,
+    expiresAt: entry.expiresAt,
   });
 });
 
 // DELETE /api/urls/:code
 app.delete('/api/urls/:code', (req, res) => {
   const { code } = req.params;
+  const deleted = storage.deleteUrl(code);
 
-  if (!urlMap.has(code)) {
-    return res.status(404).json({ error: 'Short code not found' });
+  if (!deleted) {
+    return res.status(404).json({ error: 'Short URL not found' });
   }
 
-  urlMap.delete(code);
-  saveData();
+  return res.status(204).send();
+});
 
-  return res.json({ message: 'Deleted successfully' });
+// GET / — serve index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // GET /:code — redirect
 app.get('/:code', (req, res) => {
   const { code } = req.params;
-  const entry = urlMap.get(code);
+  const entry = storage.getUrl(code);
 
   if (!entry) {
-    return res.status(404).json({ error: 'Short code not found' });
+    return res.status(404).json({ error: 'Short URL not found' });
   }
 
-  if (entry.expiresAt && new Date(entry.expiresAt) < new Date()) {
-    return res.status(410).json({ error: 'URL expired' });
+  if (storage.isExpired(entry)) {
+    return res.status(410).json({ error: 'Short URL has expired' });
   }
 
-  entry.clicks += 1;
-  urlMap.set(code, entry);
-  saveData();
-
+  storage.incrementClick(code);
   return res.redirect(302, entry.originalUrl);
 });
 
-// Start server
-loadData();
 app.listen(PORT, () => {
-  console.log(`URL Shortener running on port ${PORT}`);
+  console.log(`URL Shortener server running on port ${PORT}`);
 });
 
 module.exports = app;

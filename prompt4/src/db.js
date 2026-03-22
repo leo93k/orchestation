@@ -6,70 +6,71 @@ const DATA_FILE = path.join(__dirname, 'data.json');
 function readData() {
   if (!fs.existsSync(DATA_FILE)) {
     fs.writeFileSync(DATA_FILE, JSON.stringify([]), 'utf8');
-    return [];
   }
   try {
-    const content = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(content);
+    const raw = fs.readFileSync(DATA_FILE, 'utf8');
+    return JSON.parse(raw);
   } catch (e) {
     return [];
   }
 }
 
-function writeData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-}
-
-function getAllUrls() {
-  return readData();
+function writeData(entries) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(entries, null, 2), 'utf8');
 }
 
 function findByCode(code) {
-  const data = readData();
-  return data.find(entry => entry.code === code) || null;
+  const entries = readData();
+  return entries.find((e) => e.shortCode === code) || null;
 }
 
-function findByOriginalUrl(url) {
-  const data = readData();
-  return data.find(entry => entry.originalUrl === url) || null;
+function findAll() {
+  return readData();
 }
 
-function save(entry) {
-  const data = readData();
-  data.push(entry);
-  writeData(data);
+function create({ shortCode, originalUrl, expiresAt }) {
+  const entries = readData();
+  const entry = {
+    shortCode,
+    originalUrl,
+    clicks: 0,
+    createdAt: new Date().toISOString(),
+    expiresAt: expiresAt || null,
+  };
+  entries.push(entry);
+  writeData(entries);
   return entry;
 }
 
-function incrementClicks(code) {
-  const data = readData();
-  const index = data.findIndex(entry => entry.code === code);
-  if (index !== -1) {
-    data[index].clicks = (data[index].clicks || 0) + 1;
-    writeData(data);
-    return data[index];
+function incrementClick(code) {
+  const entries = readData();
+  const entry = entries.find((e) => e.shortCode === code);
+  if (entry) {
+    entry.clicks += 1;
+    writeData(entries);
   }
-  return null;
+}
+
+function isCodeTaken(code) {
+  const entries = readData();
+  return entries.some((e) => e.shortCode === code);
 }
 
 function deleteExpired() {
-  const data = readData();
-  const now = new Date().toISOString();
-  const active = data.filter(entry => {
-    if (!entry.expiresAt) return true;
-    return entry.expiresAt > now;
+  const entries = readData();
+  const now = new Date();
+  const active = entries.filter((e) => {
+    if (!e.expiresAt) return true;
+    return new Date(e.expiresAt) > now;
   });
-  if (active.length !== data.length) {
-    writeData(active);
-  }
-  return data.length - active.length;
+  writeData(active);
 }
 
 module.exports = {
-  getAllUrls,
   findByCode,
-  findByOriginalUrl,
-  save,
-  incrementClicks,
+  findAll,
+  create,
+  incrementClick,
+  isCodeTaken,
   deleteExpired,
 };
