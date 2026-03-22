@@ -1,13 +1,31 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# 인자 파싱: --prd N [프롬프트 번호들]
+PRD_NUM=1
+TARGETS=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --prd) PRD_NUM="$2"; shift 2 ;;
+    *) TARGETS="$TARGETS $1"; shift ;;
+  esac
+done
+TARGETS=$(echo "$TARGETS" | xargs)
+
+PRD_FILE="$ROOT_DIR/docs/prd/prd${PRD_NUM}.md"
+if [ ! -f "$PRD_FILE" ]; then
+  echo "docs/prd/prd${PRD_NUM}.md 파일이 없습니다."
+  ls "$ROOT_DIR"/docs/prd/*.md 2>/dev/null | sed 's/.*prd\([0-9]*\)\.md/  사용 가능: --prd \1/'
+  exit 1
+fi
+
+PRD_TITLE=$(head -1 "$PRD_FILE" | sed 's/^#* *//')
+echo "📋 PRD: ${PRD_TITLE} (prd${PRD_NUM}.md)"
+
 # 이전 결과 초기화
 bash "${SCRIPT_DIR}/clean.sh"
 
-if [ "$#" -gt 0 ]; then
-  TARGETS="$@"
-else
-  # 파일명에서 번호 추출 (prompt*.md, _prompt*.md는 제외)
+if [ -z "$TARGETS" ]; then
   TARGETS=$(ls "$ROOT_DIR"/docs/prompts/prompt*.md 2>/dev/null | sed 's/.*prompt\([0-9]*\)\.md/\1/' | sort -n | tr '\n' ' ')
   if [ -z "$TARGETS" ]; then
     echo "docs/prompts/prompt*.md 파일이 없습니다."
@@ -25,9 +43,8 @@ for i in $TARGETS; do
 
   DONE_FLAG="$ROOT_DIR/prompt${i}/spec/.done"
   rm -f "$DONE_FLAG"
-  CMD="bash '${SCRIPT_DIR}/run.sh' ${i} && touch '${DONE_FLAG}'"
+  CMD="bash '${SCRIPT_DIR}/run.sh' ${i} --prd ${PRD_NUM} && touch '${DONE_FLAG}'"
   if [ "$FIRST" = true ]; then
-    # 첫 번째: 현재 세션을 수평 분할(위/아래), 아래에서 실행
     osascript -e "tell application \"iTerm\"
       tell current window
         tell current session
@@ -40,7 +57,6 @@ for i in $TARGETS; do
     end tell"
     FIRST=false
   else
-    # 나머지: 아래 패널에서 세로 분할
     osascript -e "tell application \"iTerm\"
       tell current window
         tell current session
@@ -77,4 +93,4 @@ while true; do
 done
 
 echo "✅ 모든 프롬프트 완료. 리포트 생성 중..."
-bash "${SCRIPT_DIR}/report.sh"    
+bash "${SCRIPT_DIR}/report.sh"
