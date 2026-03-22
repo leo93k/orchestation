@@ -2,3 +2,10 @@ output/
 *.DS_Store
 test*.json
 src/frontend/package-lock.json
+
+# prompt 결과물
+node_modules/
+*.db
+*.db-shm
+*.db-wal
+package-lock.json
