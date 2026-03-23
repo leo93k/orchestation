@@ -87,10 +87,13 @@ body {
 
 /* Left sidebar panel */
 .ide-sidebar {
+  width: 220px;
+  min-width: 220px;
   border-right: 1px solid var(--border);
   background: var(--sidebar);
   overflow-y: auto;
   overflow-x: hidden;
+  flex-shrink: 0;
 }
 
 /* Middle task list */
