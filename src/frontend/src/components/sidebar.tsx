@@ -102,7 +102,7 @@ export function TaskSidebar({ groups, prds, filter, onFilterChange, currentPath 
   return (
     <div className="ide-sidebar flex flex-col h-full">
       {/* Header */}
-      <div className="px-3 py-3 border-b border-sidebar-border">
+      <div className="flex items-center px-3 h-10 border-b border-sidebar-border shrink-0">
         <Link href="/" className="text-sm font-semibold text-sidebar-foreground no-underline hover:text-primary transition-colors">
           Dashboard
         </Link>
