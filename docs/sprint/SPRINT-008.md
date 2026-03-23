@@ -56,3 +56,27 @@ status: ready
 - 콘텐츠 영역 max-width 제한 (현재 너무 넓게 퍼짐)
 - 좌우로 길게 늘어나지 않도록 중앙 정렬 + 적절한 max-width
 - 홈, Sprint, Cost 등 모든 페이지에 일관 적용
+
+### 7. 웹 기반 실행 제어
+
+현재 문제:
+- auto-improve.sh는 터미널에서만 실행 가능
+- orchestrate.sh도 터미널에서만 실행 가능
+- 웹에서 "지금 돌고 있는지" 확인 불가
+
+해결:
+- **홈 또는 상단에 실행 컨트롤 바** 배치
+  - "▶ Auto-Improve 시작" 버튼 → 백그라운드로 auto-improve.sh 실행
+  - "⏸ 일시정지" → 현재 request 처리 후 대기
+  - "⏹ 중지" → 현재 orchestrate 완료 후 중지
+  - 실행 상태 표시: "🔄 REQ-004 처리 중 (3/7)" 또는 "⏸ 대기 중" 또는 "⏹ 중지됨"
+- **Request 페이지에서 개별 실행**
+  - 각 request 카드에 "▶ 지금 실행" 버튼 → 해당 request만 즉시 처리
+  - auto-improve가 꺼져 있어도 단건 실행 가능
+- **Sprint 실행도 Request로 통합**
+  - Sprint 상세 페이지에 "▶ 이 Sprint 실행" 버튼
+  - 클릭 시 자동으로 "Sprint X에 있는 backlog 태스크를 실행해줘" request 생성
+  - auto-improve가 해당 request를 처리
+- **실행 큐 표시**
+  - Requests 페이지 상단에 "현재 처리 중: REQ-004" + "대기 중: REQ-005, 006, 007"
+  - 순서 변경 가능 (드래그 또는 우선순위 변경)
