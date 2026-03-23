@@ -108,20 +108,21 @@ export function TaskSidebar({ groups, prds, filter, onFilterChange, currentPath 
 
       <div className="flex-1 overflow-y-auto px-2 py-2">
 
-        {/* ── PRD (기획) ── */}
+        {/* ── Docs (기획 문서) ── */}
         {prds.length > 0 && (
           <div className="mb-2">
             <div className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              PRD
+              Docs
             </div>
             {prds.map((prd) => {
               const isPrdExpanded = expandedPrds.has(prd.id);
-              const isPrdActive = filter.type === "prd" && filter.prdId === prd.id;
+              const isPrdActive = currentPath === `/docs/${prd.id}`;
 
               return (
                 <div key={prd.id}>
-                  <div
-                    className={cn("tree-item", isPrdActive && "active")}
+                  <Link
+                    href={`/docs/${prd.id}`}
+                    className={cn("tree-item no-underline text-sidebar-foreground", isPrdActive && "active")}
                     onClick={() => onFilterChange({ type: "prd", prdId: prd.id })}
                   >
                     <button
@@ -133,17 +134,15 @@ export function TaskSidebar({ groups, prds, filter, onFilterChange, currentPath 
                     </button>
                     <BookOpen className="h-3 w-3 text-primary shrink-0" />
                     <span className="truncate flex-1">{prd.title}</span>
-                  </div>
+                  </Link>
 
                   {/* Plan은 PRD 하위 */}
                   {isPrdExpanded && (
                     <div className="ml-5 border-l border-sidebar-border">
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 text-[11px] text-muted-foreground">
+                      <Link href="/plan" className="flex items-center gap-1.5 px-2 py-0.5 text-[11px] text-muted-foreground no-underline hover:text-foreground">
                         <FileText className="h-2.5 w-2.5 shrink-0" />
-                        <Link href="/plan" className="no-underline text-muted-foreground hover:text-foreground truncate">
-                          Plan
-                        </Link>
-                      </div>
+                        Plan
+                      </Link>
                     </div>
                   )}
                 </div>
@@ -181,14 +180,15 @@ export function TaskSidebar({ groups, prds, filter, onFilterChange, currentPath 
             Tasks
           </div>
 
-          <div
-            className={cn("tree-item", filter.type === "all" && "active")}
+          <Link
+            href="/"
+            className={cn("tree-item no-underline text-sidebar-foreground", filter.type === "all" && currentPath === "/" && "active")}
             onClick={() => onFilterChange({ type: "all" })}
           >
             <Layers className="h-3 w-3 text-muted-foreground shrink-0" />
             <span className="flex-1">All Tasks</span>
             <span className="text-[10px] text-muted-foreground">{totalTasks}</span>
-          </div>
+          </Link>
 
           <div className="px-2 mt-1.5 mb-0.5 text-[10px] text-muted-foreground">
             By Status

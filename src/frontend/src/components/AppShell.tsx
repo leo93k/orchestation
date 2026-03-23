@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const listRef = useRef<HTMLDivElement>(null);
 
-  const isTaskPage = pathname === "/";
+  const isTaskView = filter.type === "all" || filter.type === "status" || filter.type === "sprint";
 
   // Flatten all tasks
   const allTasks = useMemo(() => groups.flatMap((g) => g.tasks), [groups]);
@@ -103,7 +103,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Keyboard navigation
   useEffect(() => {
-    if (!isTaskPage) return;
+    if (!isTaskView) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -116,7 +116,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [filteredTasks, selectedTask, isTaskPage]);
+  }, [filteredTasks, selectedTask, isTaskView]);
 
   useEffect(() => {
     if (filter.type === "status") setStatusFilter(null);
@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const showRightPanel = isTaskPage && (selectedTask || filter.type === "prd");
+  const showRightPanel = isTaskView && selectedTask !== null;
 
   const SortHeader = ({ label, sortKeyName }: { label: string; sortKeyName: SortKey }) => (
     <button type="button" className="col-header" onClick={() => handleSort(sortKeyName)}>
@@ -155,7 +155,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         currentPath={pathname}
       />
 
-      {isTaskPage ? (
+      {pathname === "/" && !isTaskView ? (
+        /* 홈: 빈 화면 (나중에 종합 대시보드) */
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          <p className="text-xs">Select a menu from the sidebar</p>
+        </div>
+      ) : isTaskView ? (
         /* Task 뷰: 중앙 리스트 + 오른쪽 패널 */
         <>
           <div className="ide-main flex flex-col">
@@ -210,10 +215,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Right panel */}
           {showRightPanel && (
-            <RightPanel
-              task={selectedTask}
-              prd={filter.type === "prd" ? prds.find((p) => p.id === filter.prdId) ?? null : null}
-            />
+            <RightPanel task={selectedTask} prd={null} />
           )}
         </>
       ) : (
