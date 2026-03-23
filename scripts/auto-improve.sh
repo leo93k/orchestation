@@ -129,7 +129,7 @@ REASON: claude CLI not found"
   NEXT_TASK_NUM=$(find "$PROJECT_ROOT/docs/task" -name "TASK-*.md" | sed 's/.*TASK-0*//' | sed 's/-.*//' | sort -n | tail -1)
   NEXT_TASK_NUM=$(printf "%03d" $((10#$NEXT_TASK_NUM + 1)))
   TASK_ID="TASK-${NEXT_TASK_NUM}"
-  TASK_SLUG=$(echo "$TASK_TITLE" | tr ' ' '-' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9가-힣-]//g' | head -c 40)
+  TASK_SLUG=$(echo "$TASK_TITLE" | tr ' ' '-' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]//g' | cut -c1-30)
   TASK_FILE="$PROJECT_ROOT/docs/task/${TASK_ID}-${TASK_SLUG}.md"
 
   cat > "$TASK_FILE" << TASKEOF
