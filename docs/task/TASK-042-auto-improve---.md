@@ -1,7 +1,7 @@
 ---
 id: TASK-042
 title: auto-improve 병렬 처리 구현
-status: backlog
+status: in_progress
 priority: high
 sprint:
 depends_on: []
