@@ -2,9 +2,13 @@
 
 import { AlertCircle } from "lucide-react";
 import { useCosts } from "@/hooks/useCosts";
+import { useRunHistory } from "@/hooks/useRunHistory";
+import { useOrchestrationStatus } from "@/hooks/useOrchestrationStatus";
 import { SummaryCards } from "@/components/cost/SummaryCards";
 import { CostTable } from "@/components/cost/CostTable";
+import { RunHistory } from "@/components/cost/RunHistory";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect } from "react";
 
 function LoadingSkeleton() {
   return (
@@ -46,16 +50,44 @@ function EmptyState() {
 }
 
 export default function CostPage() {
-  const { data, isLoading, error } = useCosts();
+  const { data, isLoading, error, refetch: refetchCosts } = useCosts();
+  const {
+    runs,
+    isLoading: historyLoading,
+    refetch: refetchHistory,
+  } = useRunHistory();
+  const { justFinished, clearFinished } = useOrchestrationStatus();
 
-  if (isLoading) return <LoadingSkeleton />;
+  // Auto-refresh when orchestration finishes
+  useEffect(() => {
+    if (justFinished) {
+      refetchCosts();
+      refetchHistory();
+      clearFinished();
+    }
+  }, [justFinished, refetchCosts, refetchHistory, clearFinished]);
+
+  if (isLoading || historyLoading) return <LoadingSkeleton />;
   if (error) return <ErrorState message={error} />;
-  if (!data || data.entries.length === 0) return <EmptyState />;
+
+  const hasCostData = data && data.entries.length > 0;
+  const hasRunHistory = runs.length > 0;
+
+  if (!hasCostData && !hasRunHistory) return <EmptyState />;
 
   return (
-    <div className="space-y-3">
-      <SummaryCards entries={data.entries} summaryByTask={data.summaryByTask} />
-      <CostTable entries={data.entries} />
+    <div className="space-y-6">
+      {hasCostData && (
+        <>
+          <SummaryCards
+            entries={data.entries}
+            summaryByTask={data.summaryByTask}
+          />
+          <CostTable entries={data.entries} />
+        </>
+      )}
+
+      {hasRunHistory && <RunHistory runs={runs} />}
     </div>
   );
 }

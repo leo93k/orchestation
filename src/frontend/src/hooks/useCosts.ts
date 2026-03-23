@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { CostData } from "@/lib/cost-parser";
 
 type UseCostsResult = {
   data: CostData | null;
   isLoading: boolean;
   error: string | null;
+  refetch: () => void;
 };
 
 export function useCosts(): UseCostsResult {
   const [data, setData] = useState<CostData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchKey, setFetchKey] = useState(0);
+
+  const refetch = useCallback(() => {
+    setFetchKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +57,23 @@ export function useCosts(): UseCostsResult {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchKey]);
 
-  return { data, isLoading, error };
+  // Auto-poll when orchestration is running (every 5s)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("/api/orchestrate/status")
+        .then((res) => res.json())
+        .then((statusData) => {
+          if (statusData.status === "running") {
+            refetch();
+          }
+        })
+        .catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
+  return { data, isLoading, error, refetch };
 }
