@@ -67,7 +67,7 @@ function HomeDashboard({ groups }: { groups: WaterfallGroup[] }) {
                   href={`/sprint/${g.sprint.id}`}
                   className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 no-underline text-foreground hover:bg-muted/50 transition-colors"
                 >
-                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                  <span className="w-3.5 h-3.5 shrink-0 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                   <span className="text-sm font-medium flex-1">{g.sprint.title}</span>
                   <span className="text-xs text-muted-foreground">{g.progress.done}/{g.progress.total}</span>
                   <Progress value={pct} className="h-1.5 w-24 shrink-0" />
@@ -112,10 +112,16 @@ function HomeDashboard({ groups }: { groups: WaterfallGroup[] }) {
                   key={task.id}
                   className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2"
                 >
-                  <span className={cn("w-2 h-2 rounded-full shrink-0", style?.dot ?? "bg-gray-400")} />
+                  {task.status === "in_progress" ? (
+                    <span className="w-3.5 h-3.5 shrink-0 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className={cn("w-2 h-2 rounded-full shrink-0", style?.dot ?? "bg-gray-400")} />
+                  )}
                   <span className="font-mono text-xs text-muted-foreground w-24 shrink-0">{task.id}</span>
                   <span className="text-sm flex-1 truncate">{task.title}</span>
-                  <span className="text-xs text-muted-foreground">{style?.label}</span>
+                  <span className={cn("text-xs", task.status === "in_progress" ? "text-blue-500" : "text-muted-foreground")}>
+                    {style?.label}
+                  </span>
                 </div>
               );
             })}
