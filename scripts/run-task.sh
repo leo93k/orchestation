@@ -30,8 +30,7 @@ if [ -z "$BRANCH" ] || [ -z "$WORKTREE_REL" ]; then
   exit 1
 fi
 
-# worktree 절대경로 (REPO_ROOT 기준 상대경로 해석)
-WORKTREE_PATH="$(cd "$REPO_ROOT" && cd "$(dirname "$WORKTREE_REL")" 2>/dev/null && pwd)/$(basename "$WORKTREE_REL")" 2>/dev/null || true
+# worktree 절대경로
 WORKTREE_PATH="$REPO_ROOT/$WORKTREE_REL"
 
 echo "🌿 Branch: $BRANCH"
@@ -63,10 +62,8 @@ else
   echo "🎭 Role: general (기본)"
 fi
 
-# 작업자 프롬프트 구성
-PROMPT="${ROLE_PROMPT}
-
-## 작업 규칙
+# 작업자 프롬프트 구성 (역할은 --system-prompt로 전달, 여기는 작업 지시만)
+PROMPT="## 작업 규칙
 - 이 Worktree 안에서만 코드를 수정한다
 - main 브랜치를 직접 수정하지 않는다
 - Task 상태를 완료 처리하지 않는다

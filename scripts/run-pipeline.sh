@@ -124,7 +124,7 @@ run_batch() {
         # main에 머지 (새 커밋이 있는 경우만)
         if git -C "$REPO_ROOT" log --oneline "main..$branch" 2>/dev/null | grep -q .; then
           echo "  🔀 ${batch[$i]}: $branch → main 머지"
-          git -C "$REPO_ROOT" merge "$branch" --no-edit
+          git -C "$REPO_ROOT" merge "$branch" --no-ff --no-edit
         fi
 
         # 머지 완료 후 브랜치 삭제

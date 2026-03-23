@@ -56,10 +56,8 @@ else
   echo "🎭 Reviewer Role: reviewer-general (기본)"
 fi
 
-# Reviewer 프롬프트 구성
-PROMPT="${ROLE_PROMPT}
-
-## 리뷰 규칙
+# Reviewer 프롬프트 구성 (역할은 --system-prompt로 전달, 여기는 리뷰 지시만)
+PROMPT="## 리뷰 규칙
 - 코드를 직접 수정하지 않는다
 - Task 파일의 완료 조건을 기준으로 검증한다
 - git diff main에 나온 파일만 검증하라. 관련 없는 코드를 읽지 마라
@@ -91,9 +89,9 @@ echo ""
 echo "🔍 Reviewer Agent 실행 중..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# claude 실행 (JSON 출력으로 토큰 사용량 캡처)
+# claude 실행 (에이전트 모드 — 코드 실행/검증 허용)
 cd "$WORKTREE_PATH"
-JSON_OUTPUT=$(claude -p "$PROMPT" --dangerously-skip-permissions --output-format json)
+JSON_OUTPUT=$(echo "$PROMPT" | claude --output-format json --dangerously-skip-permissions --system-prompt "$ROLE_PROMPT")
 
 # 결과 텍스트 추출
 RESULT=$(echo "$JSON_OUTPUT" | jq -r '.result // empty')
@@ -124,8 +122,13 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${TASK_ID} | phase=review | input=${INPUT_T
 echo ""
 echo "📊 토큰: in=${INPUT_TOKENS} cache_create=${CACHE_CREATE} cache_read=${CACHE_READ} out=${OUTPUT_TOKENS} | cost=\$${COST}"
 
-# 승인 여부 판단
-if echo "$RESULT" | grep -q "승인"; then
+# 승인 여부 판단 (리뷰 결과에서 "승인" 키워드 확인, "수정요청"이 있으면 거부)
+if echo "$RESULT" | grep -q "수정요청"; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "🔄 수정 요청됨"
+  exit 1
+elif echo "$RESULT" | grep -q "승인"; then
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "✅ 리뷰 승인됨"
