@@ -91,9 +91,11 @@ echo ""
 echo "🚀 작업자 Agent 실행 중..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# claude 실행 (JSON 출력으로 토큰 사용량 캡처)
+# claude 실행 (에이전트 모드 — 검증 루프 허용)
+# -p (print 모드)가 아닌 stdin 파이프로 전달하여 에이전트 모드 활성화
+# 이를 통해 Claude가 코드 작성 → 실행 → 검증 → 수정 루프를 수행할 수 있음
 cd "$WORKTREE_PATH"
-JSON_OUTPUT=$(claude -p "$PROMPT" --dangerously-skip-permissions --output-format json)
+JSON_OUTPUT=$(echo "$PROMPT" | claude --output-format json --dangerously-skip-permissions --system-prompt "$ROLE_PROMPT")
 
 # 결과 텍스트 출력
 echo "$JSON_OUTPUT" | jq -r '.result // empty'
