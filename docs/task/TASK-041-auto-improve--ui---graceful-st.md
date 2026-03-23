@@ -1,7 +1,7 @@
 ---
 id: TASK-041
 title: auto-improve 웹 UI 중단 버튼 (graceful stop)
-status: in_progress
+status: done
 priority: medium
 sprint:
 depends_on: []
