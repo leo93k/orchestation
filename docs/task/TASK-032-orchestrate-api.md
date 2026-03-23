@@ -1,7 +1,7 @@
 ---
 id: TASK-032
 title: 오케스트레이션 실행 API
-status: in_progress
+status: done
 priority: high
 sprint: SPRINT-007
 depends_on: []
