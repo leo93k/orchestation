@@ -66,26 +66,76 @@ body {
   line-height: 1.5;
 }
 
-/* Container utility for max-width content */
+/* Container utility for max-width content (used by non-IDE pages) */
 .content-container {
   max-width: 1280px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* Compact table styles */
-.compact-table th,
-.compact-table td {
-  padding: 6px 12px;
+/* 3-Column IDE Layout */
+.ide-layout {
+  display: grid;
+  grid-template-columns: 13rem 1fr 20rem;
+  height: 100vh;
+  overflow: hidden;
 }
 
-/* Hover action buttons - hidden by default, shown on row hover */
-.hover-actions {
-  opacity: 0;
-  transition: opacity 0.15s ease;
+.ide-layout.no-right-panel {
+  grid-template-columns: 13rem 1fr;
 }
-.group:hover .hover-actions,
-.group:focus-within .hover-actions {
+
+/* Left sidebar panel */
+.ide-sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--sidebar);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Middle task list */
+.ide-main {
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--background);
+}
+
+/* Right detail panel */
+.ide-right {
+  border-left: 1px solid var(--border);
+  background: var(--sidebar);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Compact task row */
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background-color 0.1s ease, border-color 0.1s ease;
+  flex-shrink: 0;
+}
+
+.task-row:hover {
+  background-color: var(--muted);
+}
+
+.task-row.selected {
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  border-left-color: var(--primary);
+}
+
+/* Hover action buttons - hidden by default */
+.task-row .row-actions {
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.task-row:hover .row-actions {
   opacity: 1;
 }
 
@@ -97,7 +147,100 @@ body {
   flex-shrink: 0;
 }
 
-/* Inline stats bar */
+/* Filter pill styles */
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.filter-pill:hover {
+  background: var(--muted);
+}
+
+.filter-pill.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+/* Sidebar tree items */
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.1s ease;
+  user-select: none;
+}
+
+.tree-item:hover {
+  background-color: var(--sidebar-accent);
+}
+
+.tree-item.active {
+  background-color: var(--sidebar-accent);
+  font-weight: 600;
+}
+
+/* Right panel section */
+.detail-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-section:last-child {
+  border-bottom: none;
+}
+
+/* Column header for sorting */
+.col-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted-foreground);
+  padding: 6px 0;
+}
+
+.col-header:hover {
+  color: var(--foreground);
+}
+
+/* Compact table styles (legacy, for other pages) */
+.compact-table th,
+.compact-table td {
+  padding: 6px 12px;
+}
+
+/* Hover action buttons (legacy) */
+.hover-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.group:hover .hover-actions,
+.group:focus-within .hover-actions {
+  opacity: 1;
+}
+
+/* Inline stats bar (legacy) */
 .stats-bar {
   display: flex;
   align-items: center;
