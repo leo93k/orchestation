@@ -43,6 +43,11 @@ status: ready
 - In Progress 태스크에 스피너 표시 (홈과 동일)
 - 상태 변경 시 자동 갱신
 
-### 5. 홈 대시보드 활성화
+### 5. 홈 대시보드 개선
 - "마지막 갱신: 3초 전" 타임스탬프 표시
 - 실행 중일 때 전체 페이지 상단에 파란 인디케이터 바 (GitHub Actions 스타일)
+- **Active Sprints + Active Tasks 통합**: Active Sprint 아래에 해당 Sprint의 Task 목록을 인라인으로 표시
+  - 완료된 Task: ✅ 체크 표시
+  - 진행 중 Task: 🔄 스피너
+  - 대기 중 Task: ○ 빈 원
+  - "Active Sprints"와 "Active Tasks" 섹션을 하나로 합침
