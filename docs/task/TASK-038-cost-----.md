@@ -1,7 +1,7 @@
 ---
 id: TASK-038
 title: cost 메뉴에 사용 모델명 표시 추가
-status: in_progress
+status: done
 priority: medium
 sprint:
 depends_on: []
