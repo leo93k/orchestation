@@ -50,8 +50,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const listRef = useRef<HTMLDivElement>(null);
 
-  const isTaskView = pathname === "/" && (filter.type === "all" || filter.type === "status" || filter.type === "sprint");
-  const isSubPage = pathname !== "/" && !pathname.startsWith("/docs/");
+  const [showTaskView, setShowTaskView] = useState(false);
+  const isTaskView = pathname === "/" && showTaskView;
 
   // Flatten all tasks
   const allTasks = useMemo(() => groups.flatMap((g) => g.tasks), [groups]);
@@ -103,6 +103,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const handleFilterChange = useCallback((f: SidebarFilter) => {
     setFilter(f);
     setSelectedTask(null);
+    // Tasks 필터 선택 시 Task 뷰 표시
+    if (f.type === "all" || f.type === "status" || f.type === "sprint") {
+      setShowTaskView(true);
+    } else {
+      setShowTaskView(false);
+    }
   }, []);
 
   // Doc tree handlers
@@ -142,6 +148,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (filter.type === "status") setStatusFilter(null);
   }, [filter]);
+
+  // 다른 페이지로 이동하면 Task 뷰 닫기
+  useEffect(() => {
+    if (pathname !== "/") setShowTaskView(false);
+  }, [pathname]);
 
   if (isLoading) {
     return (
