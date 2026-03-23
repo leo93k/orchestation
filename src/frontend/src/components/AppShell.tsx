@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const listRef = useRef<HTMLDivElement>(null);
 
-  const [showTaskView, setShowTaskView] = useState(false);
+  const [showTaskView, setShowTaskView] = useState(true);
   const isTaskView = pathname === "/" && showTaskView;
 
   // Flatten all tasks
@@ -204,10 +204,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Main content */}
         <div className="flex flex-1 overflow-hidden">
-          {pathname === "/" && !isTaskView ? (
-            /* 홈: 빈 화면 */
-            <div className="flex-1" />
-          ) : isTaskView ? (
+          {isTaskView ? (
         <>
           <div className="ide-main flex flex-col">
             {/* Filter bar */}

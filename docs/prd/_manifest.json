@@ -48,20 +48,6 @@
           "file": "doc-role-guide.md"
         }
       ]
-    },
-    {
-      "id": "folder-research",
-      "title": "리서치",
-      "type": "folder",
-      "children": [
-        {
-          "id": "doc-prompt-experiment",
-          "title": "프롬프트 성능 비교 실험 결론",
-          "type": "doc",
-          "children": [],
-          "file": "doc-prompt-experiment.md"
-        }
-      ]
     }
   ]
 }

@@ -193,6 +193,7 @@ body {
 .tree-item.active {
   background-color: var(--sidebar-accent);
   font-weight: 600;
+  border-left: 2px solid var(--primary);
 }
 
 /* Right panel section */

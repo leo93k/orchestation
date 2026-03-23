@@ -464,7 +464,7 @@ export function TaskSidebar({
       {/* Header */}
       <div className="flex items-center px-3 h-10 border-b border-sidebar-border shrink-0">
         <Link href="/" className="text-sm font-semibold text-sidebar-foreground no-underline hover:text-primary transition-colors">
-          Dashboard
+          Home
         </Link>
       </div>
 
@@ -609,23 +609,6 @@ export function TaskSidebar({
             );
           })}
 
-          <div className="px-2 mt-1.5 mb-0.5 text-[10px] text-muted-foreground">
-            By Sprint
-          </div>
-          {groups.map((group) => {
-            const isActive = filter.type === "sprint" && filter.sprintId === group.sprint.id;
-            return (
-              <div
-                key={`filter-${group.sprint.id}`}
-                className={cn("tree-item", isActive && "active")}
-                onClick={() => onFilterChange({ type: "sprint", sprintId: group.sprint.id })}
-              >
-                <span className="w-2 h-2 shrink-0" />
-                <span className="flex-1 truncate">{group.sprint.title}</span>
-                <span className="text-[10px] text-muted-foreground">{group.progress.done}/{group.progress.total}</span>
-              </div>
-            );
-          })}
         </div>
       </div>
 
