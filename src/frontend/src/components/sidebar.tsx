@@ -134,7 +134,7 @@ export function TaskSidebar({ groups, prds, filter, onFilterChange, currentPath 
                       {isPrdExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                     </button>
                     <BookOpen className="h-3 w-3 text-primary shrink-0" />
-                    <span className="truncate flex-1">{prd.title}</span>
+                    <span className="truncate flex-1">README.md</span>
                   </Link>
 
                 </div>

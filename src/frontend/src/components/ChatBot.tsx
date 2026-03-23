@@ -53,7 +53,6 @@ export function ChatBot() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showSessions, setShowSessions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -86,7 +85,6 @@ export function ChatBot() {
     const s = createSession();
     setSessions((prev) => [s, ...prev]);
     setActiveSessionId(s.id);
-    setShowSessions(false);
   }, []);
 
   const deleteSession = useCallback((id: string) => {
@@ -201,67 +199,64 @@ export function ChatBot() {
         </button>
       )}
 
-      {/* 채팅 창 */}
+      {/* 채팅 창 — 2-column */}
       {isOpen && (
-        <div className="fixed bottom-5 right-5 z-50 flex flex-col w-96 h-[520px] bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
-          {/* 헤더 */}
-          <div className="flex items-center h-10 px-3 border-b border-border bg-sidebar shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowSessions(!showSessions)}
-              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors mr-2"
-            >
-              {showSessions ? "Chat" : "Sessions"}
-            </button>
-            <span className="text-xs font-semibold flex-1 truncate">
-              {activeSession?.title ?? "Chat"}
-            </span>
-            <button
-              type="button"
-              onClick={newSession}
-              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-              title="New session"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
+        <div className="fixed bottom-5 right-5 z-50 flex w-[600px] h-[520px] bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
 
-          {showSessions ? (
-            /* 세션 목록 */
+          {/* 좌: 세션 목록 */}
+          <div className="w-44 shrink-0 flex flex-col border-r border-border bg-sidebar">
+            <div className="flex items-center justify-between h-9 px-2.5 border-b border-border shrink-0">
+              <span className="text-[11px] font-semibold text-sidebar-foreground">Sessions</span>
+              <button
+                type="button"
+                onClick={newSession}
+                className="p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                title="New session"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <div className="flex-1 overflow-y-auto">
               {sessions.map((s) => (
                 <div
                   key={s.id}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-border text-xs hover:bg-muted/50 transition-colors",
+                    "group flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer text-[11px] hover:bg-muted/50 transition-colors border-b border-border",
                     s.id === activeSessionId && "bg-muted",
                   )}
-                  onClick={() => { setActiveSessionId(s.id); setShowSessions(false); }}
+                  onClick={() => setActiveSessionId(s.id)}
                 >
-                  <MessageSquare className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <MessageSquare className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
                   <span className="flex-1 truncate">{s.title}</span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
-                    {s.messages.length}
-                  </span>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
-                    className="p-0.5 text-muted-foreground hover:text-destructive transition-colors"
+                    className="p-0.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-2.5 w-2.5" />
                   </button>
                 </div>
               ))}
             </div>
-          ) : (
-            /* 메시지 영역 */
+          </div>
+
+          {/* 우: 대화 */}
+          <div className="flex-1 flex flex-col">
+            {/* 헤더 */}
+            <div className="flex items-center h-9 px-3 border-b border-border shrink-0">
+              <span className="text-xs font-semibold flex-1 truncate">
+                {activeSession?.title ?? "Chat"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* 메시지 */}
             <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
               {activeSession?.messages.length === 0 && (
                 <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
@@ -288,10 +283,8 @@ export function ChatBot() {
               )}
               <div ref={messagesEndRef} />
             </div>
-          )}
 
-          {/* 입력 영역 */}
-          {!showSessions && (
+            {/* 입력 */}
             <div className="flex items-end gap-2 px-3 py-2 border-t border-border shrink-0">
               <textarea
                 ref={inputRef}
@@ -311,7 +304,7 @@ export function ChatBot() {
                 <Send className="h-3.5 w-3.5" />
               </button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </>
