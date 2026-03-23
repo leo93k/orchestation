@@ -330,8 +330,13 @@ export default function TaskPage() {
         </div>
       </div>
 
-      {/* Right: Detail panel (only when task selected) */}
-      {selectedTask && <RightPanel task={selectedTask} />}
+      {/* Right: Detail panel */}
+      {(selectedTask || filter.type === "prd") && (
+        <RightPanel
+          task={selectedTask}
+          prd={filter.type === "prd" ? prds.find((p) => p.id === filter.prdId) ?? null : null}
+        />
+      )}
     </div>
   );
 }

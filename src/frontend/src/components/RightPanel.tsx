@@ -8,10 +8,12 @@ import {
   type TaskPriority,
 } from "../../lib/constants";
 import type { WaterfallTask } from "@/types/waterfall";
-import { MousePointerClick } from "lucide-react";
+import { MousePointerClick, BookOpen } from "lucide-react";
+import type { Prd } from "@/hooks/usePrds";
 
 type RightPanelProps = {
   task: WaterfallTask | null;
+  prd: Prd | null;
 };
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
@@ -33,12 +35,54 @@ function IdChip({ id }: { id: string }) {
   );
 }
 
-export function RightPanel({ task }: RightPanelProps) {
+export function RightPanel({ task, prd }: RightPanelProps) {
+  // PRD 뷰 (태스크 미선택 + PRD 선택 시)
+  if (!task && prd) {
+    return (
+      <div className="ide-right">
+        <div className="px-3 py-3 border-b border-border">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+            <BookOpen className="h-3 w-3" />
+            {prd.id}
+          </div>
+          <div className="text-sm font-semibold leading-tight">{prd.title}</div>
+        </div>
+
+        <Section label="Status">
+          <span className={cn(
+            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+            prd.status === "done" ? "bg-emerald-500/15 text-emerald-400" :
+            prd.status === "in_progress" ? "bg-blue-500/15 text-blue-400" :
+            "bg-zinc-500/15 text-zinc-400"
+          )}>
+            {prd.status}
+          </span>
+        </Section>
+
+        <Section label="Sprints">
+          {prd.sprints.length > 0 ? (
+            <div className="flex flex-wrap">
+              {prd.sprints.map((s) => <IdChip key={s} id={s} />)}
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">-</span>
+          )}
+        </Section>
+
+        <Section label="Document">
+          <div className="text-xs leading-relaxed text-foreground/80 whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
+            {prd.content || "내용 없음"}
+          </div>
+        </Section>
+      </div>
+    );
+  }
+
   if (!task) {
     return (
       <div className="ide-right flex flex-col items-center justify-center h-full text-muted-foreground">
         <MousePointerClick className="h-6 w-6 mb-2 opacity-40" />
-        <p className="text-xs">Select a task</p>
+        <p className="text-xs">Select a task or PRD</p>
       </div>
     );
   }
