@@ -26,6 +26,7 @@ export function CostTable({ entries }: CostTableProps) {
           <tr className="border-b border-border text-left text-[10px] text-muted-foreground uppercase tracking-wider">
             <th className="font-medium">Task ID</th>
             <th className="font-medium">Phase</th>
+            <th className="font-medium">Model</th>
             <th className="font-medium text-right">Cost</th>
             <th className="font-medium text-right">Time</th>
             <th className="font-medium text-right">Turns</th>
@@ -64,6 +65,11 @@ export function CostTable({ entries }: CostTableProps) {
                     }`}
                   >
                     {entry.phase}
+                  </span>
+                </td>
+                <td>
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    {entry.model}
                   </span>
                 </td>
                 <td className="text-right font-mono">
