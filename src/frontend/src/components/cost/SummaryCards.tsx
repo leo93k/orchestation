@@ -16,6 +16,10 @@ export function SummaryCards({ entries, summaryByTask }: SummaryCardsProps) {
     0,
   );
 
+  // Collect unique models across all entries
+  const uniqueModels = new Set(entries.map((e) => e.model).filter((m) => m && m !== "unknown"));
+  const modelsDisplay = uniqueModels.size > 0 ? Array.from(uniqueModels).join(", ") : "—";
+
   return (
     <div className="stats-bar">
       <div className="stat-item">
@@ -33,6 +37,10 @@ export function SummaryCards({ entries, summaryByTask }: SummaryCardsProps) {
       <div className="stat-item">
         <span className="stat-label">Tokens</span>
         <span className="stat-value">{totalTokens.toLocaleString()}</span>
+      </div>
+      <div className="stat-item">
+        <span className="stat-label">Models</span>
+        <span className="stat-value text-[10px]">{modelsDisplay}</span>
       </div>
     </div>
   );

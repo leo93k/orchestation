@@ -5,6 +5,7 @@ export interface CostEntry {
   timestamp: string;
   taskId: string;
   phase: string;
+  model: string;
   inputTokens: number;
   cacheCreate: number;
   cacheRead: number;
@@ -16,6 +17,7 @@ export interface CostEntry {
 
 export interface TaskCostSummary {
   taskId: string;
+  models: string;
   totalInputTokens: number;
   totalOutputTokens: number;
   totalCacheCreate: number;
@@ -31,9 +33,13 @@ export interface CostData {
   summaryByTask: TaskCostSummary[];
 }
 
-// Log format:
+// Log format (new, with model):
+// [2026-03-23 12:15:45] TASK-029 | phase=task | model=claude-sonnet-4-20250514 | input=1500 cache_create=100 cache_read=0 output=2400 | turns=3 | duration=5230ms | cost=$0.045
+// Log format (legacy, without model):
 // [2026-03-23 12:15:45] TASK-029 | phase=task | input=1500 cache_create=100 cache_read=0 output=2400 | turns=3 | duration=5230ms | cost=$0.045
-const LOG_LINE_REGEX =
+const LOG_LINE_REGEX_WITH_MODEL =
+  /^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+([\w-]+)\s+\|\s+phase=(\w+)\s+\|\s+model=([\w.:/-]+)\s+\|\s+input=(\d+)\s+cache_create=(\d+)\s+cache_read=(\d+)\s+output=(\d+)\s+\|\s+turns=(\d+)\s+\|\s+duration=(\d+)ms\s+\|\s+cost=\$([\d.]+)/;
+const LOG_LINE_REGEX_LEGACY =
   /^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+([\w-]+)\s+\|\s+phase=(\w+)\s+\|\s+input=(\d+)\s+cache_create=(\d+)\s+cache_read=(\d+)\s+output=(\d+)\s+\|\s+turns=(\d+)\s+\|\s+duration=(\d+)ms\s+\|\s+cost=\$([\d.]+)/;
 
 const LOG_FILE = path.join(process.cwd(), "../../output/token-usage.log");
@@ -42,20 +48,40 @@ export function parseCostLogLine(line: string): CostEntry | null {
   const trimmed = line.trim();
   if (!trimmed) return null;
 
-  const match = trimmed.match(LOG_LINE_REGEX);
-  if (!match) return null;
+  // Try new format with model first
+  const matchWithModel = trimmed.match(LOG_LINE_REGEX_WITH_MODEL);
+  if (matchWithModel) {
+    return {
+      timestamp: matchWithModel[1],
+      taskId: matchWithModel[2],
+      phase: matchWithModel[3],
+      model: matchWithModel[4],
+      inputTokens: parseInt(matchWithModel[5], 10),
+      cacheCreate: parseInt(matchWithModel[6], 10),
+      cacheRead: parseInt(matchWithModel[7], 10),
+      outputTokens: parseInt(matchWithModel[8], 10),
+      turns: parseInt(matchWithModel[9], 10),
+      durationMs: parseInt(matchWithModel[10], 10),
+      costUsd: parseFloat(matchWithModel[11]),
+    };
+  }
+
+  // Fall back to legacy format without model
+  const matchLegacy = trimmed.match(LOG_LINE_REGEX_LEGACY);
+  if (!matchLegacy) return null;
 
   return {
-    timestamp: match[1],
-    taskId: match[2],
-    phase: match[3],
-    inputTokens: parseInt(match[4], 10),
-    cacheCreate: parseInt(match[5], 10),
-    cacheRead: parseInt(match[6], 10),
-    outputTokens: parseInt(match[7], 10),
-    turns: parseInt(match[8], 10),
-    durationMs: parseInt(match[9], 10),
-    costUsd: parseFloat(match[10]),
+    timestamp: matchLegacy[1],
+    taskId: matchLegacy[2],
+    phase: matchLegacy[3],
+    model: "unknown",
+    inputTokens: parseInt(matchLegacy[4], 10),
+    cacheCreate: parseInt(matchLegacy[5], 10),
+    cacheRead: parseInt(matchLegacy[6], 10),
+    outputTokens: parseInt(matchLegacy[7], 10),
+    turns: parseInt(matchLegacy[8], 10),
+    durationMs: parseInt(matchLegacy[9], 10),
+    costUsd: parseFloat(matchLegacy[10]),
   };
 }
 
@@ -82,12 +108,14 @@ export function parseCostLog(): CostData {
 
 function aggregateByTask(entries: CostEntry[]): TaskCostSummary[] {
   const map = new Map<string, TaskCostSummary>();
+  const modelsMap = new Map<string, Set<string>>();
 
   for (const e of entries) {
     let summary = map.get(e.taskId);
     if (!summary) {
       summary = {
         taskId: e.taskId,
+        models: "",
         totalInputTokens: 0,
         totalOutputTokens: 0,
         totalCacheCreate: 0,
@@ -98,6 +126,10 @@ function aggregateByTask(entries: CostEntry[]): TaskCostSummary[] {
         entries: 0,
       };
       map.set(e.taskId, summary);
+      modelsMap.set(e.taskId, new Set());
+    }
+    if (e.model && e.model !== "unknown") {
+      modelsMap.get(e.taskId)!.add(e.model);
     }
     summary.totalInputTokens += e.inputTokens;
     summary.totalOutputTokens += e.outputTokens;
@@ -109,6 +141,12 @@ function aggregateByTask(entries: CostEntry[]): TaskCostSummary[] {
       (summary.totalCostUsd + e.costUsd).toFixed(6)
     );
     summary.entries += 1;
+  }
+
+  // Set comma-separated model names on each summary
+  for (const [taskId, summary] of map) {
+    const models = modelsMap.get(taskId)!;
+    summary.models = models.size > 0 ? Array.from(models).join(", ") : "unknown";
   }
 
   return Array.from(map.values());

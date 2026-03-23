@@ -112,8 +112,9 @@ OUTPUT_TOKENS=$(echo "$JSON_OUTPUT" | jq '.usage.output_tokens // 0')
 COST=$(echo "$JSON_OUTPUT" | jq '.total_cost_usd // 0')
 DURATION=$(echo "$JSON_OUTPUT" | jq '.duration_ms // 0')
 NUM_TURNS=$(echo "$JSON_OUTPUT" | jq '.num_turns // 0')
+MODEL=$(echo "$JSON_OUTPUT" | jq -r '.model // "unknown"')
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${TASK_ID} | phase=task | input=${INPUT_TOKENS} cache_create=${CACHE_CREATE} cache_read=${CACHE_READ} output=${OUTPUT_TOKENS} | turns=${NUM_TURNS} | duration=${DURATION}ms | cost=\$${COST}" >> "$TOKEN_LOG"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${TASK_ID} | phase=task | model=${MODEL} | input=${INPUT_TOKENS} cache_create=${CACHE_CREATE} cache_read=${CACHE_READ} output=${OUTPUT_TOKENS} | turns=${NUM_TURNS} | duration=${DURATION}ms | cost=\$${COST}" >> "$TOKEN_LOG"
 
 echo ""
 echo "📊 토큰: in=${INPUT_TOKENS} cache_create=${CACHE_CREATE} cache_read=${CACHE_READ} out=${OUTPUT_TOKENS} | cost=\$${COST}"
