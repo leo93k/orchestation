@@ -107,6 +107,19 @@ export default function TaskPage() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Toggle selection: click again to deselect
+  const handleTaskClick = useCallback((task: WaterfallTask) => {
+    setSelectedTask((prev) => (prev?.id === task.id ? null : task));
+  }, []);
+
+  // Click on empty background → deselect
+  const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
+    // Only deselect if clicking directly on the scrollable container, not on a task row
+    if (e.target === e.currentTarget) {
+      setSelectedTask(null);
+    }
+  }, []);
+
   // Flatten all tasks
   const allTasks = useMemo(() => {
     return groups.flatMap((g) => g.tasks);
@@ -242,9 +255,9 @@ export default function TaskPage() {
   );
 
   return (
-    <div className={cn("ide-layout", !selectedTask && "no-right-panel")}>
+    <div className={cn("ide-layout", !selectedTask && filter.type !== "prd" && "no-right-panel")}>
       {/* Left: Sidebar */}
-      <TaskSidebar groups={groups} prds={prds} filter={filter} onFilterChange={setFilter} />
+      <TaskSidebar groups={groups} prds={prds} filter={filter} onFilterChange={(f) => { setFilter(f); setSelectedTask(null); }} />
 
       {/* Middle: Task list */}
       <div className="ide-main flex flex-col">
@@ -311,8 +324,8 @@ export default function TaskPage() {
           <span className="w-10 shrink-0" /> {/* actions spacer */}
         </div>
 
-        {/* Task rows */}
-        <div ref={listRef} className="flex-1 overflow-y-auto">
+        {/* Task rows — click empty area to deselect */}
+        <div ref={listRef} className="flex-1 overflow-y-auto" onClick={handleBackgroundClick}>
           {filteredTasks.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-xs text-muted-foreground">
               No matching tasks
@@ -323,7 +336,7 @@ export default function TaskPage() {
                 key={task.id}
                 task={task}
                 isSelected={selectedTask?.id === task.id}
-                onClick={setSelectedTask}
+                onClick={handleTaskClick}
               />
             ))
           )}
