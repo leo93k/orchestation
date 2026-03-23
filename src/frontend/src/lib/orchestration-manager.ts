@@ -1,5 +1,7 @@
 import { spawn, ChildProcess } from "child_process";
 import path from "path";
+import { appendRunHistory, type RunHistoryEntry } from "./run-history";
+import { parseCostLog } from "./cost-parser";
 
 export type OrchestrationStatus = "idle" | "running" | "completed" | "failed";
 
@@ -113,6 +115,7 @@ class OrchestrationManager {
         `[orchestrate] Process exited with code ${code} at ${this.state.finishedAt}`
       );
       this.process = null;
+      this.saveRunHistory();
     });
 
     proc.on("error", (err: Error) => {
@@ -166,6 +169,61 @@ class OrchestrationManager {
 
   private appendLog(line: string) {
     this.state.logs.push(line);
+  }
+
+  /**
+   * Save completed run to output/run-history.json
+   */
+  private saveRunHistory() {
+    try {
+      if (!this.state.startedAt || !this.state.finishedAt) return;
+
+      const startTime = new Date(this.state.startedAt).getTime();
+      const endTime = new Date(this.state.finishedAt).getTime();
+      const durationMs = endTime - startTime;
+
+      // Calculate cost from token-usage.log entries that fall within this run
+      let totalCostUsd = 0;
+      try {
+        const costData = parseCostLog();
+        for (const entry of costData.entries) {
+          const entryTime = new Date(entry.timestamp.replace(" ", "T")).getTime();
+          if (entryTime >= startTime && entryTime <= endTime) {
+            totalCostUsd += entry.costUsd;
+          }
+        }
+      } catch {
+        // cost log may not exist
+      }
+
+      const tasksCompleted = this.state.taskResults.filter(
+        (r) => r.status === "success"
+      ).length;
+      const tasksFailed = this.state.taskResults.filter(
+        (r) => r.status === "failure"
+      ).length;
+
+      const entry: RunHistoryEntry = {
+        id: `run-${this.state.startedAt.replace(/[^0-9]/g, "").slice(0, 14)}`,
+        startedAt: this.state.startedAt,
+        finishedAt: this.state.finishedAt,
+        status: this.state.status as "completed" | "failed",
+        exitCode: this.state.exitCode,
+        taskResults: [...this.state.taskResults],
+        totalCostUsd: parseFloat(totalCostUsd.toFixed(6)),
+        totalDurationMs: durationMs,
+        tasksCompleted,
+        tasksFailed,
+      };
+
+      appendRunHistory(entry);
+      this.appendLog(
+        `[orchestrate] Run history saved: ${entry.id} (${tasksCompleted} completed, ${tasksFailed} failed, $${totalCostUsd.toFixed(4)})`
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.appendLog(`[orchestrate] Failed to save run history: ${msg}`);
+    }
   }
 
   /**

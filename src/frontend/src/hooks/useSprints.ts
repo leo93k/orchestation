@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { SprintData } from "@/lib/sprint-parser";
 import type { TaskFrontmatter } from "@/lib/parser";
 
@@ -15,12 +15,18 @@ type UseSprintsResult = {
   sprints: SprintListItem[];
   isLoading: boolean;
   error: string | null;
+  refetch: () => void;
 };
 
 export function useSprints(): UseSprintsResult {
   const [sprints, setSprints] = useState<SprintListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchKey, setFetchKey] = useState(0);
+
+  const refetch = useCallback(() => {
+    setFetchKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +88,23 @@ export function useSprints(): UseSprintsResult {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchKey]);
 
-  return { sprints, isLoading, error };
+  // Auto-poll when orchestration is running (every 5s)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("/api/orchestrate/status")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === "running") {
+            refetch();
+          }
+        })
+        .catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
+  return { sprints, isLoading, error, refetch };
 }

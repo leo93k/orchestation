@@ -67,5 +67,21 @@ export function useTasks(): UseTasksResult {
     };
   }, [fetchKey]);
 
+  // Auto-poll when orchestration might be running (every 5s)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("/api/orchestrate/status")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === "running") {
+            refetch();
+          }
+        })
+        .catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
   return { groups, isLoading, error, refetch };
 }

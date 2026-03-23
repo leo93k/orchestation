@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTasks } from "@/hooks/useTasks";
 import { usePrds } from "@/hooks/usePrds";
 import { useDocTree } from "@/hooks/useDocTree";
+import { useOrchestrationStatus } from "@/hooks/useOrchestrationStatus";
 import { TaskSidebar, type SidebarFilter } from "@/components/sidebar";
 import { TaskRow } from "@/components/TaskRow";
 import { RightPanel } from "@/components/RightPanel";
@@ -166,6 +167,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { groups, isLoading, error, refetch } = useTasks();
   const { prds } = usePrds();
   const { tree: docTree, createDoc, updateDoc, deleteDoc, reorderDoc } = useDocTree();
+  const { justFinished, clearFinished } = useOrchestrationStatus();
+
+  // Auto-refresh all data when orchestration finishes
+  useEffect(() => {
+    if (justFinished) {
+      refetch();
+      clearFinished();
+    }
+  }, [justFinished, refetch, clearFinished]);
 
   const [filter, setFilter] = useState<SidebarFilter>({ type: "all" });
   const [selectedTask, setSelectedTask] = useState<WaterfallTask | null>(null);
