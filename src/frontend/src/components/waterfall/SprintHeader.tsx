@@ -10,9 +10,9 @@ export function SprintHeader({ sprint, progress }: SprintHeaderProps) {
     progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 bg-muted/50 border-b">
-      <h3 className="text-sm font-semibold">{sprint.title}</h3>
-      <span className="text-xs text-muted-foreground">
+    <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border">
+      <h3 className="text-xs font-medium">{sprint.title}</h3>
+      <span className="text-[10px] text-muted-foreground">
         {progress.done}/{progress.total} ({percent}%)
       </span>
     </div>

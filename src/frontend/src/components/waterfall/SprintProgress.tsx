@@ -11,17 +11,11 @@ import {
 import { cn } from "@/lib/utils";
 
 type SprintProgressProps = {
-  /** Sprint 이름 */
   title: string;
-  /** 완료된 태스크 수 */
   done: number;
-  /** 전체 태스크 수 */
   total: number;
-  /** 접기/펼치기 상태를 외부에서 제어할 때 사용 */
   open?: boolean;
-  /** 접기/펼치기 상태 변경 콜백 */
   onOpenChange?: (open: boolean) => void;
-  /** Task 바 목록 (children) */
   children?: React.ReactNode;
   className?: string;
 };
@@ -47,30 +41,36 @@ export function SprintProgress({
     <Collapsible
       open={isOpen}
       onOpenChange={handleOpenChange}
-      className={cn("rounded-lg border bg-card", className)}
+      className={cn("border-b border-border last:border-b-0", className)}
     >
       <CollapsibleTrigger asChild>
         <button
           type="button"
-          className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+          className="flex w-full items-center gap-2 px-2 py-2 text-left hover:bg-muted/30 transition-colors"
         >
           {isOpen ? (
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
           ) : (
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
           )}
 
-          <span className="font-semibold text-sm">{title}</span>
+          <span className="font-medium text-xs">{title}</span>
 
-          <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
-            {done}/{total} 완료
+          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+            {done}/{total}
           </span>
 
-          <Progress value={percentage} className="h-2 w-24 shrink-0" />
+          <Progress value={percentage} className="h-1 w-16 shrink-0" />
+
+          <span className="text-[10px] text-muted-foreground">
+            {percentage}%
+          </span>
         </button>
       </CollapsibleTrigger>
 
-      <CollapsibleContent>{children}</CollapsibleContent>
+      <CollapsibleContent>
+        <div className="pl-5">{children}</div>
+      </CollapsibleContent>
     </Collapsible>
   );
 }

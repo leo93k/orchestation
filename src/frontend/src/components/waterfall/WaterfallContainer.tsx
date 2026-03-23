@@ -15,7 +15,7 @@ export function WaterfallContainer({ groups }: WaterfallContainerProps) {
 
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col">
         {groups.map((group) => (
           <SprintProgress
             key={group.sprint.id}
@@ -23,7 +23,7 @@ export function WaterfallContainer({ groups }: WaterfallContainerProps) {
             done={group.progress.done}
             total={group.progress.total}
           >
-            <div className="flex flex-col gap-1 p-4">
+            <div className="flex flex-col py-0.5">
               {group.tasks.length > 0 ? (
                 group.tasks.map((task) => (
                   <TaskBar
@@ -33,8 +33,8 @@ export function WaterfallContainer({ groups }: WaterfallContainerProps) {
                   />
                 ))
               ) : (
-                <p className="py-2 text-sm text-muted-foreground">
-                  배정된 태스크가 없습니다
+                <p className="py-1 px-2 text-xs text-muted-foreground">
+                  No tasks
                 </p>
               )}
             </div>

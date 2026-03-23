@@ -62,4 +62,59 @@ body {
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Container utility for max-width content */
+.content-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Compact table styles */
+.compact-table th,
+.compact-table td {
+  padding: 6px 12px;
+}
+
+/* Hover action buttons - hidden by default, shown on row hover */
+.hover-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.group:hover .hover-actions,
+.group:focus-within .hover-actions {
+  opacity: 1;
+}
+
+/* Status dot indicator */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Inline stats bar */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.stats-bar .stat-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.stats-bar .stat-label {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.stats-bar .stat-value {
+  font-size: 14px;
+  font-weight: 600;
 }

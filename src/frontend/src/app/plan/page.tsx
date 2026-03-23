@@ -10,19 +10,18 @@ import type { WaterfallTask } from "@/types/waterfall";
 
 function LoadingSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
-      <Skeleton className="h-6 w-48" />
+    <div className="flex flex-col gap-2">
+      <Skeleton className="h-4 w-36" />
       {[1, 2].map((i) => (
-        <div key={i} className="rounded-lg border bg-card">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <Skeleton className="h-4 w-4" />
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="ml-auto h-4 w-16" />
-            <Skeleton className="h-2 w-24" />
+        <div key={i} className="border-b border-border pb-2">
+          <div className="flex items-center gap-2 px-2 py-2">
+            <Skeleton className="h-3 w-3" />
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="ml-auto h-1 w-16" />
           </div>
-          <div className="flex flex-col gap-1 p-4">
+          <div className="flex flex-col gap-0.5 pl-5">
             {[1, 2, 3].map((j) => (
-              <Skeleton key={j} className="h-12 w-full rounded-md" />
+              <Skeleton key={j} className="h-7 w-full rounded" />
             ))}
           </div>
         </div>
@@ -35,8 +34,8 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="flex h-full items-center justify-center">
       <div className="flex items-center gap-2 text-destructive">
-        <AlertCircle className="h-5 w-5" />
-        <p>{message}</p>
+        <AlertCircle className="h-4 w-4" />
+        <p className="text-sm">{message}</p>
       </div>
     </div>
   );
@@ -85,8 +84,8 @@ export default function PlanPage() {
 
   if (!data) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">등록된 플랜이 없습니다.</p>
+      <div className="py-8 text-center">
+        <p className="text-xs text-muted-foreground">No plan registered.</p>
       </div>
     );
   }

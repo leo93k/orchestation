@@ -1,40 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, Calendar } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useSprints } from "@/hooks/useSprints";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const SPRINT_STATUS_STYLES: Record<string, { bg: string; label: string }> = {
-  ready: { bg: "bg-zinc-500", label: "Ready" },
-  in_progress: { bg: "bg-blue-500", label: "In Progress" },
-  done: { bg: "bg-emerald-500", label: "Done" },
+const SPRINT_STATUS_DOT: Record<string, string> = {
+  ready: "bg-zinc-400",
+  in_progress: "bg-blue-500",
+  done: "bg-emerald-500",
 };
 
-function StatusBadge({ status }: { status: string }) {
-  const style = SPRINT_STATUS_STYLES[status] ?? {
-    bg: "bg-gray-400",
-    label: status,
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white ${style.bg}`}
-    >
-      {style.label}
-    </span>
-  );
+function StatusDot({ status }: { status: string }) {
+  const color = SPRINT_STATUS_DOT[status] ?? "bg-gray-400";
+  return <span className={`status-dot ${color}`} />;
 }
 
 function LoadingSkeleton() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="rounded-lg border bg-card p-5">
-          <Skeleton className="mb-3 h-5 w-32" />
-          <Skeleton className="mb-4 h-5 w-16 rounded-full" />
-          <Skeleton className="h-2 w-full rounded-full" />
-          <Skeleton className="mt-2 h-4 w-20" />
+    <div className="flex flex-col">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex items-center gap-3 px-2 py-2 border-b border-border">
+          <Skeleton className="h-2 w-2 rounded-full" />
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="ml-auto h-1 w-16" />
+          <Skeleton className="h-3 w-12" />
         </div>
       ))}
     </div>
@@ -45,8 +36,8 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="flex h-full items-center justify-center">
       <div className="flex items-center gap-2 text-destructive">
-        <AlertCircle className="h-5 w-5" />
-        <p>{message}</p>
+        <AlertCircle className="h-4 w-4" />
+        <p className="text-sm">{message}</p>
       </div>
     </div>
   );
@@ -54,9 +45,8 @@ function ErrorState({ message }: { message: string }) {
 
 function EmptyState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3">
-      <Calendar className="h-10 w-10 text-muted-foreground" />
-      <p className="text-muted-foreground">등록된 스프린트가 없습니다.</p>
+    <div className="py-8 text-center">
+      <p className="text-xs text-muted-foreground">No sprints registered.</p>
     </div>
   );
 }
@@ -69,7 +59,17 @@ export default function SprintListPage() {
   if (sprints.length === 0) return <EmptyState />;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="flex flex-col">
+      {/* Table header */}
+      <div className="flex items-center gap-3 px-2 py-1.5 border-b border-border text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+        <span className="w-2" />
+        <span className="flex-1">Sprint</span>
+        <span className="w-20 text-right">Progress</span>
+        <span className="w-16" />
+        <span className="w-16 text-right">Status</span>
+      </div>
+
+      {/* Sprint rows */}
       {sprints.map((sprint) => {
         const percentage =
           sprint.progress.total > 0
@@ -82,19 +82,17 @@ export default function SprintListPage() {
           <Link
             key={sprint.id}
             href={`/sprint/${sprint.id}`}
-            className="group rounded-lg border bg-card p-5 transition-colors hover:bg-muted/50"
+            className="group flex items-center gap-3 px-2 py-2 border-b border-border transition-colors hover:bg-muted/50"
           >
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold truncate">{sprint.title}</h2>
-              <StatusBadge status={sprint.status} />
-            </div>
-
-            <div className="space-y-2">
-              <Progress value={percentage} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                {sprint.progress.done}/{sprint.progress.total} 완료 ({percentage}%)
-              </p>
-            </div>
+            <StatusDot status={sprint.status} />
+            <span className="flex-1 text-sm font-medium truncate">{sprint.title}</span>
+            <span className="w-20 text-right text-[11px] text-muted-foreground">
+              {sprint.progress.done}/{sprint.progress.total}
+            </span>
+            <Progress value={percentage} className="h-1 w-16 shrink-0" />
+            <span className="w-16 text-right text-[10px] text-muted-foreground capitalize">
+              {sprint.status.replace("_", " ")}
+            </span>
           </Link>
         );
       })}

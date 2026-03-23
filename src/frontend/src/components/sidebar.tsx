@@ -22,31 +22,31 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     label: "Task",
-    icon: <ClipboardList className="h-4 w-4" />,
+    icon: <ClipboardList className="h-3.5 w-3.5" />,
     href: "/",
     disabled: false,
   },
   {
     label: "Terminal",
-    icon: <SquareTerminal className="h-4 w-4" />,
+    icon: <SquareTerminal className="h-3.5 w-3.5" />,
     href: "/terminal",
     disabled: false,
   },
   {
     label: "Sprint",
-    icon: <Calendar className="h-4 w-4" />,
+    icon: <Calendar className="h-3.5 w-3.5" />,
     href: "/sprint",
     disabled: false,
   },
   {
     label: "Plan",
-    icon: <FileText className="h-4 w-4" />,
+    icon: <FileText className="h-3.5 w-3.5" />,
     href: "/plan",
     disabled: false,
   },
   {
     label: "Cost",
-    icon: <DollarSign className="h-4 w-4" />,
+    icon: <DollarSign className="h-3.5 w-3.5" />,
     href: "/cost",
     disabled: false,
   },
@@ -56,13 +56,13 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-sidebar-border bg-sidebar">
-      <div className="px-4 py-5">
-        <h1 className="text-lg font-semibold text-sidebar-foreground">
+    <aside className="flex h-screen w-48 flex-col border-r border-sidebar-border bg-sidebar">
+      <div className="px-3 py-3">
+        <h1 className="text-sm font-semibold text-sidebar-foreground">
           Dashboard
         </h1>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 px-3">
+      <nav className="flex flex-1 flex-col gap-0.5 px-2">
         {navItems.map((item) => {
           const isActive =
             item.href === "/"
@@ -78,7 +78,7 @@ export function Sidebar() {
                     variant: "sidebarDisabled",
                     size: "sidebar",
                   }),
-                  "pointer-events-none",
+                  "pointer-events-none text-xs",
                 )}
                 aria-disabled="true"
               >
@@ -97,6 +97,7 @@ export function Sidebar() {
                   variant: isActive ? "sidebarActive" : "sidebar",
                   size: "sidebar",
                 }),
+                "text-xs",
               )}
               aria-current={isActive ? "page" : undefined}
             >

@@ -22,56 +22,23 @@ import {
 } from "../../../../lib/constants";
 import type { SprintDetailTask } from "@/hooks/useSprintDetail";
 
-const SPRINT_STATUS_STYLES: Record<string, { bg: string; label: string }> = {
-  ready: { bg: "bg-zinc-500", label: "Ready" },
-  in_progress: { bg: "bg-blue-500", label: "In Progress" },
-  done: { bg: "bg-emerald-500", label: "Done" },
+const SPRINT_STATUS_DOT: Record<string, string> = {
+  ready: "bg-zinc-400",
+  in_progress: "bg-blue-500",
+  done: "bg-emerald-500",
 };
-
-function SprintStatusBadge({ status }: { status: string }) {
-  const style = SPRINT_STATUS_STYLES[status] ?? {
-    bg: "bg-gray-400",
-    label: status,
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-white ${style.bg}`}
-    >
-      {style.label}
-    </span>
-  );
-}
-
-function TaskStatusBadge({ status }: { status: string }) {
-  const style = STATUS_STYLES[status as TaskStatus] ?? {
-    bg: "bg-gray-400",
-    label: status,
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white ${style.bg}`}
-    >
-      {style.label}
-    </span>
-  );
-}
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        <Skeleton className="h-7 w-64" />
-        <Skeleton className="h-5 w-20 rounded-full" />
-        <Skeleton className="h-2 w-full max-w-md rounded-full" />
-      </div>
+    <div className="space-y-3">
+      <Skeleton className="h-4 w-48" />
+      <Skeleton className="h-1 w-full max-w-xs" />
       {[1, 2].map((i) => (
-        <div key={i} className="space-y-3">
-          <Skeleton className="h-5 w-40" />
-          <div className="space-y-2">
-            {[1, 2, 3].map((j) => (
-              <Skeleton key={j} className="h-12 w-full rounded-lg" />
-            ))}
-          </div>
+        <div key={i} className="space-y-1">
+          <Skeleton className="h-3 w-32" />
+          {[1, 2, 3].map((j) => (
+            <Skeleton key={j} className="h-7 w-full rounded" />
+          ))}
         </div>
       ))}
     </div>
@@ -80,14 +47,14 @@ function LoadingSkeleton() {
 
 function NotFoundState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3">
-      <FileQuestion className="h-10 w-10 text-muted-foreground" />
-      <p className="text-muted-foreground">존재하지 않는 스프린트입니다.</p>
+    <div className="py-8 text-center">
+      <FileQuestion className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
+      <p className="text-xs text-muted-foreground mb-2">Sprint not found.</p>
       <Link
         href="/sprint"
-        className="text-sm text-primary underline underline-offset-4"
+        className="text-xs text-primary underline underline-offset-4"
       >
-        스프린트 목록으로 돌아가기
+        Back to sprints
       </Link>
     </div>
   );
@@ -97,8 +64,8 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="flex h-full items-center justify-center">
       <div className="flex items-center gap-2 text-destructive">
-        <AlertCircle className="h-5 w-5" />
-        <p>{message}</p>
+        <AlertCircle className="h-4 w-4" />
+        <p className="text-sm">{message}</p>
       </div>
     </div>
   );
@@ -131,12 +98,12 @@ function TaskDetailSheet({
               <SheetTitle>{task.title}</SheetTitle>
             </SheetHeader>
 
-            <div className="flex flex-col gap-4 px-4 pb-4">
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-3 px-4 pb-4">
+              <div className="flex flex-wrap gap-1.5">
                 {statusStyle && (
                   <span
                     className={cn(
-                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-white",
+                      "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold text-white",
                       statusStyle.bg,
                     )}
                   >
@@ -146,7 +113,7 @@ function TaskDetailSheet({
                 {priorityStyle && (
                   <span
                     className={cn(
-                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                      "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold",
                       priorityStyle.bg,
                       priorityStyle.text,
                     )}
@@ -156,15 +123,15 @@ function TaskDetailSheet({
                 )}
               </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-muted-foreground">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-medium text-muted-foreground">
                   Role
                 </span>
-                <span className="text-sm">{task.role || "-"}</span>
+                <span className="text-xs">{task.role || "-"}</span>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-muted-foreground">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-medium text-muted-foreground">
                   Depends On
                 </span>
                 {task.depends_on.length > 0 ? (
@@ -172,19 +139,19 @@ function TaskDetailSheet({
                     {task.depends_on.map((id) => (
                       <span
                         key={id}
-                        className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs"
+                        className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]"
                       >
                         {id}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground">-</span>
+                  <span className="text-xs text-muted-foreground">-</span>
                 )}
               </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-muted-foreground">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[10px] font-medium text-muted-foreground">
                   Blocks
                 </span>
                 {task.blocks.length > 0 ? (
@@ -192,14 +159,14 @@ function TaskDetailSheet({
                     {task.blocks.map((id) => (
                       <span
                         key={id}
-                        className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs"
+                        className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]"
                       >
                         {id}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground">-</span>
+                  <span className="text-xs text-muted-foreground">-</span>
                 )}
               </div>
             </div>
@@ -232,58 +199,74 @@ export default function SprintDetailPage({
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-3">
         {/* Back link */}
         <Link
           href="/sprint"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" />
-          스프린트 목록
+          <ArrowLeft className="h-3 w-3" />
+          Sprints
         </Link>
 
-        {/* Header */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold">{sprint.title}</h1>
-            <SprintStatusBadge status={sprint.status} />
-          </div>
-          <div className="max-w-md space-y-1">
-            <Progress value={percentage} className="h-2" />
-            <p className="text-xs text-muted-foreground">
-              {sprint.progress.done}/{sprint.progress.total} 완료 ({percentage}
-              %)
-            </p>
+        {/* Header - compact inline */}
+        <div className="flex items-center gap-3 pb-2 border-b border-border">
+          <span className={cn("status-dot", SPRINT_STATUS_DOT[sprint.status] ?? "bg-gray-400")} />
+          <h1 className="text-sm font-semibold">{sprint.title}</h1>
+          <span className="text-[10px] text-muted-foreground capitalize">
+            {sprint.status.replace("_", " ")}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">
+              {sprint.progress.done}/{sprint.progress.total}
+            </span>
+            <Progress value={percentage} className="h-1 w-20" />
+            <span className="text-[10px] text-muted-foreground">{percentage}%</span>
           </div>
         </div>
 
+        {/* Table header for tasks */}
+        <div className="flex items-center gap-2 px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+          <span className="w-2" />
+          <span className="w-20">ID</span>
+          <span className="flex-1">Title</span>
+          <span className="w-16 text-right">Status</span>
+        </div>
+
         {/* Batches */}
-        <div className="space-y-5">
+        <div className="flex flex-col">
           {sprint.batches.map((batch) => (
             <section key={batch.name}>
-              <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+              <h2 className="px-2 py-1.5 text-[11px] font-medium text-muted-foreground bg-muted/30 border-b border-border">
                 {batch.name}
               </h2>
-              <div className="space-y-2">
-                {batch.tasks.map((task) => (
-                  <button
-                    key={task.id}
-                    type="button"
-                    onClick={() => setSelectedTask(task)}
-                    className="flex w-full items-center justify-between rounded-lg border bg-card px-4 py-3 text-left transition-colors hover:bg-muted hover:border-primary/20"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="shrink-0 font-mono text-xs text-muted-foreground">
+              <div className="flex flex-col">
+                {batch.tasks.map((task) => {
+                  const statusStyle = STATUS_STYLES[task.status as TaskStatus];
+                  return (
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() => setSelectedTask(task)}
+                      className="group flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-muted/50 border-b border-border last:border-b-0"
+                    >
+                      <span className={cn("status-dot", statusStyle?.dot ?? "bg-gray-400")} />
+                      <span className="w-20 shrink-0 font-mono text-[11px] text-muted-foreground truncate">
                         {task.id}
                       </span>
-                      <span className="truncate text-sm">{task.title}</span>
-                    </div>
-                    <TaskStatusBadge status={task.status} />
-                  </button>
-                ))}
+                      <span className="flex-1 truncate text-sm">{task.title}</span>
+                      <span className="w-16 text-right text-[10px] text-muted-foreground">
+                        {statusStyle?.label ?? task.status}
+                      </span>
+                      <span className="hover-actions text-[10px] text-primary cursor-pointer">
+                        View
+                      </span>
+                    </button>
+                  );
+                })}
                 {batch.tasks.length === 0 && (
-                  <p className="text-sm text-muted-foreground py-2">
-                    배치에 등록된 Task가 없습니다.
+                  <p className="px-2 py-1 text-xs text-muted-foreground">
+                    No tasks in batch.
                   </p>
                 )}
               </div>
