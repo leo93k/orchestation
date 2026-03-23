@@ -210,7 +210,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-1 overflow-hidden">
           {isTaskView ? (
         <>
-          <div className="ide-main flex flex-col">
+          <div className="ide-main flex flex-col flex-1">
+            <div className="content-container flex flex-col flex-1 overflow-hidden">
             {/* Filter bar */}
             <div className="flex items-center gap-2 px-3 py-2 border-b border-border shrink-0">
               <div className="flex items-center gap-1.5 bg-muted rounded px-2 py-1 flex-1 max-w-xs">
@@ -257,6 +258,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <TaskRow key={task.id} task={task} isSelected={selectedTask?.id === task.id} onClick={handleTaskClick} />
                 ))
               )}
+            </div>
             </div>
           </div>
 
