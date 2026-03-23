@@ -145,29 +145,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Global header */}
-      <div className="global-header">
-        <div className="global-search">
-          <SearchIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <input type="text" placeholder="검색" />
+    <div className="flex h-full">
+      {/* Sidebar — 모든 페이지에서 동일 */}
+      <TaskSidebar
+        groups={groups}
+        prds={prds}
+        filter={filter}
+        onFilterChange={handleFilterChange}
+        currentPath={pathname}
+      />
+
+      {/* 콘텐츠 영역 (헤더 + 본문) */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Global header — 사이드바 오른쪽에만 */}
+        <div className="global-header">
+          <div className="global-search">
+            <SearchIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <input type="text" placeholder="검색" />
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar — 모든 페이지에서 동일 */}
-        <TaskSidebar
-          groups={groups}
-          prds={prds}
-          filter={filter}
-          onFilterChange={handleFilterChange}
-          currentPath={pathname}
-        />
-
-        {pathname === "/" && !isTaskView ? (
-          /* 홈: 빈 화면 */
-          <div className="flex-1" />
-        ) : isTaskView ? (
+        {/* 본문 */}
+        <div className="flex flex-1 overflow-hidden">
+          {pathname === "/" && !isTaskView ? (
+            <div className="flex-1" />
+          ) : isTaskView ? (
         /* Task 뷰: 중앙 리스트 + 오른쪽 패널 */
         <>
           <div className="ide-main flex flex-col">
@@ -232,7 +234,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </div>
-      )}
+        )}
+        </div>
       </div>
     </div>
   );
