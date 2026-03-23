@@ -2,24 +2,66 @@
   "tree": [
     {
       "id": "PRD-001",
-      "title": "공식문서",
-      "type": "doc",
-      "file": "PRD-001-orchestration-dashboard.md",
-      "children": []
-    },
-    {
-      "id": "doc-mn2s0ewj",
-      "title": "문서야",
+      "title": "프로젝트 개요",
       "type": "doc",
       "children": [],
-      "file": "doc-mn2s0ewj.md"
+      "file": "PRD-001-overview.md"
     },
     {
-      "id": "doc-mn2s0ewo",
-      "title": "문서야",
-      "type": "doc",
-      "children": [],
-      "file": "doc-mn2s0ewo.md"
+      "id": "folder-arch",
+      "title": "아키텍처",
+      "type": "folder",
+      "children": [
+        {
+          "id": "doc-system-arch",
+          "title": "시스템 구조",
+          "type": "doc",
+          "children": [],
+          "file": "doc-system-arch.md"
+        },
+        {
+          "id": "doc-orchestration",
+          "title": "오케스트레이션 파이프라인",
+          "type": "doc",
+          "children": [],
+          "file": "doc-orchestration.md"
+        }
+      ]
+    },
+    {
+      "id": "folder-guide",
+      "title": "가이드",
+      "type": "folder",
+      "children": [
+        {
+          "id": "doc-prompt-guide",
+          "title": "프롬프트 가이드",
+          "type": "doc",
+          "children": [],
+          "file": "doc-prompt-guide.md"
+        },
+        {
+          "id": "doc-role-guide",
+          "title": "역할 프롬프트 가이드",
+          "type": "doc",
+          "children": [],
+          "file": "doc-role-guide.md"
+        }
+      ]
+    },
+    {
+      "id": "folder-research",
+      "title": "리서치",
+      "type": "folder",
+      "children": [
+        {
+          "id": "doc-prompt-experiment",
+          "title": "프롬프트 성능 비교 실험 결론",
+          "type": "doc",
+          "children": [],
+          "file": "doc-prompt-experiment.md"
+        }
+      ]
     }
   ]
 }
