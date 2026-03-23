@@ -1,7 +1,7 @@
 ---
 id: TASK-043
 title: 채팅창 폰트 크기 증가
-status: in_progress
+status: done
 priority: medium
 sprint:
 depends_on: []
