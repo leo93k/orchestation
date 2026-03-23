@@ -480,16 +480,27 @@ export function TaskSidebar({
           <div className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Sprints
           </div>
+          <Link
+            href="/sprint"
+            className={cn("tree-item no-underline text-sidebar-foreground", currentPath === "/sprint" && "active")}
+          >
+            <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+            <span className="flex-1">All Sprints</span>
+            <span className="text-[10px] text-muted-foreground">{groups.length}</span>
+          </Link>
           {groups.map((group) => {
             const isActive = currentPath === `/sprint/${group.sprint.id}`;
             return (
               <Link
                 key={group.sprint.id}
                 href={`/sprint/${group.sprint.id}`}
-                className={cn("tree-item no-underline text-sidebar-foreground", isActive && "active")}
+                className={cn("tree-item no-underline text-sidebar-foreground ml-3", isActive && "active")}
               >
-                <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
-                <span className="truncate flex-1">{group.sprint.title}</span>
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0",
+                  group.progress.done === group.progress.total ? "bg-emerald-500" :
+                  group.progress.done > 0 ? "bg-blue-500" : "bg-zinc-400"
+                )} />
+                <span className="truncate flex-1">S{group.sprint.id.replace("SPRINT-00", "")}</span>
                 <span className="text-[10px] text-muted-foreground shrink-0">
                   {group.progress.done}/{group.progress.total}
                 </span>
