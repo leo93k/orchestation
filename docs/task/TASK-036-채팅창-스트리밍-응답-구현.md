@@ -1,7 +1,7 @@
 ---
 id: TASK-036
 title: 채팅창 스트리밍 응답 구현
-status: backlog
+status: in_progress
 priority: medium
 sprint:
 depends_on: []
