@@ -1,7 +1,7 @@
 ---
 id: TASK-031
 title: Sprint/Task 생성 API
-status: in_progress
+status: done
 priority: high
 sprint: SPRINT-007
 depends_on: []
