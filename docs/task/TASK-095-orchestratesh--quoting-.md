@@ -1,7 +1,7 @@
 ---
 id: TASK-095
 title: orchestrate.sh 변수 quoting 수정
-status: in_progress
+status: done
 priority: high
 sprint:
 depends_on: [TASK-094]
