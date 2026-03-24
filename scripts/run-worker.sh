@@ -23,6 +23,8 @@ fi
 source "$REPO_ROOT/scripts/lib/signal.sh"
 # Load context builder for minimal context loading
 source "$REPO_ROOT/scripts/lib/context-builder.sh"
+# Load model selector for complexity-based model selection
+source "$REPO_ROOT/scripts/lib/model-selector.sh"
 
 # EXIT trap: 비정상 종료 시에도 signal 파일 생성
 _worker_exit_code=0
@@ -128,6 +130,7 @@ load_role_prompt() {
 invoke_claude() {
   local prompt="$1"
   local conversation_file="$2"
+  local model="${3:-}"
 
   cd "$WORKTREE_PATH"
   echo "$prompt" | claude --output-format json --dangerously-skip-permissions --system-prompt "$ROLE_PROMPT" > "$conversation_file"
@@ -186,7 +189,12 @@ run_task() {
     echo "📝 이전 리뷰 피드백 포함"
   fi
 
-  invoke_claude "$prompt" "$OUTPUT_DIR/${TASK_ID}-task-conversation.jsonl"
+  # 복잡도 기반 모델 선택
+  local selected_model
+  selected_model=$(select_model "$TASK_FILE")
+  log_model_selection "$TASK_FILE" "$TASK_ID" "$TOKEN_LOG"
+
+  invoke_claude "$prompt" "$OUTPUT_DIR/${TASK_ID}-task-conversation.jsonl" "$selected_model"
   save_output "task"
   log_tokens "task"
 }
@@ -215,7 +223,12 @@ run_review() {
   local prompt
   prompt=$(build_review_prompt "$TASK_FILE" "$TASK_FILENAME")
 
-  invoke_claude "$prompt" "$OUTPUT_DIR/${TASK_ID}-review-conversation.jsonl"
+  # 리뷰도 동일 모델 사용
+  local selected_model
+  selected_model=$(select_model "$TASK_FILE")
+  log_model_selection "$TASK_FILE" "$TASK_ID" "$TOKEN_LOG"
+
+  invoke_claude "$prompt" "$OUTPUT_DIR/${TASK_ID}-review-conversation.jsonl" "$selected_model"
   local result
   result=$(echo "$JSON_OUTPUT" | jq -r '.result // empty')
   echo "$result"
