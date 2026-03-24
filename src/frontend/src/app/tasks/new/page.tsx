@@ -110,7 +110,7 @@ export default function NewTaskPage() {
   };
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-4 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
