@@ -244,7 +244,24 @@ function computeDAGLayout(requests: RequestItem[], tasks: WaterfallTask[], maxPa
     count: ghostCount + totalGhostExtra,
   } : null;
 
-  return { nodes, edges, bounds, sections: sectionLayouts, ghostBox };
+  // pending 그룹 영역 (ghost + queue + pending 섹션을 감싸는 배경)
+  const pendingKeys = new Set(["queue", "pending"]);
+  const pendingSections = sectionLayouts.filter((_, i) => {
+    const sec = sections[ghostCount > 0 ? i - 1 : i]; // ghost가 있으면 index 1개 밀림
+    return sec && pendingKeys.has(sec.key);
+  });
+  // ghost 섹션도 포함
+  if (ghostCount > 0 && sectionLayouts.length > 0) {
+    pendingSections.unshift(sectionLayouts[0]);
+  }
+  const pendingGroup = pendingSections.length > 0 ? {
+    x: Math.min(...pendingSections.map((s) => s.x)) - 8,
+    y: Math.min(...pendingSections.map((s) => s.y)) - 24,
+    w: Math.max(...pendingSections.map((s) => s.x + s.w)) - Math.min(...pendingSections.map((s) => s.x)) + 16,
+    h: Math.max(...pendingSections.map((s) => s.y + s.h)) - Math.min(...pendingSections.map((s) => s.y)) + 32,
+  } : null;
+
+  return { nodes, edges, bounds, sections: sectionLayouts, ghostBox, pendingGroup };
 }
 
 function DAGCanvas({ requests, tasks, onClickItem }: { requests: RequestItem[]; tasks: WaterfallTask[]; onClickItem: (req: RequestItem) => void }) {
@@ -299,6 +316,13 @@ function DAGCanvas({ requests, tasks, onClickItem }: { requests: RequestItem[]; 
           <marker id="dag-arrow-hover" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--primary)" /></marker>
         </defs>
         <g ref={gRef}>
+          {/* Pending group background */}
+          {layout.pendingGroup && (
+            <g>
+              <rect x={layout.pendingGroup.x} y={layout.pendingGroup.y} width={layout.pendingGroup.w} height={layout.pendingGroup.h} rx={12} fill="none" stroke="#eab308" strokeWidth={1} strokeDasharray="6 4" strokeOpacity={0.25} />
+              <text x={layout.pendingGroup.x + 12} y={layout.pendingGroup.y + 14} fill="#eab308" fontSize={10} fontWeight={600} letterSpacing="0.08em" opacity={0.4}>PENDING</text>
+            </g>
+          )}
           {/* Section backgrounds */}
           {layout.sections.map((sec) => (
             <g key={sec.label}>
