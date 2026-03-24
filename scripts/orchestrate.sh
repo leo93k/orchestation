@@ -66,17 +66,19 @@ get_task_ids() {
     find "$TASK_DIR" -name "TASK-*.md" 2>/dev/null
     find "$REQ_DIR" -name "REQ-*.md" 2>/dev/null
   } | while read -r f; do
-    local id pri weight
+    local id pri weight sort_ord
     id=$(get_field "$f" "id")
     pri=$(get_field "$f" "priority")
+    sort_ord=$(get_field "$f" "sort_order")
+    sort_ord="${sort_ord:-0}"
     case "$pri" in
       high)   weight=1 ;;
       medium) weight=2 ;;
       low)    weight=3 ;;
       *)      weight=4 ;;
     esac
-    echo "${weight} ${id}"
-  done | sort -k1,1n -k2,2 | awk '{print $2}'
+    printf "%s %04d %s\n" "${weight}" "${sort_ord}" "${id}"
+  done | sort -k1,1n -k2,2n -k3,3 | awk '{print $3}'
 }
 
 # docs/task/ 또는 docs/requests/ 에서 파일 찾기

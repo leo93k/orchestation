@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRequests, type RequestItem } from "@/hooks/useRequests";
 import { cn } from "@/lib/utils";
-import { Plus, ChevronDown, ChevronRight, Pencil, Trash2, Square, Bot, Layers, Maximize2, Search } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, ChevronUp, Pencil, Trash2, Square, Bot, Layers, Maximize2, Search } from "lucide-react";
 import { useTasks } from "@/hooks/useTasks";
 import type { WaterfallTask } from "@/types/waterfall";
 import AutoImproveControl from "@/components/AutoImproveControl";
@@ -33,11 +33,14 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_ORDER = ["in_progress", "reviewing", "pending", "done", "rejected"];
 
-function RequestCard({ req, onUpdate, onDelete, onClick }: {
+function RequestCard({ req, onUpdate, onDelete, onClick, onReorder, isFirst, isLast }: {
   req: RequestItem;
   onUpdate: (id: string, updates: Partial<Pick<RequestItem, "status" | "title" | "content" | "priority">>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onClick: () => void;
+  onReorder?: (id: string, direction: "up" | "down") => Promise<void>;
+  isFirst?: boolean;
+  isLast?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -65,6 +68,12 @@ function RequestCard({ req, onUpdate, onDelete, onClick }: {
         <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="text-sm flex-1 truncate text-left hover:text-primary bg-transparent border-none cursor-pointer p-0">{req.title}</button>
         <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium shrink-0", PRIORITY_COLORS[req.priority])}>{req.priority}</span>
         {req.status === "in_progress" && <button type="button" title="Stop" onClick={(e) => { e.stopPropagation(); onUpdate(req.id, { status: "pending" }); }} className="shrink-0 p-1 rounded hover:bg-red-500/15 text-muted-foreground hover:text-red-400 transition-colors"><Square className="h-3 w-3" /></button>}
+        {onReorder && (
+          <div className="flex flex-col shrink-0" onClick={(e) => e.stopPropagation()}>
+            <button type="button" disabled={isFirst} onClick={() => onReorder(req.id, "up")} className={cn("p-0.5 rounded transition-colors", isFirst ? "text-muted-foreground/30 cursor-default" : "text-muted-foreground hover:text-foreground hover:bg-muted")}><ChevronUp className="h-3 w-3" /></button>
+            <button type="button" disabled={isLast} onClick={() => onReorder(req.id, "down")} className={cn("p-0.5 rounded transition-colors", isLast ? "text-muted-foreground/30 cursor-default" : "text-muted-foreground hover:text-foreground hover:bg-muted")}><ChevronDown className="h-3 w-3" /></button>
+          </div>
+        )}
         <span className="text-[10px] text-muted-foreground shrink-0">{req.created}</span>
       </div>
       {expanded && (
@@ -205,7 +214,8 @@ function computeDAGLayout(requests: RequestItem[], tasks: WaterfallTask[], maxPa
   for (const req of requests) {
     for (const dep of depsOf.get(req.id) || []) {
       const f = nodePos.get(dep), t = nodePos.get(req.id);
-      if (f && t && f.x !== t.x) edges.push({ fromId: dep, toId: req.id, x1: f.x + NODE_W, y1: f.y + NODE_H / 2, x2: t.x, y2: t.y + NODE_H / 2 });
+      const depStatus = statusMap.get(dep);
+      if (f && t && f.x !== t.x && depStatus !== "done" && depStatus !== "rejected") edges.push({ fromId: dep, toId: req.id, x1: f.x + NODE_W, y1: f.y + NODE_H / 2, x2: t.x, y2: t.y + NODE_H / 2 });
     }
   }
 
@@ -316,7 +326,7 @@ function DAGCanvas({ requests, tasks, onClickItem }: { requests: RequestItem[]; 
 /* ── Main Page ────────────────────────────────────────── */
 
 function TasksPageInner() {
-  const { requests, isLoading, error, updateRequest, deleteRequest } = useRequests();
+  const { requests, isLoading, error, updateRequest, deleteRequest, reorderRequest } = useRequests();
   const { groups } = useTasks();
   const allWaterfallTasks = groups.flatMap((g) => g.tasks);
   const router = useRouter();
@@ -338,7 +348,9 @@ function TasksPageInner() {
     return result;
   }, [requests, searchQuery, priorityFilter, activeTab]);
 
-  const grouped: Record<string, RequestItem[]> = { pending: filtered.filter((r) => r.status === "pending"), reviewing: filtered.filter((r) => r.status === "reviewing"), in_progress: filtered.filter((r) => r.status === "in_progress"), rejected: filtered.filter((r) => r.status === "rejected"), done: filtered.filter((r) => r.status === "done") };
+  const priWeight = (p: string) => p === "high" ? 0 : p === "medium" ? 1 : p === "low" ? 2 : 3;
+  const sortByPriority = (items: RequestItem[]) => [...items].sort((a, b) => priWeight(a.priority) - priWeight(b.priority) || (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id.localeCompare(b.id));
+  const grouped: Record<string, RequestItem[]> = { pending: sortByPriority(filtered.filter((r) => r.status === "pending")), reviewing: sortByPriority(filtered.filter((r) => r.status === "reviewing")), in_progress: sortByPriority(filtered.filter((r) => r.status === "in_progress")), rejected: sortByPriority(filtered.filter((r) => r.status === "rejected")), done: sortByPriority(filtered.filter((r) => r.status === "done")) };
   const filteredStatuses = activeTab === TAB_ALL ? STATUS_ORDER.filter((s) => grouped[s].length > 0) : [activeTab];
 
   if (isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading tasks...</div>;
@@ -371,7 +383,7 @@ function TasksPageInner() {
         </div>
       )}
       {activeTab === TAB_STACK && <DAGCanvas requests={filtered} tasks={allWaterfallTasks} onClickItem={(req) => router.push(`/tasks/${req.id}`)} />}
-      {activeTab !== TAB_STACK && filteredStatuses.map((status) => { const items = grouped[status]; if (!items || items.length === 0) return null; return (<div key={status}>{activeTab === TAB_ALL && (<div className="flex items-center gap-2 mb-2">{status === "in_progress" ? <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" /> : <span className={cn("w-2 h-2 rounded-full", STATUS_DOT[status])} />}<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[status]}</span><span className="text-[10px] text-muted-foreground">({items.length})</span></div>)}<div className="space-y-1">{items.map((req) => <RequestCard key={req.id} req={req} onUpdate={updateRequest} onDelete={deleteRequest} onClick={() => router.push(`/tasks/${req.id}`)} />)}</div></div>); })}
+      {activeTab !== TAB_STACK && filteredStatuses.map((status) => { const items = grouped[status]; if (!items || items.length === 0) return null; return (<div key={status}>{activeTab === TAB_ALL && (<div className="flex items-center gap-2 mb-2">{status === "in_progress" ? <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" /> : <span className={cn("w-2 h-2 rounded-full", STATUS_DOT[status])} />}<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[status]}</span><span className="text-[10px] text-muted-foreground">({items.length})</span></div>)}<div className="space-y-1">{items.map((req, i) => <RequestCard key={req.id} req={req} onUpdate={updateRequest} onDelete={deleteRequest} onClick={() => router.push(`/tasks/${req.id}`)} onReorder={reorderRequest} isFirst={i === 0} isLast={i === items.length - 1} />)}</div></div>); })}
       {activeTab !== TAB_STACK && requests.length === 0 && <div className="text-center py-12 text-muted-foreground"><p className="text-sm">No tasks yet.</p></div>}
     </div>
   );

@@ -10,6 +10,7 @@ export interface RequestData {
   updated: string;
   content: string;
   depends_on: string[];
+  sort_order: number;
 }
 
 const TASKS_DIR = path.join(process.cwd(), "../../docs/task");
@@ -28,6 +29,7 @@ export function parseRequestFile(filePath: string): RequestData | null {
     const priority = (fm.match(/^priority:\s*(.+)$/m)?.[1]?.trim() || "medium") as RequestData["priority"];
     const created = fm.match(/^created:\s*(.+)$/m)?.[1]?.trim() || "";
     const updated = fm.match(/^updated:\s*(.+)$/m)?.[1]?.trim() || created;
+    const sort_order = parseInt(fm.match(/^sort_order:\s*(.+)$/m)?.[1]?.trim() || "0", 10) || 0;
 
     const content = raw.replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
 
@@ -43,7 +45,7 @@ export function parseRequestFile(filePath: string): RequestData | null {
       }
     }
 
-    return { id, title, status, priority, created, updated, content, depends_on };
+    return { id, title, status, priority, created, updated, content, depends_on, sort_order };
   } catch {
     return null;
   }

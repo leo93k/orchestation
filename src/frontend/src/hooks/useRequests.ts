@@ -10,6 +10,7 @@ export interface RequestItem {
   created: string;
   updated: string;
   content: string;
+  sort_order: number;
 }
 
 export function useRequests() {
@@ -64,7 +65,17 @@ export function useRequests() {
     await fetchRequests();
   }, [fetchRequests]);
 
+  const reorderRequest = useCallback(async (id: string, direction: "up" | "down") => {
+    const res = await fetch(`/api/requests/${id}/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ direction }),
+    });
+    if (!res.ok) throw new Error("순서 변경에 실패했습니다.");
+    await fetchRequests();
+  }, [fetchRequests]);
+
   const pendingCount = requests.filter((r) => r.status === "pending").length;
 
-  return { requests, isLoading, error, pendingCount, createRequest, updateRequest, deleteRequest, refetch: fetchRequests };
+  return { requests, isLoading, error, pendingCount, createRequest, updateRequest, deleteRequest, reorderRequest, refetch: fetchRequests };
 }
