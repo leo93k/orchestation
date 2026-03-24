@@ -130,8 +130,8 @@ const TAB_LABEL: Record<string, string> = { stack: "Graph", all: "All", ...STATU
 const NODE_W = 220;
 const NODE_H = 72;
 const ROW_GAP = 24;
-const CANVAS_PAD = 60;
-const SECTION_GAP = 80; // gap between the 3 sections
+const CANVAS_PAD = 40;
+const SECTION_GAP = 40; // gap between the 3 sections
 const SECTION_HEADER_H = 32;
 
 type NodeLayout = { id: string; x: number; y: number; req: RequestItem; isNextUp: boolean };
