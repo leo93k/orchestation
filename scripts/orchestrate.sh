@@ -66,19 +66,25 @@ get_task_ids() {
     find "$TASK_DIR" -name "TASK-*.md" 2>/dev/null
     find "$REQ_DIR" -name "REQ-*.md" 2>/dev/null
   } | while read -r f; do
-    local id pri weight sort_ord
+    local id pri st weight sort_ord status_weight
     id=$(get_field "$f" "id")
     pri=$(get_field "$f" "priority")
+    st=$(get_field "$f" "status")
     sort_ord=$(get_field "$f" "sort_order")
     sort_ord="${sort_ord:-0}"
+    # stopped(0)가 pending(1)보다 우선
+    case "$st" in
+      stopped) status_weight=0 ;;
+      *)       status_weight=1 ;;
+    esac
     case "$pri" in
       high)   weight=1 ;;
       medium) weight=2 ;;
       low)    weight=3 ;;
       *)      weight=4 ;;
     esac
-    printf "%s %04d %s\n" "${weight}" "${sort_ord}" "${id}"
-  done | sort -k1,1n -k2,2n -k3,3 | awk '{print $3}'
+    printf "%s %s %04d %s\n" "${status_weight}" "${weight}" "${sort_ord}" "${id}"
+  done | sort -k1,1n -k2,2n -k3,3n -k4,4 | awk '{print $4}'
 }
 
 # docs/task/ 또는 docs/requests/ 에서 파일 찾기
@@ -152,7 +158,7 @@ start_task() {
   local tf
   tf=$(find_file "$task_id")
   if [ -n "$tf" ]; then
-    sed -i '' "s/^status: pending/status: in_progress/" "$tf"
+    sed -i '' -E "s/^status: (pending|stopped)/status: in_progress/" "$tf"
     git -C "$REPO_ROOT" add "$tf"
     git -C "$REPO_ROOT" commit -m "chore(${task_id}): status → in_progress"
   fi
@@ -232,7 +238,7 @@ while true; do
   while IFS= read -r task_id; do
     [ -z "$task_id" ] && continue
     local_status=$(get_status "$task_id")
-    [ "$local_status" != "pending" ] && continue
+    [ "$local_status" != "pending" ] && [ "$local_status" != "stopped" ] && continue
     if deps_satisfied "$task_id"; then
       QUEUE+=("$task_id")
     fi
@@ -252,7 +258,7 @@ while true; do
     while IFS= read -r task_id; do
       [ -z "$task_id" ] && continue
       local_status=$(get_status "$task_id")
-      if [ "$local_status" == "pending" ]; then
+      if [ "$local_status" == "pending" ] || [ "$local_status" == "stopped" ]; then
         REMAINING=$((REMAINING + 1))
       fi
     done <<< "$(get_task_ids)"

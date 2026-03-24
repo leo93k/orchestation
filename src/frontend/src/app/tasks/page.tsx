@@ -16,6 +16,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 const STATUS_DOT: Record<string, string> = {
+  stopped: "bg-amber-500",
   pending: "bg-yellow-500",
   in_progress: "bg-blue-500",
   reviewing: "bg-orange-500",
@@ -24,6 +25,7 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
+  stopped: "Stopped",
   pending: "Pending",
   in_progress: "In Progress",
   reviewing: "Reviewing",
@@ -31,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
   rejected: "Rejected",
 };
 
-const STATUS_ORDER = ["in_progress", "reviewing", "pending", "done", "rejected"];
+const STATUS_ORDER = ["in_progress", "reviewing", "stopped", "pending", "done", "rejected"];
 
 function RequestCard({ req, onUpdate, onDelete, onClick, onReorder, isFirst, isLast }: {
   req: RequestItem;
@@ -147,18 +149,23 @@ function computeDAGLayout(requests: RequestItem[], tasks: WaterfallTask[], maxPa
     depsOf.set(req.id, wt ? wt.depends_on.filter((d) => reqMap.has(d)) : []);
   }
 
-  // Group by status into 3 sections
+  // Group by status into sections
+  const allStopped = requests.filter((r) => r.status === "stopped");
   const allPending = requests.filter((r) => r.status === "pending");
   const current = requests.filter((r) => r.status === "in_progress" || r.status === "reviewing");
   const allDone = requests.filter((r) => r.status === "done" || r.status === "rejected");
 
-  // Pending: next-up first (deps all done or no deps), then by priority (high→medium→low), limit 5
+  // Pending+Stopped: stopped first, then next-up, then by priority (high→medium→low), limit 5
   const priWeight = (p: string) => p === "high" ? 0 : p === "medium" ? 1 : p === "low" ? 2 : 3;
-  const nextUpSet = new Set(allPending.filter((r) => {
+  const allReady = [...allStopped, ...allPending];
+  const nextUpSet = new Set(allReady.filter((r) => {
     const deps = depsOf.get(r.id) || [];
     return deps.length === 0 || deps.every((d) => statusMap.get(d) === "done");
   }).map((r) => r.id));
-  const sortedPending = [...allPending].sort((a, b) => {
+  const sortedPending = [...allReady].sort((a, b) => {
+    // stopped always first
+    const sa = a.status === "stopped" ? 0 : 1, sb = b.status === "stopped" ? 0 : 1;
+    if (sa !== sb) return sa - sb;
     const na = nextUpSet.has(a.id) ? 0 : 1, nb = nextUpSet.has(b.id) ? 0 : 1;
     if (na !== nb) return na - nb;
     return priWeight(a.priority) - priWeight(b.priority) || a.id.localeCompare(b.id);
@@ -350,7 +357,7 @@ function TasksPageInner() {
 
   const priWeight = (p: string) => p === "high" ? 0 : p === "medium" ? 1 : p === "low" ? 2 : 3;
   const sortByPriority = (items: RequestItem[]) => [...items].sort((a, b) => priWeight(a.priority) - priWeight(b.priority) || (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id.localeCompare(b.id));
-  const grouped: Record<string, RequestItem[]> = { pending: sortByPriority(filtered.filter((r) => r.status === "pending")), reviewing: sortByPriority(filtered.filter((r) => r.status === "reviewing")), in_progress: sortByPriority(filtered.filter((r) => r.status === "in_progress")), rejected: sortByPriority(filtered.filter((r) => r.status === "rejected")), done: sortByPriority(filtered.filter((r) => r.status === "done")) };
+  const grouped: Record<string, RequestItem[]> = { stopped: sortByPriority(filtered.filter((r) => r.status === "stopped")), pending: sortByPriority(filtered.filter((r) => r.status === "pending")), reviewing: sortByPriority(filtered.filter((r) => r.status === "reviewing")), in_progress: sortByPriority(filtered.filter((r) => r.status === "in_progress")), rejected: sortByPriority(filtered.filter((r) => r.status === "rejected")), done: sortByPriority(filtered.filter((r) => r.status === "done")) };
   const filteredStatuses = activeTab === TAB_ALL ? STATUS_ORDER.filter((s) => grouped[s].length > 0) : [activeTab];
 
   if (isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading tasks...</div>;
