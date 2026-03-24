@@ -59,21 +59,40 @@ DEPENDENT: REQ-005 -> REQ-006
 - 모든 요청 ID가 INDEPENDENT 또는 DEPENDENT에 반드시 1번 이상 포함되어야 함
 - 의존 관계가 없으면 모든 요청을 INDEPENDENT에 넣어라"
 
+# 안전한 fallback 생성 함수: 모든 요청을 INDEPENDENT로 처리
+generate_independent_fallback() {
+  local data="$1"
+  local reason="$2"
+  local all_ids
+  all_ids=$(echo "$data" | cut -d'|' -f1 | tr '\n' ', ' | sed 's/,$//')
+  log "$reason — 모든 요청을 독립(INDEPENDENT)으로 처리합니다: $all_ids"
+  echo "INDEPENDENT: ${all_ids}"
+}
+
 ANALYSIS_RESULT=""
 if command -v claude &>/dev/null; then
-  ANALYSIS_RESULT=$(echo "$ANALYSIS_PROMPT" | claude --print --model claude-sonnet-4-6 2>/dev/null || echo "ERROR: Claude call failed")
+  ANALYSIS_RESULT=$(echo "$ANALYSIS_PROMPT" | claude --print --model claude-sonnet-4-6 2>/dev/null) || true
 else
-  log "claude CLI not found, treating all as independent"
-  # Fallback: all independent
-  ALL_IDS=$(echo "$REQUEST_DATA" | cut -d'|' -f1 | tr '\n' ', ' | sed 's/,$//')
-  echo "INDEPENDENT:${ALL_IDS}"
+  generate_independent_fallback "$REQUEST_DATA" "claude CLI를 찾을 수 없음"
   exit 0
 fi
 
-if [[ "$ANALYSIS_RESULT" == ERROR* ]]; then
-  log "Claude analysis failed, treating all as independent"
-  ALL_IDS=$(echo "$REQUEST_DATA" | cut -d'|' -f1 | tr '\n' ', ' | sed 's/,$//')
-  echo "INDEPENDENT:${ALL_IDS}"
+# 응답 검증: 비어있거나 필수 필드(INDEPENDENT/DEPENDENT) 누락 시 fallback
+if [[ -z "$ANALYSIS_RESULT" ]]; then
+  generate_independent_fallback "$REQUEST_DATA" "Claude 응답이 비어있음"
+  exit 0
+fi
+
+# INDEPENDENT 또는 DEPENDENT 키워드가 하나도 없으면 파싱 불가
+HAS_INDEPENDENT=false
+HAS_DEPENDENT=false
+echo "$ANALYSIS_RESULT" | grep -q "^INDEPENDENT:" && HAS_INDEPENDENT=true
+echo "$ANALYSIS_RESULT" | grep -q "^DEPENDENT:" && HAS_DEPENDENT=true
+
+if [[ "$HAS_INDEPENDENT" == false && "$HAS_DEPENDENT" == false ]]; then
+  log "ERROR: Claude 응답에 INDEPENDENT/DEPENDENT 필드가 없습니다."
+  log "ERROR: 원본 응답 (첫 200자): $(echo "$ANALYSIS_RESULT" | head -c 200)"
+  generate_independent_fallback "$REQUEST_DATA" "응답 파싱 실패 (필수 필드 누락)"
   exit 0
 fi
 

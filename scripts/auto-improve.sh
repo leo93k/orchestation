@@ -52,6 +52,52 @@ get_body() {
   awk 'BEGIN{c=0} /^---$/{c++; next} c>=2{print}' "$file"
 }
 
+# Validate eval response: ensure DECISION and REASON fields exist
+# If missing, return a safe fallback with clear error message
+validate_eval_response() {
+  local response="$1"
+  local req_id="$2"
+
+  # 응답이 비어있는 경우
+  if [[ -z "$response" ]]; then
+    log "ERROR: [$req_id] Claude 응답이 비어있습니다. 안전한 fallback을 사용합니다."
+    echo "DECISION: reject
+REASON: Claude 응답이 비어있음 — 자동 reject 처리"
+    return 0
+  fi
+
+  local has_decision=false
+  local has_reason=false
+
+  echo "$response" | grep -q "^DECISION:" && has_decision=true
+  echo "$response" | grep -q "^REASON:" && has_reason=true
+
+  if [[ "$has_decision" == false || "$has_reason" == false ]]; then
+    local missing_fields=""
+    [[ "$has_decision" == false ]] && missing_fields="DECISION"
+    [[ "$has_reason" == false ]] && missing_fields="${missing_fields:+$missing_fields, }REASON"
+
+    log "ERROR: [$req_id] 응답에 필수 필드 누락: $missing_fields. 안전한 fallback을 사용합니다."
+    log "ERROR: [$req_id] 원본 응답 (첫 200자): $(echo "$response" | head -c 200)"
+
+    echo "DECISION: reject
+REASON: 응답 파싱 실패 (필수 필드 누락: $missing_fields) — 자동 reject 처리"
+    return 0
+  fi
+
+  # DECISION 값 검증: accept 또는 reject만 허용
+  local decision_value
+  decision_value=$(echo "$response" | grep "^DECISION:" | head -1 | sed 's/^DECISION: *//' | tr -d '[:space:]')
+  if [[ "$decision_value" != "accept" && "$decision_value" != "reject" ]]; then
+    log "ERROR: [$req_id] DECISION 값이 유효하지 않음: '$decision_value'. accept/reject만 허용됩니다."
+    echo "DECISION: reject
+REASON: DECISION 값 오류 ('$decision_value') — 자동 reject 처리"
+    return 0
+  fi
+
+  echo "$response"
+}
+
 # Evaluate a single request via Claude (accept/reject)
 # Returns the eval result text; sets EVAL_DECISION global
 evaluate_request() {
@@ -83,12 +129,11 @@ SCOPE: (accept일 경우) 수정 대상 파일 경로 목록 (콤마 구분, src
 
   local eval_result=""
   if command -v claude &>/dev/null; then
-    eval_result=$(echo "$eval_prompt" | claude --print --model claude-sonnet-4-6 2>/dev/null || echo "DECISION: reject
-REASON: Claude 호출 실패")
-  else
-    eval_result="DECISION: reject
-REASON: claude CLI not found"
+    eval_result=$(echo "$eval_prompt" | claude --print --model claude-sonnet-4-6 2>/dev/null) || true
   fi
+
+  # 필수 필드 검증 및 fallback 처리
+  eval_result=$(validate_eval_response "$eval_result" "$req_id")
 
   echo "$eval_result"
 }
