@@ -3,7 +3,8 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Loader2, ChevronDown, ChevronRight, FileText, Terminal } from "lucide-react";
+import { TaskLogTab } from "@/components/TaskLogTab";
 
 interface CostEntry {
   phase: string;
@@ -58,6 +59,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState<string | null>(null);
   const [showExecLog, setShowExecLog] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  const [activeTab, setActiveTab] = useState<"detail" | "logs">("detail");
 
   // The id from URL is TASK-XXX format, convert to REQ-XXX for API
   const reqId = id.replace(/^TASK-/, "REQ-");
@@ -134,133 +136,170 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         </span>
       </div>
 
-      {/* Content */}
-      <div className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-          Description
-        </h2>
-        <div className="text-sm whitespace-pre-wrap text-foreground">
-          {task.content || "(No description)"}
-        </div>
+      {/* Tabs */}
+      <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("detail")}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors",
+            activeTab === "detail"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <FileText className="h-3 w-3" />
+          상세
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("logs")}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors",
+            activeTab === "logs"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Terminal className="h-3 w-3" />
+          로그
+        </button>
       </div>
 
-      {/* Execution Log */}
-      {task.executionLog && (
-        <div className="rounded-lg border border-border bg-card">
-          <button
-            type="button"
-            onClick={() => setShowExecLog(!showExecLog)}
-            className="w-full flex items-center gap-2 p-4 text-left"
-          >
-            {showExecLog ? (
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
-            )}
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Execution Log
+      {/* Tab Content */}
+      {activeTab === "detail" ? (
+        <>
+          {/* Content */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Description
             </h2>
-            <span className="text-[10px] text-muted-foreground">
-              {task.executionLog.duration_ms
-                ? `${(Number(task.executionLog.duration_ms) / 1000).toFixed(1)}s`
-                : ""}
-            </span>
-          </button>
-          {showExecLog && (
-            <div className="px-4 pb-4">
-              <div className="text-xs space-y-1">
-                {task.executionLog.subtype && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground w-20 shrink-0">Result:</span>
-                    <span className={cn(
-                      "font-medium",
-                      task.executionLog.subtype === "success" ? "text-emerald-500" : "text-red-500",
-                    )}>
-                      {String(task.executionLog.subtype)}
-                    </span>
-                  </div>
-                )}
-                {task.executionLog.num_turns !== undefined && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground w-20 shrink-0">Turns:</span>
-                    <span>{String(task.executionLog.num_turns)}</span>
-                  </div>
-                )}
-                {task.executionLog.total_cost_usd !== undefined && (
-                  <div className="flex gap-2">
-                    <span className="text-muted-foreground w-20 shrink-0">Cost:</span>
-                    <span>${Number(task.executionLog.total_cost_usd).toFixed(4)}</span>
-                  </div>
-                )}
-              </div>
-              {task.executionLog.result && (
-                <div className="mt-3 p-3 bg-muted rounded text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
-                  {String(task.executionLog.result)}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Review Result */}
-      {task.reviewResult && (
-        <div className="rounded-lg border border-border bg-card">
-          <button
-            type="button"
-            onClick={() => setShowReview(!showReview)}
-            className="w-full flex items-center gap-2 p-4 text-left"
-          >
-            {showReview ? (
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
-            )}
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Review Result
-            </h2>
-            <span className="text-[10px] text-muted-foreground">
-              {task.reviewResult.subtype === "success" ? "Approved" : String(task.reviewResult.subtype || "")}
-            </span>
-          </button>
-          {showReview && (
-            <div className="px-4 pb-4">
-              {task.reviewResult.result && (
-                <div className="p-3 bg-muted rounded text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
-                  {String(task.reviewResult.result)}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Cost Info */}
-      {task.costEntries.length > 0 && (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Cost
-          </h2>
-          <div className="space-y-1">
-            {task.costEntries.map((entry, i) => (
-              <div key={i} className="flex items-center gap-3 text-xs">
-                <span className="text-muted-foreground w-16 shrink-0 capitalize">{entry.phase}</span>
-                <span className="font-mono w-16 shrink-0">{entry.cost}</span>
-                <span className="text-muted-foreground w-16 shrink-0">{entry.duration}</span>
-                <span className="text-muted-foreground font-mono">{entry.tokens}</span>
-              </div>
-            ))}
-            <div className="border-t border-border pt-1 mt-1 flex items-center gap-3 text-xs font-medium">
-              <span className="w-16 shrink-0">Total</span>
-              <span className="font-mono w-16 shrink-0">
-                ${task.costEntries.reduce((sum, e) => sum + parseFloat(e.cost.replace("$", "")), 0).toFixed(4)}
-              </span>
-              <span className="text-muted-foreground w-16 shrink-0">
-                {task.costEntries.reduce((sum, e) => sum + parseFloat(e.duration), 0).toFixed(1)}s
-              </span>
+            <div className="text-sm whitespace-pre-wrap text-foreground">
+              {task.content || "(No description)"}
             </div>
           </div>
-        </div>
+
+          {/* Execution Log */}
+          {task.executionLog && (
+            <div className="rounded-lg border border-border bg-card">
+              <button
+                type="button"
+                onClick={() => setShowExecLog(!showExecLog)}
+                className="w-full flex items-center gap-2 p-4 text-left"
+              >
+                {showExecLog ? (
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                )}
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Execution Log
+                </h2>
+                <span className="text-[10px] text-muted-foreground">
+                  {task.executionLog.duration_ms
+                    ? `${(Number(task.executionLog.duration_ms) / 1000).toFixed(1)}s`
+                    : ""}
+                </span>
+              </button>
+              {showExecLog && (
+                <div className="px-4 pb-4">
+                  <div className="text-xs space-y-1">
+                    {task.executionLog.subtype && (
+                      <div className="flex gap-2">
+                        <span className="text-muted-foreground w-20 shrink-0">Result:</span>
+                        <span className={cn(
+                          "font-medium",
+                          task.executionLog.subtype === "success" ? "text-emerald-500" : "text-red-500",
+                        )}>
+                          {String(task.executionLog.subtype)}
+                        </span>
+                      </div>
+                    )}
+                    {task.executionLog.num_turns !== undefined && (
+                      <div className="flex gap-2">
+                        <span className="text-muted-foreground w-20 shrink-0">Turns:</span>
+                        <span>{String(task.executionLog.num_turns)}</span>
+                      </div>
+                    )}
+                    {task.executionLog.total_cost_usd !== undefined && (
+                      <div className="flex gap-2">
+                        <span className="text-muted-foreground w-20 shrink-0">Cost:</span>
+                        <span>${Number(task.executionLog.total_cost_usd).toFixed(4)}</span>
+                      </div>
+                    )}
+                  </div>
+                  {task.executionLog.result && (
+                    <div className="mt-3 p-3 bg-muted rounded text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
+                      {String(task.executionLog.result)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Review Result */}
+          {task.reviewResult && (
+            <div className="rounded-lg border border-border bg-card">
+              <button
+                type="button"
+                onClick={() => setShowReview(!showReview)}
+                className="w-full flex items-center gap-2 p-4 text-left"
+              >
+                {showReview ? (
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                )}
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Review Result
+                </h2>
+                <span className="text-[10px] text-muted-foreground">
+                  {task.reviewResult.subtype === "success" ? "Approved" : String(task.reviewResult.subtype || "")}
+                </span>
+              </button>
+              {showReview && (
+                <div className="px-4 pb-4">
+                  {task.reviewResult.result && (
+                    <div className="p-3 bg-muted rounded text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
+                      {String(task.reviewResult.result)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Cost Info */}
+          {task.costEntries.length > 0 && (
+            <div className="rounded-lg border border-border bg-card p-4">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Cost
+              </h2>
+              <div className="space-y-1">
+                {task.costEntries.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-3 text-xs">
+                    <span className="text-muted-foreground w-16 shrink-0 capitalize">{entry.phase}</span>
+                    <span className="font-mono w-16 shrink-0">{entry.cost}</span>
+                    <span className="text-muted-foreground w-16 shrink-0">{entry.duration}</span>
+                    <span className="text-muted-foreground font-mono">{entry.tokens}</span>
+                  </div>
+                ))}
+                <div className="border-t border-border pt-1 mt-1 flex items-center gap-3 text-xs font-medium">
+                  <span className="w-16 shrink-0">Total</span>
+                  <span className="font-mono w-16 shrink-0">
+                    ${task.costEntries.reduce((sum, e) => sum + parseFloat(e.cost.replace("$", "")), 0).toFixed(4)}
+                  </span>
+                  <span className="text-muted-foreground w-16 shrink-0">
+                    {task.costEntries.reduce((sum, e) => sum + parseFloat(e.duration), 0).toFixed(1)}s
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <TaskLogTab taskId={id} taskStatus={task.status} />
       )}
     </div>
   );
