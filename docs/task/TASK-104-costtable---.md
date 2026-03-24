@@ -1,8 +1,9 @@
 ---
 id: TASK-104
 title: CostTable에 타임스탬프 컬럼 추가
-status: pending
+status: in_progress
 priority: medium
+sort_order: 0
 sprint:
 depends_on: [TASK-103]
 branch: task/TASK-104-costtable---
