@@ -335,7 +335,7 @@ function DAGCanvas({ requests, tasks, onClickItem }: { requests: RequestItem[]; 
           {layout.topGroups.map((g) => (
             <g key={g.label}>
               <rect x={g.box!.x} y={g.box!.y} width={g.box!.w} height={g.box!.h} rx={12} fill={g.color} fillOpacity={0.03} stroke={g.color} strokeWidth={1.5} strokeDasharray="8 4" strokeOpacity={0.4} />
-              <text x={g.box!.x + g.box!.w / 2} y={g.box!.y + 14} textAnchor="middle" fill={g.color} fontSize={11} fontWeight={700} letterSpacing="0.1em" opacity={0.5}>{g.label}</text>
+              <text x={g.box!.x + g.box!.w / 2} y={g.box!.y + 28} textAnchor="middle" fill={g.color} fontSize={11} fontWeight={700} letterSpacing="0.1em" opacity={0.5}>{g.label}</text>
             </g>
           ))}
           {/* Section backgrounds */}
