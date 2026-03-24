@@ -1,7 +1,7 @@
 ---
 id: TASK-084
 title: requests API slug 길이 50자 제한 추가
-status: in_progress
+status: failed
 priority: low
 sprint:
 depends_on: []
@@ -32,3 +32,7 @@ reviewer_role: reviewer-general
 - `src/frontend/src/app/api/requests/route.ts` 61-64행 slug 생성 로직에 50자 truncate 적용
 - truncate 후 trailing hyphen 제거 (예: `some-long-slug-` → `some-long-slug`)
 - 파일명 전체 길이(prefix + slug + extension)가 255자 이내임을 확인
+
+## 실패 사유 (2026-03-24 17:57)
+
+Not logged in · Please run /login

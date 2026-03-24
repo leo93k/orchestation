@@ -1,7 +1,7 @@
 ---
 id: TASK-107
 title: Cost Summary에 phase별(task/review) 비용 비율 표시
-status: in_progress
+status: failed
 priority: medium
 sort_order: 5
 sprint:
@@ -27,3 +27,7 @@ reviewer_role: reviewer-general
 - 비율은 전체 대비 각 phase의 백분율로 계산한다 (task% + review% = 100%)
 - phase 데이터가 없는 항목은 "기타"로 분류하거나 무시한다
 - 기존 SummaryCards 레이아웃을 크게 변경하지 않고 새 항목을 추가하는 방식으로 구현한다
+
+## 실패 사유 (2026-03-24 17:57)
+
+Not logged in · Please run /login
