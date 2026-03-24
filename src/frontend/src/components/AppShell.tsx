@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { groups, isLoading, error, refetch } = useTasks();
   const { prds } = usePrds();
-  const { tree: docTree, createDoc, updateDoc, deleteDoc, reorderDoc } = useDocTree();
+  const { tree: docTree, createDoc, updateDoc, deleteDoc, reorderDoc, fetchTree } = useDocTree();
   const { justFinished, clearFinished } = useOrchestrationStatus();
   const { requests: requestItems, createRequest, updateRequest, refetch: refetchRequests } = useRequests();
   const { addToast } = useToast();
@@ -183,6 +183,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     await reorderDoc(nodeId, targetParentId, position);
   }, [reorderDoc]);
 
+  const handleDocReorderError = useCallback(async (_error: unknown) => {
+    // Toast is shown by sidebar component; here we only refetch to restore server state
+    await fetchTree();
+  }, [fetchTree]);
+
   if (isLoading) {
     return (
       <div className="flex h-full">
@@ -209,6 +214,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onDocDelete={handleDocDelete}
         onDocRename={handleDocRename}
         onDocReorder={handleDocReorder}
+        onDocReorderError={handleDocReorderError}
         requestItems={requestItems}
         onNewTask={async (title, content) => {
           await createRequest(title, content, "medium");

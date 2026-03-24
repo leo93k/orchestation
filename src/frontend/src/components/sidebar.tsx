@@ -20,6 +20,7 @@ import {
   Square,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 import type { WaterfallGroup } from "@/types/waterfall";
 import {
   STATUS_STYLES,
@@ -68,6 +69,7 @@ type TaskSidebarProps = {
   onDocDelete?: (id: string) => Promise<void>;
   onDocRename?: (id: string, title: string) => Promise<void>;
   onDocReorder?: (nodeId: string, targetParentId: string | null, position: number) => Promise<void>;
+  onDocReorderError?: (error: unknown) => void;
   requestItems?: RequestItem[];
   onNewTask?: (title: string, content: string) => Promise<void>;
   onStopTask?: (id: string) => Promise<void>;
@@ -166,6 +168,7 @@ function DocTreeNode({
   onRename,
   onCreate,
   onReorder,
+  onReorderError,
 }: {
   node: DocNode;
   depth: number;
@@ -176,7 +179,9 @@ function DocTreeNode({
   onRename?: (id: string, title: string) => Promise<void>;
   onCreate?: (title: string, type: "doc" | "folder", parentId?: string | null) => Promise<void>;
   onReorder?: (nodeId: string, targetParentId: string | null, position: number) => Promise<void>;
+  onReorderError?: (error: unknown) => void;
 }) {
+  const { addToast } = useToast();
   const [isRenaming, setIsRenaming] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [newItemType, setNewItemType] = useState<"doc" | "folder" | null>(null);
@@ -235,16 +240,23 @@ function DocTreeNode({
       return;
     }
 
-    if (dragOver === "inside" && isFolder) {
-      await onReorder(draggedId, node.id, 0);
-      if (!isExpanded) toggleFolder(node.id);
-    } else if (dragOver === "above") {
-      // 같은 부모, 현재 노드 위로
-      await onReorder(draggedId, null, -1); // API에서 처리
-    } else if (dragOver === "below") {
-      await onReorder(draggedId, null, -1);
+    try {
+      if (dragOver === "inside" && isFolder) {
+        await onReorder(draggedId, node.id, 0);
+        if (!isExpanded) toggleFolder(node.id);
+      } else if (dragOver === "above") {
+        await onReorder(draggedId, node.id, -1);
+      } else if (dragOver === "below") {
+        await onReorder(draggedId, node.id, 1);
+      }
+    } catch (err) {
+      console.error("Reorder failed:", err);
+      addToast("문서 순서 변경에 실패했습니다.", "error");
+      // Delegate to parent for state rollback/refetch
+      onReorderError?.(err);
+    } finally {
+      setDragOver(null);
     }
-    setDragOver(null);
   };
 
   const paddingLeft = 8 + depth * 12;
@@ -383,6 +395,7 @@ function DocTreeNode({
               onRename={onRename}
               onCreate={onCreate}
               onReorder={onReorder}
+              onReorderError={onReorderError}
             />
           ))}
         </div>
@@ -401,6 +414,7 @@ export function TaskSidebar({
   onDocDelete,
   onDocRename,
   onDocReorder,
+  onDocReorderError,
   requestItems = [],
   onStopTask,
   currentPath = "/",
@@ -526,6 +540,7 @@ export function TaskSidebar({
               onRename={onDocRename}
               onCreate={onDocCreate}
               onReorder={onDocReorder}
+              onReorderError={onDocReorderError}
             />
           ))}
 
