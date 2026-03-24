@@ -17,6 +17,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 const STATUS_DOT: Record<string, string> = {
+  stopped: "bg-violet-500",
   pending: "bg-yellow-500",
   in_progress: "bg-blue-500",
   reviewing: "bg-orange-500",
@@ -25,6 +26,7 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
+  stopped: "Stopped",
   pending: "Pending",
   in_progress: "In Progress",
   reviewing: "Reviewing",
@@ -32,7 +34,7 @@ const STATUS_LABEL: Record<string, string> = {
   rejected: "Rejected",
 };
 
-const STATUS_ORDER = ["in_progress", "reviewing", "pending", "done", "rejected"];
+const STATUS_ORDER = ["in_progress", "reviewing", "stopped", "pending", "done", "rejected"];
 
 function RequestCard({ req, onUpdate, onDelete, onClick, onReorder, isFirst, isLast }: {
   req: RequestItem;
@@ -65,8 +67,9 @@ function RequestCard({ req, onUpdate, onDelete, onClick, onReorder, isFirst, isL
       <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         {expanded ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
         {req.status === "in_progress" ? <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" /> : <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[req.status])} />}
-        <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="font-mono text-[11px] text-muted-foreground shrink-0 hover:text-primary hover:underline bg-transparent border-none cursor-pointer p-0">{req.id}</button>
-        <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="text-sm flex-1 truncate text-left hover:text-primary bg-transparent border-none cursor-pointer p-0">{req.title}</button>
+        <span className="font-mono text-[11px] text-muted-foreground shrink-0">{req.id}</span>
+        <span className="text-sm flex-1 truncate text-left">{req.title}</span>
+        <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="shrink-0 px-2 py-0.5 text-[10px] rounded border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-muted/50 transition-colors">상세</button>
         <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium shrink-0", PRIORITY_COLORS[req.priority])}>{req.priority}</span>
         {req.status === "in_progress" && <button type="button" title="Stop" onClick={(e) => { e.stopPropagation(); onUpdate(req.id, { status: "pending" }); }} className="shrink-0 p-1 rounded hover:bg-red-500/15 text-muted-foreground hover:text-red-400 transition-colors"><Square className="h-3 w-3" /></button>}
         {onReorder && (
@@ -128,15 +131,15 @@ const TAB_LABEL: Record<string, string> = { stack: "Graph", timeline: "Timeline"
 /* ── DAG Canvas ───────────────────────────────────────── */
 
 const NODE_W = 220;
-const NODE_H = 72;
+const NODE_H = 84;
 const ROW_GAP = 24;
-const CANVAS_PAD = 60;
-const SECTION_GAP = 80; // gap between the 3 sections
+const CANVAS_PAD = 40;
+const SECTION_GAP = 40; // gap between the 3 sections
 const SECTION_HEADER_H = 32;
 
 type NodeLayout = { id: string; x: number; y: number; req: RequestItem; isNextUp: boolean };
 type EdgeLayout = { fromId: string; toId: string; x1: number; y1: number; x2: number; y2: number };
-type SectionLayout = { label: string; x: number; y: number; w: number; h: number; color: string; extra: number };
+type SectionLayout = { key: string; label: string; x: number; y: number; w: number; h: number; color: string; extra: number };
 
 function computeDAGLayout(requests: RequestItem[], tasks: WaterfallTask[], maxParallel = 3) {
   const reqMap = new Map(requests.map((r) => [r.id, r]));
@@ -149,77 +152,86 @@ function computeDAGLayout(requests: RequestItem[], tasks: WaterfallTask[], maxPa
     depsOf.set(req.id, wt ? wt.depends_on.filter((d) => reqMap.has(d)) : []);
   }
 
-  // Group by status into 3 sections
+  // Group by status
+  const priWeight = (p: string) => p === "high" ? 0 : p === "medium" ? 1 : p === "low" ? 2 : 3;
   const allPending = requests.filter((r) => r.status === "pending");
+  const allStopped = requests.filter((r) => r.status === "stopped");
   const current = requests.filter((r) => r.status === "in_progress" || r.status === "reviewing");
   const allDone = requests.filter((r) => r.status === "done" || r.status === "rejected");
 
-  // Pending: next-up first (deps all done or no deps), then by priority (high→medium→low), limit 5
-  const priWeight = (p: string) => p === "high" ? 0 : p === "medium" ? 1 : p === "low" ? 2 : 3;
-  const nextUpSet = new Set(allPending.filter((r) => {
+  // next-up: 의존성 충족된 pending + stopped → QUEUE에 들어갈 후보
+  const allReady = [...allStopped, ...allPending];
+  const nextUpSet = new Set(allReady.filter((r) => {
     const deps = depsOf.get(r.id) || [];
     return deps.length === 0 || deps.every((d) => statusMap.get(d) === "done");
   }).map((r) => r.id));
-  const sortedPending = [...allPending].sort((a, b) => {
-    const na = nextUpSet.has(a.id) ? 0 : 1, nb = nextUpSet.has(b.id) ? 0 : 1;
-    if (na !== nb) return na - nb;
-    return priWeight(a.priority) - priWeight(b.priority) || a.id.localeCompare(b.id);
-  });
-  const pending = sortedPending.slice(0, maxParallel);
-  const queue = sortedPending.slice(maxParallel, maxParallel + maxParallel); // next batch
 
-  // Done: most recent N (matching maxParallel)
+  // QUEUE: 다음 실행 대상 (stopped 우선, 그 다음 next-up pending)
+  const queueItems = allReady
+    .filter((r) => nextUpSet.has(r.id))
+    .sort((a, b) => {
+      const sa = a.status === "stopped" ? 0 : 1, sb = b.status === "stopped" ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+      return priWeight(a.priority) - priWeight(b.priority) || a.id.localeCompare(b.id);
+    })
+    .slice(0, maxParallel);
+  const queueIds = new Set(queueItems.map((r) => r.id));
+
+  // STOPPED: queue에 안 들어간 stopped
+  const stoppedItems = allStopped.filter((r) => !queueIds.has(r.id)).slice(0, maxParallel);
+
+  // PENDING (backlog): queue에 안 들어간 pending
+  const pendingNotQueue = allPending.filter((r) => !queueIds.has(r.id));
+  const backlog = pendingNotQueue.sort((a, b) => priWeight(a.priority) - priWeight(b.priority) || a.id.localeCompare(b.id)).slice(0, maxParallel);
+  const backlogRest = pendingNotQueue.slice(maxParallel, maxParallel * 2);
+
+  // Done
   const done = allDone.slice(-maxParallel).reverse();
 
-  const queueExtra = allPending.length - pending.length - queue.length;
+  const pendingExtra = pendingNotQueue.length - backlog.length - backlogRest.length;
   const doneExtra = allDone.length - done.length;
 
   const sections: { key: string; label: string; items: RequestItem[]; color: string; extra: number }[] = [
-    ...(queue.length > 0 ? [{ key: "queue", label: "QUEUE", items: queue, color: "#a1a1aa", extra: queueExtra }] : []),
-    { key: "pending", label: "NEXT", items: pending, color: "#eab308", extra: 0 },
+    ...(backlogRest.length > 0 ? [{ key: "backlog2", label: "BACKLOG", items: backlogRest, color: "#a1a1aa", extra: 0 }] : []),
+    ...(backlog.length > 0 ? [{ key: "backlog", label: "BACKLOG", items: backlog, color: "#a1a1aa", extra: 0 }] : []),
+    ...(stoppedItems.length > 0 ? [{ key: "stopped", label: "STOPPED", items: stoppedItems, color: "#8b5cf6", extra: 0 }] : []),
+    { key: "queue", label: "QUEUE", items: queueItems, color: "#eab308", extra: 0 },
     { key: "current", label: "IN PROGRESS", items: current, color: "#3b82f6", extra: 0 },
     { key: "done", label: "DONE", items: done, color: "#22c55e", extra: doneExtra },
   ];
 
   const nodes: NodeLayout[] = [];
   const sectionLayouts: SectionLayout[] = [];
-  // ghostCount: remaining tasks shown as dashed placeholders left of queue
-  const ghostCount = queueExtra > 0 ? Math.min(queueExtra, maxParallel) : 0;
-  const totalGhostExtra = queueExtra - ghostCount;
+  // ghostCount: remaining tasks shown as dashed placeholders left of everything
+  const ghostCount = pendingExtra > 0 ? 1 : 0;
+  const totalGhostExtra = pendingExtra;
   let sectionX = CANVAS_PAD;
 
   // Ghost section (single dashed placeholder for remaining backlog) - same height as other sections
   if (ghostCount > 0) {
     const ghostH = SECTION_HEADER_H + maxParallel * (NODE_H + ROW_GAP) + ROW_GAP;
-    sectionLayouts.push({ label: `BACKLOG`, x: sectionX, y: CANVAS_PAD, w: NODE_W + CANVAS_PAD, h: ghostH, color: "#71717a", extra: 0 });
+    sectionLayouts.push({ key: "ghost", label: `BACKLOG`, x: sectionX, y: CANVAS_PAD, w: NODE_W + CANVAS_PAD, h: ghostH, color: "#71717a", extra: 0 });
     sectionX += NODE_W + CANVAS_PAD + SECTION_GAP;
   }
 
   for (const sec of sections) {
     const count = Math.max(sec.items.length, 1);
-    const sectionH = SECTION_HEADER_H + count * (NODE_H + ROW_GAP) + ROW_GAP;
-    sectionLayouts.push({ label: sec.label, x: sectionX, y: CANVAS_PAD, w: NODE_W + CANVAS_PAD, h: sectionH, color: sec.color, extra: sec.extra });
+    const minCount = Math.max(count, maxParallel);
+    const sectionH = SECTION_HEADER_H + minCount * (NODE_H + ROW_GAP) + ROW_GAP;
+    sectionLayouts.push({ key: sec.key, label: sec.label, x: sectionX, y: CANVAS_PAD, w: NODE_W + CANVAS_PAD, h: sectionH, color: sec.color, extra: sec.extra });
 
     let nodeY = CANVAS_PAD + SECTION_HEADER_H + ROW_GAP;
     for (const req of sec.items) {
       const deps = depsOf.get(req.id) || [];
-      const isNextUp = req.status === "pending" && (deps.length === 0 || deps.every((dep) => statusMap.get(dep) === "done"));
+      const isNextUp = false;
       nodes.push({ id: req.id, x: sectionX + CANVAS_PAD / 2, y: nodeY, req, isNextUp });
       nodeY += NODE_H + ROW_GAP;
     }
     sectionX += NODE_W + CANVAS_PAD + SECTION_GAP;
   }
 
-  // Build edges (skip edges within the same section — both nodes share the same x)
-  const nodePos = new Map(nodes.map((n) => [n.id, n]));
+  // Edges disabled — section flow already shows execution order
   const edges: EdgeLayout[] = [];
-  for (const req of requests) {
-    for (const dep of depsOf.get(req.id) || []) {
-      const f = nodePos.get(dep), t = nodePos.get(req.id);
-      const depStatus = statusMap.get(dep);
-      if (f && t && f.x !== t.x && depStatus !== "done" && depStatus !== "rejected") edges.push({ fromId: dep, toId: req.id, x1: f.x + NODE_W, y1: f.y + NODE_H / 2, x2: t.x, y2: t.y + NODE_H / 2 });
-    }
-  }
 
   const allX = nodes.map((n) => n.x).concat(sectionLayouts.map((s) => s.x));
   const allXR = nodes.map((n) => n.x + NODE_W).concat(sectionLayouts.map((s) => s.x + s.w));
@@ -233,10 +245,53 @@ function computeDAGLayout(requests: RequestItem[], tasks: WaterfallTask[], maxPa
   const ghostBox = ghostCount > 0 ? {
     x: sectionLayouts[0].x + CANVAS_PAD / 2,
     y: sectionLayouts[0].y + SECTION_HEADER_H + ROW_GAP,
+    w: NODE_W,
+    h: maxParallel * (NODE_H + ROW_GAP) - ROW_GAP,
     count: ghostCount + totalGhostExtra,
   } : null;
 
-  return { nodes, edges, bounds, sections: sectionLayouts, ghostBox };
+  // 상위 그룹 계산 (PENDING, IN PROGRESS, DONE)
+  const computeGroup = (keys: Set<string>, includeGhost: boolean) => {
+    const matched = sectionLayouts.filter((_, i) => {
+      const sec = sections[ghostCount > 0 ? i - 1 : i];
+      return sec && keys.has(sec.key);
+    });
+    if (includeGhost && ghostCount > 0 && sectionLayouts.length > 0) {
+      matched.unshift(sectionLayouts[0]);
+    }
+    if (matched.length === 0) return null;
+    return {
+      x: Math.min(...matched.map((s) => s.x)) - 12,
+      y: Math.min(...matched.map((s) => s.y)) - 52,
+      w: Math.max(...matched.map((s) => s.x + s.w)) - Math.min(...matched.map((s) => s.x)) + 24,
+      h: Math.max(...matched.map((s) => s.y + s.h)) - Math.min(...matched.map((s) => s.y)) + 60,
+    };
+  };
+
+  const topGroups = [
+    { label: "PENDING", color: "#eab308", box: computeGroup(new Set(["backlog", "backlog2"]), true) },
+    { label: "STOPPED", color: "#8b5cf6", box: computeGroup(new Set(["stopped"]), false) },
+    { label: "QUEUE", color: "#eab308", box: computeGroup(new Set(["queue"]), false) },
+    { label: "IN PROGRESS", color: "#3b82f6", box: computeGroup(new Set(["current"]), false) },
+    { label: "DONE", color: "#22c55e", box: computeGroup(new Set(["done"]), false) },
+  ].filter((g) => g.box !== null);
+
+  // 상위 그룹이 1개 섹션만 감싸면 안쪽 라벨 숨김 (중복 방지)
+  const hideLabelKeys = new Set<string>();
+  for (const g of topGroups) {
+    const keyMap: Record<string, string[]> = {
+      "PENDING": ["backlog", "backlog2"],
+      "STOPPED": ["stopped"],
+      "QUEUE": ["queue"],
+      "IN PROGRESS": ["current"],
+      "DONE": ["done"],
+    };
+    const keys = keyMap[g.label] || [];
+    const matched = sections.filter((s) => keys.includes(s.key));
+    if (matched.length <= 1) matched.forEach((m) => hideLabelKeys.add(m.key));
+  }
+
+  return { nodes, edges, bounds, sections: sectionLayouts, ghostBox, topGroups, hideLabelKeys };
 }
 
 function DAGCanvas({ requests, tasks, onClickItem }: { requests: RequestItem[]; tasks: WaterfallTask[]; onClickItem: (req: RequestItem) => void }) {
@@ -291,11 +346,18 @@ function DAGCanvas({ requests, tasks, onClickItem }: { requests: RequestItem[]; 
           <marker id="dag-arrow-hover" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--primary)" /></marker>
         </defs>
         <g ref={gRef}>
+          {/* Top-level group backgrounds (PENDING, IN PROGRESS, DONE) */}
+          {layout.topGroups.map((g) => (
+            <g key={g.label}>
+              <rect x={g.box!.x} y={g.box!.y} width={g.box!.w} height={g.box!.h} rx={12} fill={g.color} fillOpacity={0.03} stroke={g.color} strokeWidth={1.5} strokeDasharray="8 4" strokeOpacity={0.4} />
+              <text x={g.box!.x + g.box!.w / 2} y={g.box!.y + 28} textAnchor="middle" fill={g.color} fontSize={11} fontWeight={700} letterSpacing="0.1em" opacity={0.5}>{g.label}</text>
+            </g>
+          ))}
           {/* Section backgrounds */}
           {layout.sections.map((sec) => (
             <g key={sec.label}>
-              <rect x={sec.x} y={sec.y} width={sec.w} height={sec.h} rx={8} fill="var(--muted)" opacity={0.3} stroke={sec.color} strokeWidth={1} strokeOpacity={0.3} />
-              <text x={sec.x + sec.w / 2} y={sec.y + 22} textAnchor="middle" fill={sec.color} fontSize={11} fontWeight={600} letterSpacing="0.05em" opacity={0.7}>{sec.label}</text>
+              {!layout.hideLabelKeys.has(sec.key) && <rect x={sec.x} y={sec.y} width={sec.w} height={sec.h} rx={8} fill="var(--muted)" opacity={0.3} stroke={sec.color} strokeWidth={1} strokeOpacity={0.3} />}
+              {!layout.hideLabelKeys.has(sec.key) && <text x={sec.x + sec.w / 2} y={sec.y + 22} textAnchor="middle" fill={sec.color} fontSize={11} fontWeight={600} letterSpacing="0.05em" opacity={0.7}>{sec.label}</text>}
               {sec.extra > 0 && <text x={sec.x + sec.w / 2} y={sec.h + sec.y - 8} textAnchor="middle" fill="var(--muted-foreground)" fontSize={10} opacity={0.6}>+{sec.extra} more</text>}
             </g>
           ))}
@@ -315,8 +377,8 @@ function DAGCanvas({ requests, tasks, onClickItem }: { requests: RequestItem[]; 
           {/* Ghost dashed placeholder for remaining backlog */}
           {layout.ghostBox && (
             <g>
-              <rect x={layout.ghostBox.x} y={layout.ghostBox.y} width={NODE_W} height={NODE_H} rx={8} fill="var(--muted)" fillOpacity={0.3} stroke="#71717a" strokeWidth={1.5} strokeDasharray="8 4" opacity={0.6} />
-              <text x={layout.ghostBox.x + NODE_W / 2} y={layout.ghostBox.y + NODE_H / 2 + 5} textAnchor="middle" fill="#a1a1aa" fontSize={13} fontWeight={500}>{layout.ghostBox.count} more</text>
+              <rect x={layout.ghostBox.x} y={layout.ghostBox.y} width={layout.ghostBox.w} height={layout.ghostBox.h} rx={8} fill="var(--muted)" fillOpacity={0.3} stroke="#71717a" strokeWidth={1.5} strokeDasharray="8 4" opacity={0.6} />
+              <text x={layout.ghostBox.x + layout.ghostBox.w / 2} y={layout.ghostBox.y + layout.ghostBox.h / 2 + 5} textAnchor="middle" fill="#a1a1aa" fontSize={13} fontWeight={500}>{layout.ghostBox.count} more</text>
             </g>
           )}
         </g>
@@ -352,7 +414,7 @@ function TasksPageInner() {
 
   const priWeight = (p: string) => p === "high" ? 0 : p === "medium" ? 1 : p === "low" ? 2 : 3;
   const sortByPriority = (items: RequestItem[]) => [...items].sort((a, b) => priWeight(a.priority) - priWeight(b.priority) || (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id.localeCompare(b.id));
-  const grouped: Record<string, RequestItem[]> = { pending: sortByPriority(filtered.filter((r) => r.status === "pending")), reviewing: sortByPriority(filtered.filter((r) => r.status === "reviewing")), in_progress: sortByPriority(filtered.filter((r) => r.status === "in_progress")), rejected: sortByPriority(filtered.filter((r) => r.status === "rejected")), done: sortByPriority(filtered.filter((r) => r.status === "done")) };
+  const grouped: Record<string, RequestItem[]> = { stopped: sortByPriority(filtered.filter((r) => r.status === "stopped")), pending: sortByPriority(filtered.filter((r) => r.status === "pending")), reviewing: sortByPriority(filtered.filter((r) => r.status === "reviewing")), in_progress: sortByPriority(filtered.filter((r) => r.status === "in_progress")), rejected: sortByPriority(filtered.filter((r) => r.status === "rejected")), done: sortByPriority(filtered.filter((r) => r.status === "done")) };
   const filteredStatuses = activeTab === TAB_ALL ? STATUS_ORDER.filter((s) => grouped[s].length > 0) : [activeTab];
 
   if (isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading tasks...</div>;

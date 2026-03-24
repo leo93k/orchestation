@@ -7,6 +7,7 @@ import type { WaterfallTask } from "@/types/waterfall";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#eab308",
+  stopped: "#8b5cf6",
   in_progress: "#3b82f6",
   reviewing: "#f97316",
   done: "#22c55e",
@@ -15,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_BG: Record<string, string> = {
   pending: "bg-yellow-500/20",
+  stopped: "bg-violet-500/20",
   in_progress: "bg-blue-500/20",
   reviewing: "bg-orange-500/20",
   done: "bg-emerald-500/20",
