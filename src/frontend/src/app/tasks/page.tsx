@@ -220,7 +220,7 @@ function computeDAGLayout(requests: RequestItem[], tasks: WaterfallTask[], maxPa
     let nodeY = CANVAS_PAD + SECTION_HEADER_H + ROW_GAP;
     for (const req of sec.items) {
       const deps = depsOf.get(req.id) || [];
-      const isNextUp = sec.key === "queue";
+      const isNextUp = false;
       nodes.push({ id: req.id, x: sectionX + CANVAS_PAD / 2, y: nodeY, req, isNextUp });
       nodeY += NODE_H + ROW_GAP;
     }
