@@ -1,17 +1,17 @@
 ---
-id: TASK-048
+id: TASK-051
 title: /tasks/new 페이지 콘텐츠 중앙 정렬
 status: in_progress
 priority: low
 sprint:
 depends_on: []
-branch: task/TASK-048-tasksnew----
-worktree: ../repo-wt-TASK-048
+branch: task/TASK-051-tasksnew----
+worktree: ../repo-wt-TASK-051
 role: general
 reviewer_role: reviewer-general
 ---
 
-# TASK-048: /tasks/new 페이지 콘텐츠 중앙 정렬
+# TASK-051: /tasks/new 페이지 콘텐츠 중앙 정렬
 
 ## 원본 요청
 
@@ -28,4 +28,4 @@ reviewer_role: reviewer-general
 
 - `src/frontend/src/app/tasks/new/page.tsx` 최상위 div에 `mx-auto` 클래스 추가
 - 기존 `max-w-2xl` 유지
-- input/preview 단계 모두 중앙 정렬 적용 확인
+- input/preview 단계 모두 중앙 정렬 확인
