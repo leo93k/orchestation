@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useRequests, type RequestItem } from "@/hooks/useRequests";
 import { cn } from "@/lib/utils";
-import { Plus, ChevronDown, ChevronRight, Pencil, Trash2, Square } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Pencil, Trash2, Square, Bot, Layers, ArrowDown, Clock, Loader2 } from "lucide-react";
 import AutoImproveControl from "@/components/AutoImproveControl";
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -29,7 +29,7 @@ const STATUS_LABEL: Record<string, string> = {
   rejected: "Rejected",
 };
 
-const STATUS_ORDER = ["pending", "reviewing", "in_progress", "rejected", "done"];
+const STATUS_ORDER = ["in_progress", "reviewing", "pending", "done", "rejected"];
 
 const displayTaskId = (id: string) => id.replace(/^REQ-/, "TASK-");
 
@@ -49,7 +49,22 @@ function RequestCard({
   const [editTitle, setEditTitle] = useState(req.title);
   const [editContent, setEditContent] = useState(req.content);
   const [editPriority, setEditPriority] = useState(req.priority);
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [aiResultLoading, setAiResultLoading] = useState(false);
+  const [cardTab, setCardTab] = useState<"content" | "ai-result">("content");
   const isReadOnly = req.status === "done";
+  const showAiResult = req.status === "done" || req.status === "rejected";
+
+  useEffect(() => {
+    if (expanded && showAiResult && aiResult === null && !aiResultLoading) {
+      setAiResultLoading(true);
+      fetch(`/api/tasks/${req.id}/result`)
+        .then((r) => r.json())
+        .then((data) => setAiResult(data.result ?? ""))
+        .catch(() => setAiResult(""))
+        .finally(() => setAiResultLoading(false));
+    }
+  }, [expanded, showAiResult, aiResult, aiResultLoading, req.id]);
 
   const handleSave = async () => {
     await onUpdate(req.id, { title: editTitle, content: editContent, priority: editPriority });
@@ -116,73 +131,119 @@ function RequestCard({
 
       {expanded && (
         <div className="mt-2 pt-2 border-t border-border">
-          {editing ? (
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full bg-muted border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary"
-              />
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                rows={4}
-                className="w-full bg-muted border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary resize-y"
-              />
-              <div className="flex items-center gap-2">
-                <select
-                  value={editPriority}
-                  onChange={(e) => setEditPriority(e.target.value as RequestItem["priority"])}
-                  className="bg-muted border border-border rounded px-2 py-1 text-xs outline-none"
-                >
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  className="filter-pill active text-xs"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditing(false);
-                    setEditTitle(req.title);
-                    setEditContent(req.content);
-                    setEditPriority(req.priority);
-                  }}
-                  className="filter-pill text-xs"
-                >
-                  Cancel
-                </button>
-              </div>
+          {showAiResult && (
+            <div className="flex items-center gap-1 mb-2 border-b border-border">
+              <button
+                type="button"
+                onClick={() => setCardTab("content")}
+                className={cn(
+                  "px-2.5 py-1 text-[11px] font-medium border-b-2 -mb-px transition-colors",
+                  cardTab === "content"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Content
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardTab("ai-result")}
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium border-b-2 -mb-px transition-colors",
+                  cardTab === "ai-result"
+                    ? "border-blue-400 text-blue-400"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Bot className="h-3 w-3" />
+                AI Result
+              </button>
             </div>
-          ) : (
-            <div>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{req.content || "(No description)"}</p>
-              {!isReadOnly && (
-                <div className="flex items-center gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditing(true)}
-                    className="filter-pill text-xs flex items-center gap-1"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    className="filter-pill text-xs flex items-center gap-1 hover:text-red-400"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    Delete
-                  </button>
+          )}
+
+          {cardTab === "content" && (
+            <div style={{ minHeight: showAiResult ? 150 : undefined }}>
+              {editing ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full bg-muted border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary"
+                  />
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    rows={4}
+                    className="w-full bg-muted border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary resize-y"
+                  />
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={editPriority}
+                      onChange={(e) => setEditPriority(e.target.value as RequestItem["priority"])}
+                      className="bg-muted border border-border rounded px-2 py-1 text-xs outline-none"
+                    >
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      className="filter-pill active text-xs"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(false);
+                        setEditTitle(req.title);
+                        setEditContent(req.content);
+                        setEditPriority(req.priority);
+                      }}
+                      className="filter-pill text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{req.content || "(No description)"}</p>
+                  {!isReadOnly && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditing(true)}
+                        className="filter-pill text-xs flex items-center gap-1"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="filter-pill text-xs flex items-center gap-1 hover:text-red-400"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {cardTab === "ai-result" && (
+            <div style={{ minHeight: 150 }}>
+              {aiResultLoading ? (
+                <p className="text-xs text-muted-foreground">Loading...</p>
+              ) : aiResult ? (
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{aiResult}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">No result available.</p>
               )}
             </div>
           )}
@@ -192,18 +253,162 @@ function RequestCard({
   );
 }
 
+const TAB_STACK = "stack";
 const TAB_ALL = "all";
-const TABS = [TAB_ALL, ...STATUS_ORDER] as const;
+const TABS = [TAB_STACK, TAB_ALL, ...STATUS_ORDER] as const;
 
 const TAB_LABEL: Record<string, string> = {
+  stack: "Stack",
   all: "All",
   ...STATUS_LABEL,
 };
 
-export default function TasksPage() {
+/* ── Stack View (Queue Pipeline) ─────────────────────────── */
+
+function StackView({
+  requests,
+  onUpdate,
+  onDelete,
+  onClickItem,
+}: {
+  requests: RequestItem[];
+  onUpdate: (id: string, updates: Partial<Pick<RequestItem, "status" | "title" | "content" | "priority">>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onClickItem: (req: RequestItem) => void;
+}) {
+  const active = requests.filter((r) => r.status === "in_progress");
+  const reviewing = requests.filter((r) => r.status === "reviewing");
+  const queue = requests.filter((r) => r.status === "pending");
+
+  const priorityWeight = { high: 0, medium: 1, low: 2 };
+  const sortedQueue = [...queue].sort(
+    (a, b) => (priorityWeight[a.priority] ?? 1) - (priorityWeight[b.priority] ?? 1),
+  );
+
+  const total = active.length + reviewing.length + sortedQueue.length;
+
+  if (total === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <Layers className="h-8 w-8 mx-auto mb-3 opacity-40" />
+        <p className="text-sm">No active or queued tasks.</p>
+        <p className="text-xs mt-1">Create a new task or change status to Pending to see it here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ── Processing Now ── */}
+      {active.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15">
+              <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-blue-400">
+              Processing Now
+            </span>
+            <span className="text-[10px] text-muted-foreground">({active.length})</span>
+          </div>
+          <div className="space-y-1 pl-2 border-l-2 border-blue-500/40">
+            {active.map((req) => (
+              <RequestCard
+                key={req.id}
+                req={req}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                onClick={() => onClickItem(req)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Connector ── */}
+      {active.length > 0 && (reviewing.length > 0 || sortedQueue.length > 0) && (
+        <div className="flex justify-center">
+          <ArrowDown className="h-4 w-4 text-muted-foreground/40" />
+        </div>
+      )}
+
+      {/* ── In Review ── */}
+      {reviewing.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/15">
+              <span className="w-2 h-2 rounded-full bg-orange-500" />
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-orange-400">
+              In Review
+            </span>
+            <span className="text-[10px] text-muted-foreground">({reviewing.length})</span>
+          </div>
+          <div className="space-y-1 pl-2 border-l-2 border-orange-500/40">
+            {reviewing.map((req) => (
+              <RequestCard
+                key={req.id}
+                req={req}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                onClick={() => onClickItem(req)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Connector ── */}
+      {(active.length > 0 || reviewing.length > 0) && sortedQueue.length > 0 && (
+        <div className="flex justify-center">
+          <ArrowDown className="h-4 w-4 text-muted-foreground/40" />
+        </div>
+      )}
+
+      {/* ── Queue ── */}
+      {sortedQueue.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/15">
+              <Clock className="h-3 w-3 text-yellow-500" />
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-yellow-400">
+              Queue
+            </span>
+            <span className="text-[10px] text-muted-foreground">({sortedQueue.length})</span>
+          </div>
+          <div className="space-y-1 pl-2 border-l-2 border-yellow-500/30">
+            {sortedQueue.map((req, i) => (
+              <div key={req.id} className="flex items-start gap-2">
+                <span className="text-[10px] text-muted-foreground/60 font-mono pt-2.5 w-4 text-right shrink-0">
+                  {i + 1}
+                </span>
+                <div className="flex-1">
+                  <RequestCard
+                    req={req}
+                    onUpdate={onUpdate}
+                    onDelete={onDelete}
+                    onClick={() => onClickItem(req)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TasksPageInner() {
   const { requests, isLoading, error, updateRequest, deleteRequest } = useRequests();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<string>(TAB_ALL);
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") || TAB_STACK;
+
+  const setActiveTab = (tab: string) => {
+    router.push(`/tasks?tab=${tab}`, { scroll: false });
+  };
 
   const grouped: Record<string, RequestItem[]> = {
     pending: requests.filter((r) => r.status === "pending"),
@@ -246,30 +451,50 @@ export default function TasksPage() {
         {TABS.map((tab) => {
           const count = tab === TAB_ALL
             ? requests.length
-            : grouped[tab]?.length ?? 0;
+            : tab === TAB_STACK
+              ? (grouped.in_progress?.length ?? 0) + (grouped.reviewing?.length ?? 0) + (grouped.pending?.length ?? 0)
+              : grouped[tab]?.length ?? 0;
           return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px",
-                activeTab === tab
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
+            <span key={tab} className="flex items-center">
+              <button
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px",
+                  activeTab === tab
+                    ? tab === TAB_STACK
+                      ? "border-violet-400 text-violet-400"
+                      : "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {tab === TAB_STACK && (
+                  <Layers className="h-3 w-3 shrink-0" />
+                )}
+                {tab !== TAB_ALL && tab !== TAB_STACK && (
+                  <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[tab])} />
+                )}
+                {TAB_LABEL[tab]}
+                <span className="text-[10px] text-muted-foreground">({count})</span>
+              </button>
+              {tab === TAB_STACK && (
+                <span className="h-4 w-px bg-border mx-1" />
               )}
-            >
-              {tab !== TAB_ALL && (
-                <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[tab])} />
-              )}
-              {TAB_LABEL[tab]}
-              <span className="text-[10px] text-muted-foreground">({count})</span>
-            </button>
+            </span>
           );
         })}
       </div>
 
-      {filteredStatuses.map((status) => {
+      {activeTab === TAB_STACK && (
+        <StackView
+          requests={requests}
+          onUpdate={updateRequest}
+          onDelete={deleteRequest}
+          onClickItem={(req) => router.push(`/tasks/${displayTaskId(req.id)}`)}
+        />
+      )}
+
+      {activeTab !== TAB_STACK && filteredStatuses.map((status) => {
         const items = grouped[status];
         if (!items || items.length === 0) return null;
         return (
@@ -302,17 +527,25 @@ export default function TasksPage() {
         );
       })}
 
-      {requests.length === 0 && (
+      {activeTab !== TAB_STACK && requests.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           <p className="text-sm">No tasks yet. Click &quot;New Task&quot; to create a task.</p>
         </div>
       )}
 
-      {activeTab !== TAB_ALL && (grouped[activeTab]?.length ?? 0) === 0 && requests.length > 0 && (
+      {activeTab !== TAB_ALL && activeTab !== TAB_STACK && (grouped[activeTab]?.length ?? 0) === 0 && requests.length > 0 && (
         <div className="text-center py-8 text-muted-foreground">
           <p className="text-sm">No {TAB_LABEL[activeTab]} tasks.</p>
         </div>
       )}
     </div>
+  );
+}
+
+export default function TasksPage() {
+  return (
+    <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading...</div>}>
+      <TasksPageInner />
+    </Suspense>
   );
 }
