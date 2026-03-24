@@ -130,8 +130,7 @@ invoke_claude() {
   local conversation_file="$2"
 
   cd "$WORKTREE_PATH"
-  # --bare: CLAUDE.md 자동 탐색, hooks, LSP, auto-memory 등 비활성화하여 컨텍스트 최소화
-  echo "$prompt" | claude --bare --output-format json --dangerously-skip-permissions --system-prompt "$ROLE_PROMPT" > "$conversation_file"
+  echo "$prompt" | claude --output-format json --dangerously-skip-permissions --system-prompt "$ROLE_PROMPT" > "$conversation_file"
   JSON_OUTPUT=$(cat "$conversation_file")
 }
 
