@@ -98,23 +98,23 @@ export function useRequests() {
   }, [fetchRequests]);
 
   const reorderRequest = useCallback(async (id: string, direction: "up" | "down") => {
-    // 낙관적 업데이트: UI 먼저 변경
+    // 낙관적 업데이트: sort_order 값만 스왑 (배열 구조 유지, 최소 변경)
     setRequests((prev) => {
-      const idx = prev.findIndex((r) => r.id === id);
-      if (idx === -1) return prev;
-      const target = prev[idx];
-      // 같은 priority + status 내에서 인접 항목 찾기
+      const target = prev.find((r) => r.id === id);
+      if (!target) return prev;
       const siblings = prev
-        .map((r, i) => ({ r, i }))
-        .filter(({ r }) => r.priority === target.priority && r.status === target.status);
-      const sibIdx = siblings.findIndex(({ r }) => r.id === id);
+        .filter((r) => r.priority === target.priority && r.status === target.status)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id.localeCompare(b.id));
+      const sibIdx = siblings.findIndex((r) => r.id === id);
       const swapSibIdx = direction === "up" ? sibIdx - 1 : sibIdx + 1;
       if (swapSibIdx < 0 || swapSibIdx >= siblings.length) return prev;
-      const next = [...prev];
-      const aIdx = siblings[sibIdx].i;
-      const bIdx = siblings[swapSibIdx].i;
-      [next[aIdx], next[bIdx]] = [next[bIdx], next[aIdx]];
-      return next;
+      const other = siblings[swapSibIdx];
+      const tmpOrder = target.sort_order;
+      return prev.map((r) => {
+        if (r.id === target.id) return { ...r, sort_order: other.sort_order };
+        if (r.id === other.id) return { ...r, sort_order: tmpOrder };
+        return r;
+      });
     });
     // 서버에 반영 (실패 시 refetch로 복구)
     try {
