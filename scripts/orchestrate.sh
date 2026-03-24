@@ -12,6 +12,9 @@ MAX_REVIEW_RETRY=10
 SIGNAL_DIR="/tmp/orchestrate-$$"
 mkdir -p "$SIGNAL_DIR"
 
+# Load signal helper for atomic signal file operations
+source "$REPO_ROOT/scripts/lib/signal.sh"
+
 # ── 사전 검증 ──────────────────────────────────────────
 
 if [ ! -d "$TASK_DIR" ]; then
@@ -213,24 +216,14 @@ EOF
   echo "  ⏳ ${#BATCH[@]}개 태스크 완료 대기 중..."
 
   FAILED=0
-  while true; do
-    all_done=true
-    for task_id in "${BATCH[@]}"; do
-      if [ ! -f "${SIGNAL_DIR}/${task_id}-done" ] && [ ! -f "${SIGNAL_DIR}/${task_id}-failed" ]; then
-        all_done=false
-        break
-      fi
-    done
-    if [ "$all_done" = true ]; then
-      break
-    fi
-    sleep 2
-  done
+  # Wait using flock-protected signal checks (race-condition safe)
+  signal_wait_all "$SIGNAL_DIR" "${BATCH[@]}"
 
   # ── 결과 처리: 머지 + 상태 업데이트 ──
 
   for task_id in "${BATCH[@]}"; do
-    if [ -f "${SIGNAL_DIR}/${task_id}-done" ]; then
+    # Atomically consume signal file under flock (prevents double-processing)
+    if signal_consume "$SIGNAL_DIR" "$task_id" && [ "$SIGNAL_TYPE" = "done" ]; then
       echo "  ✅ ${task_id} 완료"
 
       # status → done
@@ -264,9 +257,6 @@ EOF
       echo "  ❌ ${task_id} 실패"
       FAILED=1
     fi
-
-    # 시그널 파일 정리
-    rm -f "${SIGNAL_DIR}/${task_id}-done" "${SIGNAL_DIR}/${task_id}-failed"
   done
 
   if [ "$FAILED" -eq 1 ]; then
