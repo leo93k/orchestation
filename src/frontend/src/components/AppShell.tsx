@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { groups, isLoading, error, refetch } = useTasks();
   const { prds } = usePrds();
-  const { tree: docTree, createDoc, updateDoc, deleteDoc, reorderDoc } = useDocTree();
+  const { tree: docTree, createDoc, updateDoc, deleteDoc, reorderDoc, fetchTree } = useDocTree();
   const { justFinished, clearFinished } = useOrchestrationStatus();
   const { requests: requestItems, createRequest, updateRequest, refetch: refetchRequests } = useRequests();
   const { addToast } = useToast();
@@ -183,6 +183,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     await reorderDoc(nodeId, targetParentId, position);
   }, [reorderDoc]);
 
+  const handleDocReorderError = useCallback(async (error: unknown) => {
+    console.error("Reorder failed:", error);
+    addToast("문서 순서 변경에 실패했습니다.", "error");
+    // Refetch to restore server state
+    await fetchTree();
+  }, [addToast, fetchTree]);
+
   if (isLoading) {
     return (
       <div className="flex h-full">
@@ -209,6 +216,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onDocDelete={handleDocDelete}
         onDocRename={handleDocRename}
         onDocReorder={handleDocReorder}
+        onDocReorderError={handleDocReorderError}
         requestItems={requestItems}
         onNewTask={async (title, content) => {
           await createRequest(title, content, "medium");
