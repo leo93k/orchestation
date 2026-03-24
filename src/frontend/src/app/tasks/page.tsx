@@ -411,9 +411,11 @@ function TasksPageInner() {
     return result;
   }, [requests, searchQuery, priorityFilter, activeTab]);
 
-  const priWeight = (p: string) => p === "high" ? 0 : p === "medium" ? 1 : p === "low" ? 2 : 3;
-  const sortByPriority = (items: RequestItem[]) => [...items].sort((a, b) => priWeight(a.priority) - priWeight(b.priority) || (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id.localeCompare(b.id));
-  const grouped: Record<string, RequestItem[]> = { stopped: sortByPriority(filtered.filter((r) => r.status === "stopped")), pending: sortByPriority(filtered.filter((r) => r.status === "pending")), reviewing: sortByPriority(filtered.filter((r) => r.status === "reviewing")), in_progress: sortByPriority(filtered.filter((r) => r.status === "in_progress")), rejected: sortByPriority(filtered.filter((r) => r.status === "rejected")), done: sortByPriority(filtered.filter((r) => r.status === "done")) };
+  const grouped = useMemo(() => {
+    const priWeight = (p: string) => p === "high" ? 0 : p === "medium" ? 1 : p === "low" ? 2 : 3;
+    const sortByPriority = (items: RequestItem[]) => [...items].sort((a, b) => priWeight(a.priority) - priWeight(b.priority) || (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id.localeCompare(b.id));
+    return { stopped: sortByPriority(filtered.filter((r) => r.status === "stopped")), pending: sortByPriority(filtered.filter((r) => r.status === "pending")), reviewing: sortByPriority(filtered.filter((r) => r.status === "reviewing")), in_progress: sortByPriority(filtered.filter((r) => r.status === "in_progress")), rejected: sortByPriority(filtered.filter((r) => r.status === "rejected")), done: sortByPriority(filtered.filter((r) => r.status === "done")) } as Record<string, RequestItem[]>;
+  }, [filtered]);
   const filteredStatuses = activeTab === TAB_ALL ? STATUS_ORDER.filter((s) => grouped[s].length > 0) : [activeTab];
 
   if (isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading tasks...</div>;
