@@ -1,7 +1,7 @@
 ---
 id: TASK-052
 title: 운영 서비스 전환을 위한 개선점 분석 및 REQ 등록
-status: in_progress
+status: done
 priority: medium
 sprint:
 depends_on: []
