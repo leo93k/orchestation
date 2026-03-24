@@ -180,8 +180,8 @@ function computeDAGLayout(requests: RequestItem[], tasks: WaterfallTask[], maxPa
   const doneExtra = allDone.length - done.length;
 
   const sections: { key: string; label: string; items: RequestItem[]; color: string; extra: number }[] = [
-    ...(queue.length > 0 ? [{ key: "queue", label: "QUEUE", items: queue, color: "#a1a1aa", extra: queueExtra }] : []),
-    { key: "pending", label: "NEXT", items: pending, color: "#eab308", extra: 0 },
+    ...(queue.length > 0 ? [{ key: "queue", label: "BACKLOG", items: queue, color: "#a1a1aa", extra: queueExtra }] : []),
+    { key: "pending", label: "QUEUE", items: pending, color: "#eab308", extra: 0 },
     { key: "current", label: "IN PROGRESS", items: current, color: "#3b82f6", extra: 0 },
     { key: "done", label: "DONE", items: done, color: "#22c55e", extra: doneExtra },
   ];
