@@ -1,7 +1,7 @@
 ---
 id: TASK-113
 title: 사이드바 Docs 섹션 IDE 스타일 접기/펼치기 구현
-status: in_progress
+status: failed
 branch: task/task-113
 worktree: ../repo-wt-task-113
 priority: medium
@@ -36,5 +36,9 @@ IDE(VSCode 등)의 탐색기처럼 Docs 섹션을 트리 구조로 접기/펼치
 Not logged in · Please run /login
 
 ## 실패 사유 (2026-03-24 18:34)
+
+Not logged in · Please run /login
+
+## 실패 사유 (2026-03-24 18:36)
 
 Not logged in · Please run /login
