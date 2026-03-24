@@ -16,6 +16,10 @@ export PATH="$HOME/.local/bin:$PATH"
 # Load signal helper for atomic signal file operations
 source "$REPO_ROOT/scripts/lib/signal.sh"
 
+# EXIT trap: 비정상 종료 시에도 signal 파일 생성
+_worker_exit_code=0
+trap '_worker_exit_code=$?; if [ "$_worker_exit_code" -ne 0 ] && [ -n "$SIGNAL_DIR" ]; then signal_create "$SIGNAL_DIR" "$TASK_ID" "failed"; fi' EXIT
+
 TASK_DIR="$REPO_ROOT/docs/task"
 REQ_DIR="$REPO_ROOT/docs/requests"
 OUTPUT_DIR="$REPO_ROOT/output"
