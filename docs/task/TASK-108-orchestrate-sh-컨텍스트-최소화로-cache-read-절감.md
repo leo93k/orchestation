@@ -1,8 +1,9 @@
 ---
 id: TASK-108
 title: orchestrate.sh 컨텍스트 최소화로 cache_read 절감
-status: pending
+status: in_progress
 priority: high
+sort_order: 2
 created: 2026-03-24
 updated: 2026-03-24
 branch: task/TASK-108-context-minimize
