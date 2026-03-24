@@ -160,7 +160,7 @@ start_task() {
   if [ -n "$tf" ]; then
     sed -i '' -E "s/^status: (pending|stopped)/status: in_progress/" "$tf"
     git -C "$REPO_ROOT" add "$tf"
-    git -C "$REPO_ROOT" commit -m "chore(${task_id}): status → in_progress"
+    git -C "$REPO_ROOT" commit --only "$tf" -m "chore(${task_id}): status → in_progress"
   fi
 
   # iTerm 패널에서 실행
@@ -211,7 +211,7 @@ process_done_task() {
 
     if [ -n "$local_task_file" ]; then
       git -C "$REPO_ROOT" add "$local_task_file"
-      git -C "$REPO_ROOT" commit -m "chore(${task_id}): status → done"
+      git -C "$REPO_ROOT" commit --only "$local_task_file" -m "chore(${task_id}): status → done"
     fi
 
     rm -f "${SIGNAL_DIR}/${task_id}-done"
@@ -295,8 +295,8 @@ while true; do
 
   NEW_RUNNING=()
   for task_id in "${RUNNING[@]+"${RUNNING[@]}"}"; do
-    process_done_task "$task_id"
-    rc=$?
+    rc=0
+    process_done_task "$task_id" || rc=$?
     if [ "$rc" -eq 2 ]; then
       # 아직 진행 중
       NEW_RUNNING+=("$task_id")
