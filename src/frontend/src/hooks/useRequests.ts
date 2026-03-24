@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 export interface RequestItem {
   id: string;
@@ -17,24 +17,51 @@ export function useRequests() {
   const [requests, setRequests] = useState<RequestItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchRequests = useCallback(async () => {
+    // Abort any in-flight request before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setIsLoading(true);
-      const res = await fetch("/api/requests");
+      const res = await fetch("/api/requests", { signal: controller.signal });
       if (!res.ok) throw new Error("요청 데이터를 불러오는데 실패했습니다.");
       const data: RequestItem[] = await res.json();
-      setRequests(data);
-      setError(null);
+      if (isMountedRef.current) {
+        setRequests(data);
+        setError(null);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "오류 발생");
+      // Ignore abort errors — they are expected on unmount or re-fetch
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : "오류 발생");
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     fetchRequests();
+
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchRequests]);
 
   const createRequest = useCallback(async (title: string, content: string, priority: string) => {
@@ -45,7 +72,9 @@ export function useRequests() {
     });
     if (!res.ok) throw new Error("요청 생성에 실패했습니다.");
     const data = await res.json();
-    await fetchRequests();
+    if (isMountedRef.current) {
+      await fetchRequests();
+    }
     return data;
   }, [fetchRequests]);
 
@@ -56,13 +85,17 @@ export function useRequests() {
       body: JSON.stringify(updates),
     });
     if (!res.ok) throw new Error("요청 수정에 실패했습니다.");
-    await fetchRequests();
+    if (isMountedRef.current) {
+      await fetchRequests();
+    }
   }, [fetchRequests]);
 
   const deleteRequest = useCallback(async (id: string) => {
     const res = await fetch(`/api/requests/${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("요청 삭제에 실패했습니다.");
-    await fetchRequests();
+    if (isMountedRef.current) {
+      await fetchRequests();
+    }
   }, [fetchRequests]);
 
   const reorderRequest = useCallback(async (id: string, direction: "up" | "down") => {
@@ -72,7 +105,9 @@ export function useRequests() {
       body: JSON.stringify({ direction }),
     });
     if (!res.ok) throw new Error("순서 변경에 실패했습니다.");
-    await fetchRequests();
+    if (isMountedRef.current) {
+      await fetchRequests();
+    }
   }, [fetchRequests]);
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
