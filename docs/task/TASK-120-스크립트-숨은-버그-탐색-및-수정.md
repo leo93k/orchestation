@@ -1,7 +1,7 @@
 ---
 id: TASK-120
 title: 스크립트 숨은 버그 탐색 및 수정
-status: in_progress
+status: done
 branch: task/task-120
 worktree: ../repo-wt-task-120
 priority: high
