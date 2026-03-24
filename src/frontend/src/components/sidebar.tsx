@@ -530,9 +530,9 @@ export function TaskSidebar({
         {/* ── Tasks (merged from Requests) ── */}
         <div className="mb-2">
           <div className="px-2 mb-1 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Link href="/tasks" className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground no-underline hover:text-foreground transition-colors", currentPath === "/tasks" && "text-foreground")}>
               Tasks
-            </span>
+            </Link>
             <span className="text-[10px] text-muted-foreground">{requestItems.length}</span>
           </div>
 
