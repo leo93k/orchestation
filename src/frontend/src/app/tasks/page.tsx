@@ -9,32 +9,7 @@ import { useTasks } from "@/hooks/useTasks";
 import type { WaterfallTask } from "@/types/waterfall";
 import AutoImproveControl from "@/components/AutoImproveControl";
 import TimelineView from "@/components/TimelineView";
-
-const PRIORITY_COLORS: Record<string, string> = {
-  high: "bg-red-500/15 text-red-500 border-red-500/30",
-  medium: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
-  low: "bg-green-500/15 text-green-500 border-green-500/30",
-};
-
-const STATUS_DOT: Record<string, string> = {
-  stopped: "bg-violet-500",
-  pending: "bg-yellow-500",
-  in_progress: "bg-blue-500",
-  reviewing: "bg-orange-500",
-  done: "bg-emerald-500",
-  rejected: "bg-red-500",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  stopped: "Stopped",
-  pending: "Pending",
-  in_progress: "In Progress",
-  reviewing: "Reviewing",
-  done: "Done",
-  rejected: "Rejected",
-};
-
-const STATUS_ORDER = ["in_progress", "reviewing", "stopped", "pending", "done", "rejected"];
+import { PRIORITY_COLORS, STATUS_DOT, STATUS_LABEL, STATUS_ORDER, TAB_STACK, TAB_TIMELINE, TAB_ALL, TABS, TAB_LABEL, NODE_W, NODE_H, ROW_GAP, CANVAS_PAD, SECTION_GAP, SECTION_HEADER_H } from "./constants";
 
 const RequestCard = memo(function RequestCard({ req, onUpdate, onDelete, onReorder, isFirst, isLast }: {
   req: RequestItem;
@@ -120,20 +95,7 @@ const RequestCard = memo(function RequestCard({ req, onUpdate, onDelete, onReord
   );
 });
 
-const TAB_STACK = "stack";
-const TAB_TIMELINE = "timeline";
-const TAB_ALL = "all";
-const TABS = [TAB_STACK, TAB_TIMELINE, TAB_ALL, ...STATUS_ORDER] as const;
-const TAB_LABEL: Record<string, string> = { stack: "Graph", timeline: "Timeline", all: "All", ...STATUS_LABEL };
-
 /* ── DAG Canvas ───────────────────────────────────────── */
-
-const NODE_W = 220;
-const NODE_H = 84;
-const ROW_GAP = 24;
-const CANVAS_PAD = 40;
-const SECTION_GAP = 40; // gap between the 3 sections
-const SECTION_HEADER_H = 32;
 
 type NodeLayout = { id: string; x: number; y: number; req: RequestItem; isNextUp: boolean };
 type EdgeLayout = { fromId: string; toId: string; x1: number; y1: number; x2: number; y2: number };
