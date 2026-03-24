@@ -1,7 +1,7 @@
 ---
 id: TASK-110
 title: 태스크 복잡도 기반 모델 선택 로직 구현
-status: in_progress
+status: failed
 branch: task/task-110
 worktree: ../repo-wt-task-110
 priority: medium
@@ -22,5 +22,9 @@ orchestrate.sh에서 태스크의 복잡도(예: 태스크 타입, 파일 수정
 Not logged in · Please run /login
 
 ## 실패 사유 (2026-03-24 18:22)
+
+Not logged in · Please run /login
+
+## 실패 사유 (2026-03-24 18:34)
 
 Not logged in · Please run /login
