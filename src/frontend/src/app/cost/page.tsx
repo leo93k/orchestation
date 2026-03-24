@@ -6,6 +6,7 @@ import { useRunHistory } from "@/hooks/useRunHistory";
 import { useOrchestrationStatus } from "@/hooks/useOrchestrationStatus";
 import { SummaryCards } from "@/components/cost/SummaryCards";
 import { CostTable } from "@/components/cost/CostTable";
+import { CumulativeCostChart } from "@/components/cost/CumulativeCostChart";
 import { RunHistory } from "@/components/cost/RunHistory";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect } from "react";
@@ -83,6 +84,7 @@ export default function CostPage() {
             entries={data.entries}
             summaryByTask={data.summaryByTask}
           />
+          <CumulativeCostChart entries={data.entries} />
           <CostTable entries={data.entries} />
         </>
       )}
