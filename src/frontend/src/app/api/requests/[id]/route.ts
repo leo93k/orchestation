@@ -109,6 +109,27 @@ export async function PUT(
 
     // Update frontmatter fields if provided
     if (body.status && ["pending", "in_progress", "reviewing", "done", "rejected"].includes(body.status)) {
+      // Dependency validation: in_progress requires all depends_on tasks to be done
+      if (body.status === "in_progress") {
+        const currentData = parseRequestFile(filePath);
+        if (currentData && currentData.depends_on.length > 0) {
+          const allTasks = parseAllRequests();
+          const unmetDeps = currentData.depends_on.filter((depId) => {
+            const dep = allTasks.find((t) => t.id === depId);
+            return !dep || dep.status !== "done";
+          });
+          if (unmetDeps.length > 0) {
+            const details = unmetDeps.map((depId) => {
+              const dep = allTasks.find((t) => t.id === depId);
+              return dep ? `${depId} (status: ${dep.status})` : `${depId} (not found)`;
+            });
+            return NextResponse.json(
+              { error: `의존성 미충족: 선행 태스크가 완료되지 않았습니다 - ${details.join(", ")}` },
+              { status: 400 },
+            );
+          }
+        }
+      }
       fm = fm.replace(/^status:\s*.+$/m, `status: ${body.status}`);
     }
     if (body.title && typeof body.title === "string") {

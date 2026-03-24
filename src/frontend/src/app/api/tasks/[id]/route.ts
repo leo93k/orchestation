@@ -54,6 +54,30 @@ export async function PUT(
 
     if (body.status !== undefined) {
       if (validStatuses.includes(body.status)) {
+        // Dependency validation: in_progress requires all depends_on tasks to be done
+        if (body.status === "in_progress" && Array.isArray(data.depends_on) && data.depends_on.length > 0) {
+          const unmetDeps: { id: string; status: string }[] = [];
+          for (const depId of data.depends_on) {
+            if (typeof depId !== "string" || !depId.trim()) continue;
+            const depFile = findTaskFile(depId.trim());
+            if (!depFile) {
+              unmetDeps.push({ id: depId, status: "not found" });
+              continue;
+            }
+            const depContent = fs.readFileSync(depFile, "utf-8");
+            const depData = matter(depContent).data;
+            if (depData.status !== "done") {
+              unmetDeps.push({ id: depId, status: depData.status || "unknown" });
+            }
+          }
+          if (unmetDeps.length > 0) {
+            const details = unmetDeps.map((d) => `${d.id} (status: ${d.status})`).join(", ");
+            return NextResponse.json(
+              { error: `의존성 미충족: 선행 태스크가 완료되지 않았습니다 - ${details}` },
+              { status: 400 },
+            );
+          }
+        }
         data.status = body.status;
       } else {
         return NextResponse.json(
