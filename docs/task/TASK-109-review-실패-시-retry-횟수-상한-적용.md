@@ -1,8 +1,9 @@
 ---
 id: TASK-109
 title: review 실패 시 retry 횟수 상한 적용
-status: pending
+status: in_progress
 priority: high
+sort_order: 1
 created: 2026-03-24
 updated: 2026-03-24
 branch: task/TASK-109-review-retry-limit
