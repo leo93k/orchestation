@@ -203,8 +203,18 @@ export default function NewTaskPage() {
       {/* Step 2: AI Preview */}
       {step === "preview" && (
         <div className="space-y-3">
+          {/* 원본 입력 표시 */}
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">원본 입력</div>
+            <div className="text-sm font-medium">{title}</div>
+            {description && (
+              <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{description}</div>
+            )}
+          </div>
+
           <p className="text-xs text-muted-foreground">
-            AI has proposed {tasks.length} task{tasks.length !== 1 ? "s" : ""}. You can edit before confirming.
+            AI가 {tasks.length}개 Task로 분해했습니다. 수정 후 컨펌하세요.
+            {tasks.length > 1 && " (위에서 아래 순서로 실행됩니다)"}
           </p>
 
           {tasks.map((task, idx) => (
@@ -302,8 +312,11 @@ function TaskPreviewCard({
       {/* Header */}
       <div className="flex items-center gap-2">
         <span className="text-xs font-mono text-muted-foreground">
-          Task {index + 1}
+          {totalTasks > 1 ? `Step ${index + 1}/${totalTasks}` : "Task"}
         </span>
+        {index > 0 && totalTasks > 1 && (
+          <span className="text-[10px] text-muted-foreground">← Step {index} 완료 후 실행</span>
+        )}
         <span
           className={cn(
             "text-[10px] px-1.5 py-0.5 rounded border font-medium",
