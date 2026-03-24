@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRequests, type RequestItem } from "@/hooks/useRequests";
 import { cn } from "@/lib/utils";
@@ -36,11 +36,10 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_ORDER = ["in_progress", "reviewing", "stopped", "pending", "done", "rejected"];
 
-function RequestCard({ req, onUpdate, onDelete, onClick, onReorder, isFirst, isLast }: {
+const RequestCard = memo(function RequestCard({ req, onUpdate, onDelete, onReorder, isFirst, isLast }: {
   req: RequestItem;
   onUpdate: (id: string, updates: Partial<Pick<RequestItem, "status" | "title" | "content" | "priority">>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  onClick: () => void;
   onReorder?: (id: string, direction: "up" | "down") => Promise<void>;
   isFirst?: boolean;
   isLast?: boolean;
@@ -119,7 +118,7 @@ function RequestCard({ req, onUpdate, onDelete, onClick, onReorder, isFirst, isL
       )}
     </div>
   );
-}
+});
 
 const TAB_STACK = "stack";
 const TAB_TIMELINE = "timeline";
@@ -455,7 +454,7 @@ function TasksPageInner() {
       )}
       {activeTab === TAB_STACK && <DAGCanvas requests={filtered} tasks={allWaterfallTasks} onClickItem={(req) => router.push(`/tasks/${req.id}`)} />}
       {activeTab === TAB_TIMELINE && <TimelineView requests={filtered} tasks={allWaterfallTasks} onClickItem={(req) => router.push(`/tasks/${req.id}`)} priorityFilter={priorityFilter} />}
-      {activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE && filteredStatuses.map((status) => { const items = grouped[status]; if (!items || items.length === 0) return null; return (<div key={status}>{activeTab === TAB_ALL && (<div className="flex items-center gap-2 mb-2">{status === "in_progress" ? <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" /> : <span className={cn("w-2 h-2 rounded-full", STATUS_DOT[status])} />}<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[status]}</span><span className="text-[10px] text-muted-foreground">({items.length})</span></div>)}<div className="space-y-1">{items.map((req, i) => <RequestCard key={req.id} req={req} onUpdate={updateRequest} onDelete={deleteRequest} onClick={() => router.push(`/tasks/${req.id}`)} onReorder={reorderRequest} isFirst={i === 0} isLast={i === items.length - 1} />)}</div></div>); })}
+      {activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE && filteredStatuses.map((status) => { const items = grouped[status]; if (!items || items.length === 0) return null; return (<div key={status}>{activeTab === TAB_ALL && (<div className="flex items-center gap-2 mb-2">{status === "in_progress" ? <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" /> : <span className={cn("w-2 h-2 rounded-full", STATUS_DOT[status])} />}<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[status]}</span><span className="text-[10px] text-muted-foreground">({items.length})</span></div>)}<div className="space-y-1">{items.map((req, i) => <RequestCard key={req.id} req={req} onUpdate={updateRequest} onDelete={deleteRequest} onReorder={reorderRequest} isFirst={i === 0} isLast={i === items.length - 1} />)}</div></div>); })}
       {activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE && requests.length === 0 && <div className="text-center py-12 text-muted-foreground"><p className="text-sm">No tasks yet.</p></div>}
     </div>
   );
