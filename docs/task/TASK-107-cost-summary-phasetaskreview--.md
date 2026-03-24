@@ -1,7 +1,7 @@
 ---
 id: TASK-107
 title: Cost Summary에 phase별(task/review) 비용 비율 표시
-status: failed
+status: in_progress
 priority: medium
 sort_order: 5
 sprint:
@@ -10,8 +10,8 @@ branch: task/TASK-107-cost-summary-phasetaskreview--
 worktree: ../repo-wt-TASK-107
 role: general
 reviewer_role: reviewer-general
+updated: 2026-03-24 09:22:19
 ---
-
 # TASK-107: Cost Summary에 phase별(task/review) 비용 비율 표시
 
 ## 원본 요청
