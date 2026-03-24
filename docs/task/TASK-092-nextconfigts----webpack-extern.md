@@ -1,7 +1,7 @@
 ---
 id: TASK-092
 title: next.config.ts 보안 헤더 및 webpack externals 설정
-status: pending
+status: failed
 priority: low
 sprint:
 depends_on: []
@@ -34,3 +34,15 @@ reviewer_role: reviewer-general
 - Content-Security-Policy(CSP) 헤더 기본값 설정
 - `node-pty` 등 native module이 실제 사용 중인 경우 webpack `externals` 설정 추가
 - 개발/프로덕션 환경 모두에서 헤더가 적용되는지 확인
+
+## 실패 사유 (2026-03-24 17:57)
+
+Not logged in · Please run /login
+
+## 실패 사유 (2026-03-24 18:34)
+
+Not logged in · Please run /login
+
+## 실패 사유 (2026-03-24 18:36)
+
+Not logged in · Please run /login

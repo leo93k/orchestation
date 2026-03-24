@@ -1,7 +1,7 @@
 ---
 id: TASK-103
 title: CostTable/RunHistory formatDuration 공통 유틸로 추출
-status: pending
+status: failed
 priority: low
 sprint:
 depends_on: []
@@ -27,3 +27,15 @@ reviewer_role: reviewer-general
 - `src/frontend/src/lib/format-utils.ts` (또는 적절한 위치)에 `formatDuration` 공통 함수 추출
 - `CostTable.tsx`, `RunHistory.tsx`에서 중복 정의 제거 후 공통 함수 import
 - 기존 동작이 변경되지 않음을 확인
+
+## 실패 사유 (2026-03-24 17:57)
+
+Not logged in · Please run /login
+
+## 실패 사유 (2026-03-24 18:34)
+
+Not logged in · Please run /login
+
+## 실패 사유 (2026-03-24 18:36)
+
+Not logged in · Please run /login
