@@ -1,7 +1,7 @@
 ---
 id: TASK-101
 title: test-parallel-logic.sh set -euo pipefail 수정
-status: pending
+status: in_progress
 priority: medium
 sort_order: 1
 sprint:
