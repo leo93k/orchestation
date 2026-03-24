@@ -175,7 +175,7 @@ tell application "iTerm"
         create window with default profile
     end if
     tell current session of current window
-        split vertically with same profile command "/bin/zsh -lc '${cmd}; echo; echo done - exit to close; exec /bin/zsh -l'"
+        split vertically with same profile command "/bin/zsh -lc '${cmd}; exit'"
     end tell
 end tell
 EOF
