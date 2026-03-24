@@ -225,7 +225,7 @@ while true; do
       # run-worker.sh: run-task.sh → run-review.sh (리뷰 실패 시 최대 MAX_REVIEW_RETRY회 재시도)
       mkdir -p "$REPO_ROOT/output/logs"
       log_file="$REPO_ROOT/output/logs/${task_id}.log"
-      cmd="bash ${REPO_ROOT}/scripts/run-worker.sh ${task_id} ${SIGNAL_DIR} ${MAX_REVIEW_RETRY} 2>&1 | tee ${log_file}"
+      cmd="bash \\\"${REPO_ROOT}/scripts/run-worker.sh\\\" \\\"${task_id}\\\" \\\"${SIGNAL_DIR}\\\" \\\"${MAX_REVIEW_RETRY}\\\" 2>&1 | tee \\\"${log_file}\\\""
 
       osascript <<EOF
 tell application "iTerm"
