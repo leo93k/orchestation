@@ -1,7 +1,7 @@
 ---
 id: TASK-103
 title: CostTable/RunHistory formatDuration 공통 유틸로 추출
-status: in_progress
+status: failed
 priority: low
 sprint:
 depends_on: []
@@ -33,5 +33,9 @@ reviewer_role: reviewer-general
 Not logged in · Please run /login
 
 ## 실패 사유 (2026-03-24 18:34)
+
+Not logged in · Please run /login
+
+## 실패 사유 (2026-03-24 18:36)
 
 Not logged in · Please run /login
