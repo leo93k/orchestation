@@ -1,7 +1,7 @@
 ---
 id: TASK-115
 title: Task 상세 페이지에 인라인 편집 기능 추가
-status: pending
+status: in_progress
 priority: low
 sprint:
 depends_on: []
