@@ -1,7 +1,7 @@
 ---
 id: TASK-084
 title: requests API slug 길이 50자 제한 추가
-status: pending
+status: in_progress
 priority: low
 sprint:
 depends_on: []
