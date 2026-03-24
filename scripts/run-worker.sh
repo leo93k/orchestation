@@ -13,6 +13,9 @@ MAX_RETRY="${3:-2}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export PATH="$HOME/.local/bin:$PATH"
 
+# Load signal helper for atomic signal file operations
+source "$REPO_ROOT/scripts/lib/signal.sh"
+
 TASK_DIR="$REPO_ROOT/docs/task"
 REQ_DIR="$REPO_ROOT/docs/requests"
 OUTPUT_DIR="$REPO_ROOT/output"
@@ -291,7 +294,7 @@ for i in $(seq 0 "$MAX_RETRY"); do
     if run_review; then
       rm -f "$FEEDBACK_FILE"
       if [ -n "$SIGNAL_DIR" ]; then
-        touch "${SIGNAL_DIR}/${TASK_ID}-done"
+        signal_create "$SIGNAL_DIR" "$TASK_ID" "done"
       fi
       exit 0
     fi
@@ -300,7 +303,7 @@ for i in $(seq 0 "$MAX_RETRY"); do
   # 마지막 시도였으면 실패
   if [ "$i" -eq "$MAX_RETRY" ]; then
     if [ -n "$SIGNAL_DIR" ]; then
-      touch "${SIGNAL_DIR}/${TASK_ID}-failed"
+      signal_create "$SIGNAL_DIR" "$TASK_ID" "failed"
     fi
     exit 1
   fi
