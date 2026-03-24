@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRequests, type RequestItem } from "@/hooks/useRequests";
 import { cn } from "@/lib/utils";
@@ -55,10 +55,8 @@ function RequestCard({
   const [aiResultLoading, setAiResultLoading] = useState(false);
   const [cardTab, setCardTab] = useState<"content" | "ai-result">("content");
   const isReadOnly = req.status === "done";
-  const showAiResult = req.status === "done" || req.status === "rejected";
-
   useEffect(() => {
-    if (expanded && showAiResult && aiResult === null && !aiResultLoading) {
+    if (expanded && aiResult === null && !aiResultLoading) {
       setAiResultLoading(true);
       fetch(`/api/tasks/${req.id}/result`)
         .then((r) => r.json())
@@ -66,7 +64,7 @@ function RequestCard({
         .catch(() => setAiResult(""))
         .finally(() => setAiResultLoading(false));
     }
-  }, [expanded, showAiResult, aiResult, aiResultLoading, req.id]);
+  }, [expanded, aiResult, aiResultLoading, req.id]);
 
   const handleSave = async () => {
     await onUpdate(req.id, { title: editTitle, content: editContent, priority: editPriority });
@@ -133,8 +131,7 @@ function RequestCard({
 
       {expanded && (
         <div className="mt-2 pt-2 border-t border-border">
-          {showAiResult && (
-            <div className="flex items-center gap-1 mb-2 border-b border-border">
+          <div className="flex items-center gap-1 mb-2 border-b border-border">
               <button
                 type="button"
                 onClick={() => setCardTab("content")}
@@ -160,11 +157,10 @@ function RequestCard({
                 <Bot className="h-3 w-3" />
                 AI Result
               </button>
-            </div>
-          )}
+          </div>
 
           {cardTab === "content" && (
-            <div style={{ minHeight: showAiResult ? 150 : undefined }}>
+            <div style={{ minHeight: 150 }}>
               {editing ? (
                 <div className="space-y-2">
                   <input
@@ -265,261 +261,307 @@ const TAB_LABEL: Record<string, string> = {
   ...STATUS_LABEL,
 };
 
-/* ── Stack View (Queue Pipeline) ─────────────────────────── */
+/* ── Kanban Board (Stack View) ─────────────────────────── */
 
-/* ── Dependency Diagram ── */
+type ArrowDef = {
+  fromId: string;
+  toId: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
 
-function DependencyDiagram({ tasks }: { tasks: WaterfallTask[] }) {
-  // 활성 태스크만 (backlog + in_progress + in_review)
-  const activeTasks = tasks.filter((t) => t.status !== "done");
-  if (activeTasks.length === 0) return null;
-
-  // 의존 관계 맵
-  const depMap = new Map<string, string[]>();
-  const allIds = new Set(activeTasks.map((t) => t.id));
-  for (const t of activeTasks) {
-    const deps = t.depends_on.filter((d) => allIds.has(d));
-    depMap.set(t.id, deps);
-  }
-
-  // 배치 분류: 의존성 없는 것 = 독립(병렬 가능), 있는 것 = 의존
-  const independent = activeTasks.filter((t) => (depMap.get(t.id) || []).length === 0);
-  const dependent = activeTasks.filter((t) => (depMap.get(t.id) || []).length > 0);
-
-  const statusColor = (s: string) =>
-    s === "in_progress" ? "border-blue-500 bg-blue-500/10" :
-    s === "in_review" ? "border-orange-500 bg-orange-500/10" :
-    "border-zinc-500 bg-zinc-500/10";
-
-  const statusDot = (s: string) =>
-    s === "in_progress" ? "bg-blue-500" :
-    s === "in_review" ? "bg-orange-500" :
-    "bg-zinc-400";
-
+function KanbanCard({
+  req,
+  isDone,
+  isRejected,
+  onClick,
+  cardRef,
+}: {
+  req: RequestItem;
+  isDone?: boolean;
+  isRejected?: boolean;
+  onClick: () => void;
+  cardRef?: (el: HTMLDivElement | null) => void;
+}) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 mb-4">
-      <div className="flex items-center gap-2 mb-3">
-        <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Dependency Graph
+    <div
+      ref={cardRef}
+      data-card-id={req.id}
+      onClick={onClick}
+      className={cn(
+        "flex flex-col gap-1.5 p-3 rounded-lg border cursor-pointer transition-all min-h-[64px]",
+        "hover:shadow-md hover:border-primary/40",
+        isDone && !isRejected && "opacity-55 border-border bg-background",
+        isRejected && "opacity-55 border-red-500/30 bg-red-500/5",
+        !isDone && !isRejected && "border-border bg-background hover:bg-muted",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        {req.status === "in_progress" ? (
+          <span className="w-2.5 h-2.5 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" />
+        ) : isRejected ? (
+          <span className="w-2.5 h-2.5 rounded-full shrink-0 bg-red-500" />
+        ) : (
+          <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", STATUS_DOT[req.status])} />
+        )}
+        <span className="font-mono text-[11px] text-muted-foreground shrink-0">
+          {displayTaskId(req.id)}
+        </span>
+        <span className={cn(
+          "text-[10px] px-1.5 py-0.5 rounded border font-medium shrink-0 ml-auto",
+          PRIORITY_COLORS[req.priority],
+        )}>
+          {req.priority}
         </span>
       </div>
-
-      {/* 독립 태스크 (병렬 가능) */}
-      {independent.length > 0 && (
-        <div className="mb-3">
-          <div className="text-[10px] text-muted-foreground mb-1.5">
-            ⚡ 병렬 실행 가능 ({independent.length})
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {independent.map((t) => (
-              <div
-                key={t.id}
-                className={cn("flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs", statusColor(t.status))}
-              >
-                {t.status === "in_progress" ? (
-                  <span className="w-2 h-2 border border-blue-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                ) : (
-                  <span className={cn("w-2 h-2 rounded-full shrink-0", statusDot(t.status))} />
-                )}
-                <span className="font-mono text-[10px] text-muted-foreground">{t.id}</span>
-                <span className="truncate max-w-[120px]">{t.title}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 의존 태스크 (순차) */}
-      {dependent.length > 0 && (
-        <div>
-          <div className="text-[10px] text-muted-foreground mb-1.5">
-            🔗 의존 관계 ({dependent.length})
-          </div>
-          <div className="space-y-2">
-            {dependent.map((t) => {
-              const deps = depMap.get(t.id) || [];
-              return (
-                <div key={t.id} className="flex items-center gap-2">
-                  {/* 의존 대상 */}
-                  <div className="flex items-center gap-1">
-                    {deps.map((depId) => {
-                      const depTask = tasks.find((x) => x.id === depId);
-                      return (
-                        <span
-                          key={depId}
-                          className={cn(
-                            "rounded-md border px-1.5 py-0.5 text-[10px] font-mono",
-                            depTask?.status === "done" ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-zinc-500 bg-zinc-500/10 text-muted-foreground",
-                          )}
-                        >
-                          {depTask?.status === "done" ? "✓" : "○"} {depId}
-                        </span>
-                      );
-                    })}
-                  </div>
-
-                  {/* 화살표 */}
-                  <span className="text-muted-foreground/40">→</span>
-
-                  {/* 현재 태스크 */}
-                  <div
-                    className={cn("flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs", statusColor(t.status))}
-                  >
-                    {t.status === "in_progress" ? (
-                      <span className="w-2 h-2 border border-blue-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                    ) : (
-                      <span className={cn("w-2 h-2 rounded-full shrink-0", statusDot(t.status))} />
-                    )}
-                    <span className="font-mono text-[10px] text-muted-foreground">{t.id}</span>
-                    <span className="truncate max-w-[120px]">{t.title}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <span className="text-sm leading-snug line-clamp-2">{req.title}</span>
     </div>
   );
 }
 
-function StackView({
+function KanbanBoard({
   requests,
   tasks,
-  onUpdate,
-  onDelete,
   onClickItem,
 }: {
   requests: RequestItem[];
   tasks: WaterfallTask[];
-  onUpdate: (id: string, updates: Partial<Pick<RequestItem, "status" | "title" | "content" | "priority">>) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
   onClickItem: (req: RequestItem) => void;
 }) {
-  const active = requests.filter((r) => r.status === "in_progress");
-  const reviewing = requests.filter((r) => r.status === "reviewing");
-  const queue = requests.filter((r) => r.status === "pending");
+  const boardRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [arrows, setArrows] = useState<ArrowDef[]>([]);
+  const [hoveredArrow, setHoveredArrow] = useState<string | null>(null);
 
-  const priorityWeight = { high: 0, medium: 1, low: 2 };
-  const sortedQueue = [...queue].sort(
-    (a, b) => (priorityWeight[a.priority] ?? 1) - (priorityWeight[b.priority] ?? 1),
-  );
+  // Column data
+  const doneItems = requests.filter((r) => r.status === "done" || r.status === "rejected");
+  const currentItems = requests.filter((r) => r.status === "in_progress" || r.status === "reviewing");
+  const pendingItems = requests.filter((r) => r.status === "pending");
 
-  const total = active.length + reviewing.length + sortedQueue.length;
+  // Build dependency map: REQ-XXX depends on REQ-YYY
+  // WaterfallTask uses TASK-XXX ids, requests use REQ-XXX ids
+  const taskToReq = (taskId: string) => taskId.replace(/^TASK-/, "REQ-");
+  const reqToTask = (reqId: string) => reqId.replace(/^REQ-/, "TASK-");
 
-  if (total === 0) {
+  // Build deps: for each request, find its WaterfallTask and get depends_on
+  const depEdges: { from: string; to: string }[] = [];
+  const reqIds = new Set(requests.map((r) => r.id));
+  for (const req of requests) {
+    const wt = tasks.find((t) => t.id === reqToTask(req.id));
+    if (wt) {
+      for (const dep of wt.depends_on) {
+        const depReqId = taskToReq(dep);
+        if (reqIds.has(depReqId)) {
+          // dep (source) -> req (target that depends on source)
+          depEdges.push({ from: depReqId, to: req.id });
+        }
+      }
+    }
+  }
+
+  const setCardRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
+    if (el) {
+      cardRefs.current.set(id, el);
+    } else {
+      cardRefs.current.delete(id);
+    }
+  }, []);
+
+  // Calculate arrow positions
+  const recalcArrows = useCallback(() => {
+    if (!boardRef.current || depEdges.length === 0) {
+      setArrows([]);
+      return;
+    }
+    const boardRect = boardRef.current.getBoundingClientRect();
+    const newArrows: ArrowDef[] = [];
+
+    for (const edge of depEdges) {
+      const fromEl = cardRefs.current.get(edge.from);
+      const toEl = cardRefs.current.get(edge.to);
+      if (!fromEl || !toEl) continue;
+
+      const fromRect = fromEl.getBoundingClientRect();
+      const toRect = toEl.getBoundingClientRect();
+
+      newArrows.push({
+        fromId: edge.from,
+        toId: edge.to,
+        x1: fromRect.right - boardRect.left,
+        y1: fromRect.top + fromRect.height / 2 - boardRect.top,
+        x2: toRect.left - boardRect.left,
+        y2: toRect.top + toRect.height / 2 - boardRect.top,
+      });
+    }
+    setArrows(newArrows);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requests, tasks]);
+
+  useEffect(() => {
+    // Recalculate after render
+    const timer = setTimeout(recalcArrows, 100);
+    return () => clearTimeout(timer);
+  }, [recalcArrows]);
+
+  useEffect(() => {
+    if (!boardRef.current) return;
+    const observer = new ResizeObserver(() => recalcArrows());
+    observer.observe(boardRef.current);
+    return () => observer.disconnect();
+  }, [recalcArrows]);
+
+  const totalCount = doneItems.length + currentItems.length + pendingItems.length;
+
+  if (totalCount === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <Layers className="h-8 w-8 mx-auto mb-3 opacity-40" />
-        <p className="text-sm">No active or queued tasks.</p>
-        <p className="text-xs mt-1">Create a new task or change status to Pending to see it here.</p>
+        <p className="text-sm">No tasks yet.</p>
+        <p className="text-xs mt-1">Create a new task to see the kanban board.</p>
       </div>
     );
   }
 
+  const columns = [
+    {
+      key: "done",
+      label: "DONE",
+      count: doneItems.length,
+      items: doneItems,
+      dotClass: "bg-emerald-500",
+      headerBg: "bg-emerald-600/80",
+      spinner: false,
+    },
+    {
+      key: "current",
+      label: "CURRENT",
+      count: currentItems.length,
+      items: currentItems,
+      dotClass: "bg-blue-500",
+      headerBg: "bg-blue-600/80",
+      spinner: true,
+    },
+    {
+      key: "pending",
+      label: "PENDING",
+      count: pendingItems.length,
+      items: pendingItems,
+      dotClass: "bg-yellow-500",
+      headerBg: "bg-yellow-600/80",
+      spinner: false,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* ── Dependency Diagram ── */}
-      <DependencyDiagram tasks={tasks} />
+    <div ref={boardRef} className="relative w-full">
+      {/* SVG arrow overlay */}
+      {arrows.length > 0 && (
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{ zIndex: 10 }}
+        >
+          <defs>
+            <marker
+              id="kanban-arrowhead"
+              markerWidth="8"
+              markerHeight="6"
+              refX="7"
+              refY="3"
+              orient="auto"
+            >
+              <polygon points="0 0, 8 3, 0 6" fill="currentColor" className="text-muted-foreground" />
+            </marker>
+            <marker
+              id="kanban-arrowhead-hover"
+              markerWidth="8"
+              markerHeight="6"
+              refX="7"
+              refY="3"
+              orient="auto"
+            >
+              <polygon points="0 0, 8 3, 0 6" fill="currentColor" className="text-primary" />
+            </marker>
+          </defs>
+          {arrows.map((a) => {
+            const key = `${a.fromId}-${a.toId}`;
+            const isHovered = hoveredArrow === key;
+            const dx = a.x2 - a.x1;
+            const cpOffset = Math.max(Math.abs(dx) * 0.4, 30);
+            const path = `M ${a.x1} ${a.y1} C ${a.x1 + cpOffset} ${a.y1}, ${a.x2 - cpOffset} ${a.y2}, ${a.x2} ${a.y2}`;
+            return (
+              <g key={key}>
+                {/* Invisible wide hit area for hover */}
+                <path
+                  d={path}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={16}
+                  style={{ pointerEvents: "stroke", cursor: "pointer" }}
+                  onMouseEnter={() => setHoveredArrow(key)}
+                  onMouseLeave={() => setHoveredArrow(null)}
+                />
+                <path
+                  d={path}
+                  fill="none"
+                  stroke={isHovered ? "var(--primary)" : "var(--muted-foreground)"}
+                  strokeWidth={isHovered ? 2 : 1}
+                  strokeDasharray={isHovered ? "none" : "4 3"}
+                  opacity={isHovered ? 0.9 : 0.35}
+                  markerEnd={isHovered ? "url(#kanban-arrowhead-hover)" : "url(#kanban-arrowhead)"}
+                  style={{ transition: "all 0.15s ease" }}
+                />
+              </g>
+            );
+          })}
+        </svg>
+      )}
 
-      {/* ── Processing Now ── */}
-      {active.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15">
-              <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
+      {/* 3-column grid */}
+      <div className="grid grid-cols-3 gap-4" style={{ minHeight: 200 }}>
+        {columns.map((col) => (
+          <div
+            key={col.key}
+            className="flex flex-col rounded-lg border border-border bg-card overflow-hidden"
+            style={{ minHeight: 200 }}
+          >
+            {/* Column header */}
+            <div className={cn("flex items-center gap-2 px-3 py-2", col.headerBg)}>
+              {col.spinner && col.count > 0 ? (
+                <Loader2 className="h-3 w-3 text-white animate-spin shrink-0" />
+              ) : (
+                <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", col.key === "done" ? "bg-white/70" : col.key === "pending" ? "bg-white/70" : "bg-white/70")} />
+              )}
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-white">
+                {col.label}
+              </span>
+              <span className="ml-auto text-[10px] font-medium text-white/70 bg-white/20 rounded-full px-2 py-0.5">
+                {col.count}
+              </span>
             </div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-blue-400">
-              Processing Now
-            </span>
-            <span className="text-[10px] text-muted-foreground">({active.length})</span>
-          </div>
-          <div className="space-y-1 pl-2 border-l-2 border-blue-500/40">
-            {active.map((req) => (
-              <RequestCard
-                key={req.id}
-                req={req}
-                onUpdate={onUpdate}
-                onDelete={onDelete}
-                onClick={() => onClickItem(req)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* ── Connector ── */}
-      {active.length > 0 && (reviewing.length > 0 || sortedQueue.length > 0) && (
-        <div className="flex justify-center">
-          <ArrowDown className="h-4 w-4 text-muted-foreground/40" />
-        </div>
-      )}
-
-      {/* ── In Review ── */}
-      {reviewing.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/15">
-              <span className="w-2 h-2 rounded-full bg-orange-500" />
-            </div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-orange-400">
-              In Review
-            </span>
-            <span className="text-[10px] text-muted-foreground">({reviewing.length})</span>
-          </div>
-          <div className="space-y-1 pl-2 border-l-2 border-orange-500/40">
-            {reviewing.map((req) => (
-              <RequestCard
-                key={req.id}
-                req={req}
-                onUpdate={onUpdate}
-                onDelete={onDelete}
-                onClick={() => onClickItem(req)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Connector ── */}
-      {(active.length > 0 || reviewing.length > 0) && sortedQueue.length > 0 && (
-        <div className="flex justify-center">
-          <ArrowDown className="h-4 w-4 text-muted-foreground/40" />
-        </div>
-      )}
-
-      {/* ── Queue ── */}
-      {sortedQueue.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/15">
-              <Clock className="h-3 w-3 text-yellow-500" />
-            </div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-yellow-400">
-              Queue
-            </span>
-            <span className="text-[10px] text-muted-foreground">({sortedQueue.length})</span>
-          </div>
-          <div className="space-y-1 pl-2 border-l-2 border-yellow-500/30">
-            {sortedQueue.map((req, i) => (
-              <div key={req.id} className="flex items-start gap-2">
-                <span className="text-[10px] text-muted-foreground/60 font-mono pt-2.5 w-4 text-right shrink-0">
-                  {i + 1}
-                </span>
-                <div className="flex-1">
-                  <RequestCard
-                    req={req}
-                    onUpdate={onUpdate}
-                    onDelete={onDelete}
-                    onClick={() => onClickItem(req)}
-                  />
+            {/* Column body */}
+            <div className="flex flex-col gap-2 p-2 flex-1 overflow-y-auto">
+              {col.items.length === 0 && (
+                <div className="flex-1 flex items-center justify-center text-[11px] text-muted-foreground/50 py-6">
+                  No tasks
                 </div>
-              </div>
-            ))}
+              )}
+              {col.items.map((req) => (
+                <KanbanCard
+                  key={req.id}
+                  req={req}
+                  isDone={req.status === "done" || req.status === "rejected"}
+                  isRejected={req.status === "rejected"}
+                  onClick={() => onClickItem(req)}
+                  cardRef={setCardRef(req.id)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
@@ -612,11 +654,9 @@ function TasksPageInner() {
       </div>
 
       {activeTab === TAB_STACK && (
-        <StackView
+        <KanbanBoard
           requests={requests}
           tasks={allWaterfallTasks}
-          onUpdate={updateRequest}
-          onDelete={deleteRequest}
           onClickItem={(req) => router.push(`/tasks/${displayTaskId(req.id)}`)}
         />
       )}
