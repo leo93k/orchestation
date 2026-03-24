@@ -1,7 +1,7 @@
 ---
 id: TASK-094
 title: Task 삭제 원자성 확보 (sprint 수정 선행 후 task 파일 삭제)
-status: in_progress
+status: done
 priority: high
 sprint:
 depends_on: [TASK-093]
