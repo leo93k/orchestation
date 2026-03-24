@@ -1,7 +1,7 @@
 ---
 id: TASK-057
 title: ChatBot stale history 버그 수정
-status: in_progress
+status: done
 priority: high
 sprint:
 depends_on: []
