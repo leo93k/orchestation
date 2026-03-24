@@ -1,13 +1,13 @@
 ---
 id: TASK-110
 title: 태스크 복잡도 기반 모델 선택 로직 구현
-status: failed
+status: in_progress
 branch: task/task-110
 worktree: ../repo-wt-task-110
 priority: medium
 sort_order: 6
 created: 2026-03-24
-updated: 2026-03-24
+updated: 2026-03-24 09:22:24
 ---
 orchestrate.sh에서 태스크의 복잡도(예: 태스크 타입, 파일 수정 범위, 키워드)를 판단하여 단순 태스크는 claude-haiku-4-5, 복잡한 태스크는 claude-sonnet-4-6을 사용하도록 모델 선택 로직을 추가한다. 태스크 문서 내 complexity 필드 또는 태스크 제목/설명의 휴리스틱으로 분류한다.
 
