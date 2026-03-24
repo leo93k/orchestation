@@ -1,7 +1,7 @@
 ---
 id: TASK-109
 title: review 실패 시 retry 횟수 상한 적용
-status: in_progress
+status: done
 priority: high
 sort_order: 1
 created: 2026-03-24
