@@ -29,7 +29,6 @@ export function useRequests() {
     abortControllerRef.current = controller;
 
     try {
-      setIsLoading(true);
       const res = await fetch("/api/requests", { signal: controller.signal });
       if (!res.ok) throw new Error("요청 데이터를 불러오는데 실패했습니다.");
       const data: RequestItem[] = await res.json();
