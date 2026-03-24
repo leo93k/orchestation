@@ -270,33 +270,8 @@ process_done_task() {
 echo "🚀 Pipeline 시작"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# ── 기존 in_progress 태스크 복원 (이전 실행에서 남은 워커 추적) ──
-RUNNING=()
+RUNNING=()   # 현재 실행 중인 태스크 ID 목록
 FAILED_COUNT=0
-
-recover_in_progress() {
-  local dir="$1"
-  [ -d "$dir" ] || return 0
-  find "$dir" -maxdepth 1 \( -name "TASK-*.md" -o -name "REQ-*.md" \) 2>/dev/null | while read -r f; do
-    local st
-    st=$(get_field "$f" "status")
-    if [ "$st" = "in_progress" ]; then
-      local tid
-      tid=$(get_field "$f" "id")
-      [ -n "$tid" ] && echo "$tid"
-    fi
-  done
-}
-
-while IFS= read -r tid; do
-  [ -z "$tid" ] && continue
-  RUNNING+=("$tid")
-  echo "  ♻️  기존 in_progress 태스크 복원: ${tid}"
-done <<< "$(recover_in_progress "$TASK_DIR"; recover_in_progress "$REQ_DIR")"
-
-if [ "${#RUNNING[@]}" -gt 0 ]; then
-  echo "  📊 복원된 슬롯: ${#RUNNING[@]}/${MAX_PARALLEL}"
-fi
 
 while true; do
   # ── 실행 중인 태스크 완료 여부 체크 (슬롯 투입 전에 먼저 갱신) ──
