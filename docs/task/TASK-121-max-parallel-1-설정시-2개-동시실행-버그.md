@@ -1,7 +1,7 @@
 ---
 id: TASK-121
 title: MAX_PARALLEL=1 설정 시 2개 태스크 동시 실행되는 버그 수정
-status: in_progress
+status: done
 branch: task/task-121
 worktree: ../repo-wt-task-121
 priority: high
