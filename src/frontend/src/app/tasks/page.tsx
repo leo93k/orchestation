@@ -8,6 +8,7 @@ import { Plus, ChevronDown, ChevronRight, ChevronUp, Pencil, Trash2, Square, Bot
 import { useTasks } from "@/hooks/useTasks";
 import type { WaterfallTask } from "@/types/waterfall";
 import AutoImproveControl from "@/components/AutoImproveControl";
+import TimelineView from "@/components/TimelineView";
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-red-500/15 text-red-500 border-red-500/30",
@@ -122,9 +123,10 @@ function RequestCard({ req, onUpdate, onDelete, onClick, onReorder, isFirst, isL
 }
 
 const TAB_STACK = "stack";
+const TAB_TIMELINE = "timeline";
 const TAB_ALL = "all";
-const TABS = [TAB_STACK, TAB_ALL, ...STATUS_ORDER] as const;
-const TAB_LABEL: Record<string, string> = { stack: "Graph", all: "All", ...STATUS_LABEL };
+const TABS = [TAB_STACK, TAB_TIMELINE, TAB_ALL, ...STATUS_ORDER] as const;
+const TAB_LABEL: Record<string, string> = { stack: "Graph", timeline: "Timeline", all: "All", ...STATUS_LABEL };
 
 /* ── DAG Canvas ───────────────────────────────────────── */
 
@@ -404,7 +406,7 @@ function TasksPageInner() {
       const q = searchQuery.toLowerCase();
       result = result.filter((r) => r.id.toLowerCase().includes(q) || r.title.toLowerCase().includes(q) || r.content.toLowerCase().includes(q));
     }
-    if (priorityFilter !== "all" && activeTab !== TAB_STACK) {
+    if (priorityFilter !== "all" && activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE) {
       result = result.filter((r) => r.priority === priorityFilter);
     }
     return result;
@@ -425,7 +427,7 @@ function TasksPageInner() {
         <button type="button" onClick={() => router.push("/tasks/new")} className="filter-pill active flex items-center gap-1"><Plus className="h-3 w-3" />New Task</button>
       </div>
       <div className="flex items-center gap-1 border-b border-border">
-        {TABS.map((tab) => { const count = tab === TAB_ALL || tab === TAB_STACK ? requests.length : grouped[tab]?.length ?? 0; return (<span key={tab} className="flex items-center"><button type="button" onClick={() => setActiveTab(tab)} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px", activeTab === tab ? (tab === TAB_STACK ? "border-violet-400 text-violet-400" : "border-primary text-primary") : "border-transparent text-muted-foreground hover:text-foreground")}>{tab === TAB_STACK && <Layers className="h-3 w-3 shrink-0" />}{tab !== TAB_ALL && tab !== TAB_STACK && <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[tab])} />}{TAB_LABEL[tab]}<span className="text-[10px] text-muted-foreground">({count})</span></button>{tab === TAB_STACK && <span className="h-4 w-px bg-border mx-1" />}</span>); })}
+        {TABS.map((tab) => { const count = tab === TAB_ALL || tab === TAB_STACK || tab === TAB_TIMELINE ? requests.length : grouped[tab]?.length ?? 0; return (<span key={tab} className="flex items-center"><button type="button" onClick={() => setActiveTab(tab)} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px", activeTab === tab ? (tab === TAB_STACK || tab === TAB_TIMELINE ? "border-violet-400 text-violet-400" : "border-primary text-primary") : "border-transparent text-muted-foreground hover:text-foreground")}>{tab === TAB_STACK && <Layers className="h-3 w-3 shrink-0" />}{tab !== TAB_ALL && tab !== TAB_STACK && tab !== TAB_TIMELINE && <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[tab])} />}{TAB_LABEL[tab]}<span className="text-[10px] text-muted-foreground">({count})</span></button>{tab === TAB_TIMELINE && <span className="h-4 w-px bg-border mx-1" />}</span>); })}
       </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -437,7 +439,14 @@ function TasksPageInner() {
           className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-3 py-2 text-xs outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50"
         />
       </div>
-      {activeTab !== TAB_STACK && (
+      {activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE && (
+        <div className="flex items-center gap-1">
+          {(["all", "high", "medium", "low"] as const).map((p) => (
+            <button key={p} type="button" onClick={() => setPriorityFilter(p)} className={cn("filter-pill text-[11px]", priorityFilter === p && (p === "all" ? "active" : PRIORITY_COLORS[p]))}>{p === "all" ? "All" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
+          ))}
+        </div>
+      )}
+      {activeTab === TAB_TIMELINE && (
         <div className="flex items-center gap-1">
           {(["all", "high", "medium", "low"] as const).map((p) => (
             <button key={p} type="button" onClick={() => setPriorityFilter(p)} className={cn("filter-pill text-[11px]", priorityFilter === p && (p === "all" ? "active" : PRIORITY_COLORS[p]))}>{p === "all" ? "All" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
@@ -445,8 +454,9 @@ function TasksPageInner() {
         </div>
       )}
       {activeTab === TAB_STACK && <DAGCanvas requests={filtered} tasks={allWaterfallTasks} onClickItem={(req) => router.push(`/tasks/${req.id}`)} />}
-      {activeTab !== TAB_STACK && filteredStatuses.map((status) => { const items = grouped[status]; if (!items || items.length === 0) return null; return (<div key={status}>{activeTab === TAB_ALL && (<div className="flex items-center gap-2 mb-2">{status === "in_progress" ? <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" /> : <span className={cn("w-2 h-2 rounded-full", STATUS_DOT[status])} />}<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[status]}</span><span className="text-[10px] text-muted-foreground">({items.length})</span></div>)}<div className="space-y-1">{items.map((req, i) => <RequestCard key={req.id} req={req} onUpdate={updateRequest} onDelete={deleteRequest} onClick={() => router.push(`/tasks/${req.id}`)} onReorder={reorderRequest} isFirst={i === 0} isLast={i === items.length - 1} />)}</div></div>); })}
-      {activeTab !== TAB_STACK && requests.length === 0 && <div className="text-center py-12 text-muted-foreground"><p className="text-sm">No tasks yet.</p></div>}
+      {activeTab === TAB_TIMELINE && <TimelineView requests={filtered} tasks={allWaterfallTasks} onClickItem={(req) => router.push(`/tasks/${req.id}`)} priorityFilter={priorityFilter} />}
+      {activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE && filteredStatuses.map((status) => { const items = grouped[status]; if (!items || items.length === 0) return null; return (<div key={status}>{activeTab === TAB_ALL && (<div className="flex items-center gap-2 mb-2">{status === "in_progress" ? <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" /> : <span className={cn("w-2 h-2 rounded-full", STATUS_DOT[status])} />}<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{STATUS_LABEL[status]}</span><span className="text-[10px] text-muted-foreground">({items.length})</span></div>)}<div className="space-y-1">{items.map((req, i) => <RequestCard key={req.id} req={req} onUpdate={updateRequest} onDelete={deleteRequest} onClick={() => router.push(`/tasks/${req.id}`)} onReorder={reorderRequest} isFirst={i === 0} isLast={i === items.length - 1} />)}</div></div>); })}
+      {activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE && requests.length === 0 && <div className="text-center py-12 text-muted-foreground"><p className="text-sm">No tasks yet.</p></div>}
     </div>
   );
 }
