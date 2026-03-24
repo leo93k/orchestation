@@ -1,7 +1,7 @@
 ---
 id: TASK-077
 title: Sidebar reorder 에러 핸들링 추가
-status: pending
+status: in_progress
 priority: medium
 sprint:
 depends_on: []
