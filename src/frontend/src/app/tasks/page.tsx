@@ -129,7 +129,7 @@ const TAB_LABEL: Record<string, string> = { stack: "Graph", all: "All", ...STATU
 /* ── DAG Canvas ───────────────────────────────────────── */
 
 const NODE_W = 220;
-const NODE_H = 72;
+const NODE_H = 84;
 const ROW_GAP = 24;
 const CANVAS_PAD = 40;
 const SECTION_GAP = 40; // gap between the 3 sections
