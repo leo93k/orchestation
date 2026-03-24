@@ -1,11 +1,14 @@
 ---
 id: TASK-111
 title: 상태 변경 시 의존성 검증 추가
-status: in_progress
+status: pending
 priority: high
 sprint:
 depends_on: []
+branch: task/TASK-111-status-change-dependency-validation
+worktree: ../repo-wt-TASK-111
 role: general
+reviewer_role: reviewer-general
 scope:
   - src/frontend/src/app/api/requests/[id]/route.ts
   - src/frontend/src/app/api/tasks/[id]/route.ts
