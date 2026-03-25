@@ -15,6 +15,23 @@ MAX_PARALLEL="${MAX_PARALLEL:-3}"
 SIGNAL_DIR="/tmp/orchestrate-$$"
 mkdir -p "$SIGNAL_DIR"
 
+# ── WORKER_MODE 결정 (env > config.json > 기본값 background) ──────────
+_config_worker_mode() {
+  local cfg="$REPO_ROOT/config.json"
+  if [ -f "$cfg" ] && command -v python3 &>/dev/null; then
+    python3 -c "import json,sys; d=json.load(open('$cfg')); print(d.get('workerMode','background'))" 2>/dev/null || echo "background"
+  else
+    echo "background"
+  fi
+}
+WORKER_MODE="${WORKER_MODE:-$(_config_worker_mode)}"
+# 유효성 검증
+case "$WORKER_MODE" in
+  background|iterm) ;;
+  *) echo "⚠️  알 수 없는 WORKER_MODE='$WORKER_MODE' → background로 대체"; WORKER_MODE="background" ;;
+esac
+echo "🔧 Worker Mode: $WORKER_MODE"
+
 # ── 중복 실행 방지 (lock) ─────────────────────────────
 LOCK_DIR="/tmp/orchestrate.lock"
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -26,6 +43,22 @@ cleanup_lock() {
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "🛑 Pipeline 종료"
+  # background 모드: 실행 중인 워커 프로세스 종료
+  if [ "$WORKER_MODE" = "background" ]; then
+    local pid_dir="/tmp/worker-pids"
+    if [ -d "$pid_dir" ]; then
+      for pid_file in "$pid_dir"/worker-*.pid; do
+        [ -f "$pid_file" ] || continue
+        local pid
+        pid=$(cat "$pid_file" 2>/dev/null) || continue
+        if kill -0 "$pid" 2>/dev/null; then
+          echo "  🔪 워커 프로세스 종료: PID $pid ($(basename "$pid_file" .pid))"
+          kill "$pid" 2>/dev/null || true
+        fi
+        rm -f "$pid_file"
+      done
+    fi
+  fi
   rm -rf "$SIGNAL_DIR" "$LOCK_DIR"
 }
 trap cleanup_lock EXIT
@@ -37,9 +70,11 @@ if [ ! -d "$TASK_DIR" ]; then
   exit 1
 fi
 
-if ! osascript -e 'tell application "System Events" to (name of processes) contains "iTerm2"' | grep -q true; then
-  echo "❌ iTerm2가 실행 중이지 않습니다." >&2
-  exit 1
+if [ "$WORKER_MODE" = "iterm" ]; then
+  if ! osascript -e 'tell application "System Events" to (name of processes) contains "iTerm2"' | grep -q true; then
+    echo "❌ iTerm2가 실행 중이지 않습니다. (iterm 모드)" >&2
+    exit 1
+  fi
 fi
 
 # ── frontmatter 파서 ──────────────────────────────────
@@ -235,6 +270,20 @@ stop_dependents() {
 
 # ── 태스크 시작 헬퍼 ──────────────────────────────────
 
+_stop_worker() {
+  local task_id="$1"
+  local pid_file="/tmp/worker-pids/worker-${task_id}.pid"
+  if [ -f "$pid_file" ]; then
+    local pid
+    pid=$(cat "$pid_file" 2>/dev/null) || return
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "  🔪 ${task_id}: 워커 종료 (PID $pid)"
+      kill "$pid" 2>/dev/null || true
+    fi
+    rm -f "$pid_file"
+  fi
+}
+
 start_task() {
   local task_id="$1"
   echo "  🔧 ${task_id}: 시작..."
@@ -259,12 +308,22 @@ start_task() {
     git -C "$REPO_ROOT" commit --only "$tf" -m "chore(${task_id}): status → in_progress"
   fi
 
-  # iTerm 패널에서 실행
   mkdir -p "$REPO_ROOT/output/logs"
   local log_file="$REPO_ROOT/output/logs/${task_id}.log"
-  local cmd="bash '${REPO_ROOT}/scripts/run-worker.sh' '${task_id}' '${SIGNAL_DIR}' '${MAX_REVIEW_RETRY}' 2>&1 | tee '${log_file}'; bash '${REPO_ROOT}/scripts/lib/close-iterm-session.sh'"
 
-  osascript <<EOF
+  if [ "$WORKER_MODE" = "background" ]; then
+    # background 모드: nohup으로 백그라운드 실행, PID 파일 저장
+    local pid_dir="/tmp/worker-pids"
+    mkdir -p "$pid_dir"
+    nohup bash "${REPO_ROOT}/scripts/run-worker.sh" "${task_id}" "${SIGNAL_DIR}" "${MAX_REVIEW_RETRY}" \
+      > "$log_file" 2>&1 &
+    local worker_pid=$!
+    echo "$worker_pid" > "${pid_dir}/worker-${task_id}.pid"
+    echo "  🚀 ${task_id}: background 실행 시작 (PID=${worker_pid}, log=${log_file})"
+  else
+    # iterm 모드: 기존 iTerm 패널 실행
+    local cmd="bash '${REPO_ROOT}/scripts/run-worker.sh' '${task_id}' '${SIGNAL_DIR}' '${MAX_REVIEW_RETRY}' 2>&1 | tee '${log_file}'; bash '${REPO_ROOT}/scripts/lib/close-iterm-session.sh'"
+    osascript <<EOF
 tell application "iTerm"
     if (count of windows) = 0 then
         create window with default profile
@@ -277,6 +336,7 @@ tell application "iTerm"
     end tell
 end tell
 EOF
+  fi
 }
 
 # 완료된 태스크 처리 (머지 + 상태 업데이트)
@@ -285,6 +345,8 @@ process_done_task() {
 
   if [ -f "${SIGNAL_DIR}/${task_id}-done" ]; then
     echo "  ✅ ${task_id} 완료"
+    # background 모드: PID 파일 정리
+    rm -f "/tmp/worker-pids/worker-${task_id}.pid"
 
     local local_task_file
     local_task_file=$(find_file "$task_id")
@@ -337,6 +399,8 @@ process_done_task() {
     return 0
   elif [ -f "${SIGNAL_DIR}/${task_id}-failed" ]; then
     echo "  ❌ ${task_id} 실패 (review retry 상한 초과)"
+    # background 모드: PID 파일 정리
+    rm -f "/tmp/worker-pids/worker-${task_id}.pid"
 
     # 태스크를 failed 상태로 마킹 + 마지막 리뷰 피드백 기록
     local failed_task_file

@@ -1,7 +1,7 @@
 ---
 id: TASK-135
 title: Zustand 전역 상태 마이그레이션 — Orchestration, Tasks, Notices
-status: in_progress
+status: done
 branch: task/task-135
 worktree: ../repo-wt-task-135
 priority: high
