@@ -140,10 +140,12 @@ export function BatchEditor({ batches, onSave, onClose }: BatchEditorProps) {
             onChange={(e) => setBatchStatus(e.target.value)}
           >
             <option value="">상태 선택</option>
+            <option value="stopped">Stopped</option>
             <option value="pending">Pending</option>
             <option value="in_progress">In Progress</option>
-            <option value="in_review">In Review</option>
+            <option value="reviewing">Reviewing</option>
             <option value="done">Done</option>
+            <option value="rejected">Rejected</option>
           </Select>
           <Select
             size="inline"
@@ -151,7 +153,6 @@ export function BatchEditor({ batches, onSave, onClose }: BatchEditorProps) {
             onChange={(e) => setBatchPriority(e.target.value)}
           >
             <option value="">우선순위 선택</option>
-            <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>

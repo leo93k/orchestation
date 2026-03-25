@@ -166,6 +166,7 @@ export function GlobalSearch({ requestItems, docTree }: Props) {
   }
 
   const statusColors: Record<string, string> = {
+    stopped: "text-violet-500 bg-violet-500/10",
     in_progress: "text-blue-500 bg-blue-500/10",
     pending: "text-yellow-500 bg-yellow-500/10",
     reviewing: "text-orange-400 bg-orange-400/10",
@@ -174,6 +175,7 @@ export function GlobalSearch({ requestItems, docTree }: Props) {
   };
 
   const statusLabel: Record<string, string> = {
+    stopped: "중지",
     in_progress: "진행중",
     pending: "대기",
     reviewing: "리뷰",

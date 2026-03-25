@@ -460,7 +460,9 @@ export function TaskSidebar({
 
   // Group recent items by status for sidebar display
   const inProgressTasks = recentItems.filter((r) => r.status === "in_progress");
-  const pendingTasks = recentItems.filter((r) => r.status === "pending" || r.status === "reviewing");
+  const stoppedTasks = recentItems.filter((r) => r.status === "stopped");
+  const pendingTasks = recentItems.filter((r) => r.status === "pending");
+  const reviewingTasks = recentItems.filter((r) => r.status === "reviewing");
   const doneTasks = recentItems.filter((r) => r.status === "done");
   const rejectedTasks = recentItems.filter((r) => r.status === "rejected");
 
@@ -626,7 +628,40 @@ export function TaskSidebar({
             );
           })}
 
-          {/* Pending / Reviewing tasks */}
+          {/* Stopped tasks */}
+          {stoppedTasks.map((task) => {
+            const taskDisplayId = displayTaskId(task.id);
+            const isExpanded = expandedTaskId === task.id;
+            return (
+              <div key={task.id}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                  className={cn("tree-item w-full text-left", currentPath === `/tasks/${taskDisplayId}` && "active")}
+                >
+                  {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
+                  <span className="w-2 h-2 rounded-full shrink-0 bg-violet-500" />
+                  <span className="truncate flex-1 text-xs">{taskDisplayId} {task.title}</span>
+                </button>
+                {isExpanded && (
+                  <Link
+                    href={`/tasks/${taskDisplayId}`}
+                    className="block ml-6 mr-1 my-0.5 px-2 py-1.5 rounded text-[11px] text-muted-foreground bg-sidebar-accent/50 hover:bg-sidebar-accent hover:text-foreground no-underline transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className={cn("px-1 py-0 rounded text-[9px] font-medium", STATUS_STYLES[task.status as TaskStatus]?.bg || "bg-muted", "text-white text-[9px]")}>
+                        {task.status}
+                      </span>
+                    </div>
+                    <p className="truncate">{task.title}</p>
+                    <span className="text-[10px] text-muted-foreground/70">Click to open detail →</span>
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Pending tasks */}
           {pendingTasks.map((task) => {
             const taskDisplayId = displayTaskId(task.id);
             const isExpanded = expandedTaskId === task.id;
@@ -648,6 +683,39 @@ export function TaskSidebar({
                   >
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className={cn("px-1 py-0 rounded text-[9px] font-medium", STATUS_STYLES[task.status as TaskStatus]?.bg || "bg-muted", "text-white")}>
+                        {task.status}
+                      </span>
+                    </div>
+                    <p className="truncate">{task.title}</p>
+                    <span className="text-[10px] text-muted-foreground/70">Click to open detail →</span>
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Reviewing tasks */}
+          {reviewingTasks.map((task) => {
+            const taskDisplayId = displayTaskId(task.id);
+            const isExpanded = expandedTaskId === task.id;
+            return (
+              <div key={task.id}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                  className={cn("tree-item w-full text-left", currentPath === `/tasks/${taskDisplayId}` && "active")}
+                >
+                  {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
+                  <span className="w-2 h-2 rounded-full shrink-0 bg-orange-500" />
+                  <span className="truncate flex-1 text-xs">{taskDisplayId} {task.title}</span>
+                </button>
+                {isExpanded && (
+                  <Link
+                    href={`/tasks/${taskDisplayId}`}
+                    className="block ml-6 mr-1 my-0.5 px-2 py-1.5 rounded text-[11px] text-muted-foreground bg-sidebar-accent/50 hover:bg-sidebar-accent hover:text-foreground no-underline transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className={cn("px-1 py-0 rounded text-[9px] font-medium", STATUS_STYLES[task.status as TaskStatus]?.bg || "bg-muted", "text-white text-[9px]")}>
                         {task.status}
                       </span>
                     </div>

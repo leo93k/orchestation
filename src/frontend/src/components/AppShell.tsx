@@ -138,7 +138,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             addToast(`${task.id}: "${task.title}" 완료됨`, "success");
           } else if (task.status === "in_progress" && prevStatus === "pending") {
             addToast(`${task.id}: "${task.title}" 시작됨`, "info");
-          } else if (task.status === "in_review") {
+          } else if (task.status === "in_review" || task.status === "reviewing") {
             addToast(`${task.id}: "${task.title}" 리뷰 중`, "info");
           }
         }

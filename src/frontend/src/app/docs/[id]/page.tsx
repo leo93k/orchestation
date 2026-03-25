@@ -134,6 +134,24 @@ export default function DocsPage({ params }: { params: Promise<{ id: string }> }
           onChange={(e) => setEditTitle(e.target.value)}
           className="text-lg font-semibold mb-4 w-full bg-muted border border-border rounded px-2 py-1 outline-none focus:border-primary"
         />
+      ) : isEditingTitle ? (
+        <div className="mb-4">
+          <input
+            type="text"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && editTitle.trim()) saveTitle(editTitle.trim());
+              if (e.key === "Escape") setIsEditingTitle(false);
+            }}
+            onBlur={() => {
+              if (editTitle.trim() && editTitle.trim() !== title) saveTitle(editTitle.trim());
+              else setIsEditingTitle(false);
+            }}
+            autoFocus
+            className="text-lg font-semibold w-full bg-muted border border-primary rounded px-2 py-1 outline-none"
+          />
+        </div>
       ) : (
         <h1
           className="text-lg font-semibold mb-4 cursor-pointer hover:text-primary transition-colors"
@@ -144,25 +162,6 @@ export default function DocsPage({ params }: { params: Promise<{ id: string }> }
           title="Click to rename"
         >
           {title || "Untitled"}
-          {isEditingTitle && (
-            <span className="block mt-1">
-              <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && editTitle.trim()) saveTitle(editTitle.trim());
-                  if (e.key === "Escape") setIsEditingTitle(false);
-                }}
-                onBlur={() => {
-                  if (editTitle.trim() && editTitle.trim() !== title) saveTitle(editTitle.trim());
-                  else setIsEditingTitle(false);
-                }}
-                autoFocus
-                className="text-lg font-semibold w-full bg-muted border border-primary rounded px-2 py-1 outline-none"
-              />
-            </span>
-          )}
         </h1>
       )}
 
