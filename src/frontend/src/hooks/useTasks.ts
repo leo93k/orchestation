@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { TaskFrontmatter } from "@/lib/parser";
 import type { SprintResponse } from "@/lib/waterfall";
 import { buildWaterfallGroups } from "@/lib/waterfall";
@@ -18,6 +18,9 @@ export function useTasks(): UseTasksResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
+  // Track whether initial load has completed — subsequent refetches run silently
+  // without setting isLoading=true to prevent full skeleton re-render (page flash).
+  const hasLoadedRef = useRef(false);
 
   const refetch = useCallback(() => {
     setFetchKey((k) => k + 1);
@@ -28,7 +31,10 @@ export function useTasks(): UseTasksResult {
 
     async function fetchData() {
       try {
-        setIsLoading(true);
+        // Only show loading state on initial load; background refetches are silent
+        if (!hasLoadedRef.current) {
+          setIsLoading(true);
+        }
         const [tasksRes, sprintsRes] = await Promise.all([
           fetch("/api/tasks"),
           fetch("/api/sprints"),
@@ -56,6 +62,7 @@ export function useTasks(): UseTasksResult {
       } finally {
         if (!cancelled) {
           setIsLoading(false);
+          hasLoadedRef.current = true;
         }
       }
     }
