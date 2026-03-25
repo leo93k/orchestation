@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, use } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Loader2, FileText, Terminal, ClipboardCheck, Play, Square, RotateCcw, CheckCircle2, GitBranch, Check, Copy } from "lucide-react";
@@ -194,6 +194,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     async function checkOrchestration() {
       try {
         const res = await fetch("/api/orchestrate/status");
+        if (!res.ok) return;
         const data = await res.json();
         setIsPipelineRunning(data.status === "running");
       } catch {
@@ -210,6 +211,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     async function checkRunStatus() {
       try {
         const res = await fetch(`/api/tasks/${id}/run`);
+        if (!res.ok) return;
         const data = await res.json();
         if (data.status === "running") {
           setRunStatus("running");
@@ -231,6 +233,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/tasks/${id}/run`);
+        if (!res.ok) return;
         const data = await res.json();
         setRunLogs(data.logs || []);
         if (data.status !== "running") {
@@ -505,7 +508,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
           )}
 
           {/* Cost Info */}
-          {task.costEntries.length > 0 && (
+          {task.costEntries && task.costEntries.length > 0 && (
             <div>
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Cost
@@ -522,10 +525,10 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                 <div className="border-t border-border pt-1 mt-1 flex items-center gap-3 text-xs font-medium">
                   <span className="w-16 shrink-0">Total</span>
                   <span className="font-mono w-16 shrink-0">
-                    ${task.costEntries.reduce((sum, e) => sum + parseFloat(e.cost.replace("$", "")), 0).toFixed(4)}
+                    ${task.costEntries.reduce((sum, e) => sum + parseFloat((e.cost ?? "0").replace("$", "")), 0).toFixed(4)}
                   </span>
                   <span className="text-muted-foreground w-16 shrink-0">
-                    {task.costEntries.reduce((sum, e) => sum + parseFloat(e.duration), 0).toFixed(1)}s
+                    {task.costEntries.reduce((sum, e) => sum + parseFloat(e.duration || "0"), 0).toFixed(1)}s
                   </span>
                 </div>
               </div>
