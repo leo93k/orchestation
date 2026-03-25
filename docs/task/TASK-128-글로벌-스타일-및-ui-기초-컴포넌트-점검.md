@@ -1,7 +1,7 @@
 ---
 id: TASK-128
 title: 글로벌 스타일 및 UI 기초 컴포넌트 점검
-status: in_progress
+status: done
 branch: task/task-128
 worktree: ../repo-wt-task-128
 priority: medium
