@@ -123,7 +123,7 @@ export default function NewTaskPage() {
   };
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-5 max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
@@ -135,28 +135,49 @@ export default function NewTaskPage() {
               router.push("/tasks");
             }
           }}
-          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <h1 className="text-lg font-semibold">
-          {step === "input" ? "New Task" : "AI Analysis Result"}
-        </h1>
+        <div className="flex-1">
+          <h1 className="text-lg font-semibold tracking-tight">
+            {step === "input" ? "New Task" : "AI Analysis Result"}
+          </h1>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {step === "input" ? "AI가 Task를 분해하고 우선순위를 설정합니다" : `${tasks.length}개 Task로 분해됨 — 수정 후 컨펌하세요`}
+          </p>
+        </div>
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className={cn("flex items-center gap-1.5 text-[11px] font-medium", step === "input" ? "text-primary" : "text-muted-foreground")}>
+            <span className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold", step === "input" ? "bg-primary text-primary-foreground" : "bg-emerald-500 text-white")}>
+              {step === "input" ? "1" : <Check className="h-3 w-3" />}
+            </span>
+            입력
+          </div>
+          <div className="h-px w-4 bg-border" />
+          <div className={cn("flex items-center gap-1.5 text-[11px] font-medium", step === "preview" ? "text-primary" : "text-muted-foreground/50")}>
+            <span className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold", step === "preview" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground border border-border")}>
+              2
+            </span>
+            확인
+          </div>
+        </div>
       </div>
 
       {/* Step 1: Input */}
       {step === "input" && (
-        <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+        <div className="rounded-xl border border-border bg-card shadow-sm p-6 space-y-5">
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+            <label className="block text-xs font-semibold text-foreground mb-2">
               What needs to be done?
             </label>
             <input
               type="text"
-              placeholder="Task title..."
+              placeholder="Task 제목을 입력하세요..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-muted border border-border rounded px-3 py-2 text-sm outline-none focus:border-primary"
+              className="w-full bg-background border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/40"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && title.trim()) handleAnalyze();
               }}
@@ -165,25 +186,25 @@ export default function NewTaskPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-              Details (optional)
+            <label className="block text-xs font-semibold text-foreground mb-2">
+              Details <span className="text-muted-foreground font-normal">(선택사항)</span>
             </label>
             <textarea
-              placeholder="Describe the task in detail..."
+              placeholder="Task에 대해 더 자세히 설명해 주세요..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
-              className="w-full bg-muted border border-border rounded px-3 py-2 text-sm outline-none focus:border-primary resize-y"
+              className="w-full bg-background border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-y placeholder:text-muted-foreground/40"
             />
           </div>
 
           {analyzeError && (
-            <div className="text-sm text-red-500 bg-red-500/10 rounded px-3 py-2">
+            <div className="text-sm text-red-500 bg-red-500/10 rounded-lg px-3 py-2.5 border border-red-500/20">
               {analyzeError}
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-between pt-1">
             <button
               type="button"
               onClick={() => router.push("/tasks")}
@@ -196,17 +217,22 @@ export default function NewTaskPage() {
               onClick={handleAnalyze}
               disabled={!title.trim() || analyzing}
               className={cn(
-                "filter-pill text-xs flex items-center gap-1.5",
-                title.trim() && !analyzing ? "active" : "opacity-50 cursor-not-allowed",
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all",
+                title.trim() && !analyzing
+                  ? "bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
               )}
             >
               {analyzing ? (
                 <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Analyzing...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  AI 분석 중...
                 </>
               ) : (
-                "Analyze"
+                <>
+                  AI로 분석하기
+                  <span className="opacity-60">→</span>
+                </>
               )}
             </button>
           </div>
@@ -216,19 +242,14 @@ export default function NewTaskPage() {
       {/* Step 2: AI Preview */}
       {step === "preview" && (
         <div className="space-y-3">
-          {/* 원본 입력 표시 */}
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">원본 입력</div>
-            <div className="text-sm font-medium">{title}</div>
+          {/* Original input display */}
+          <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
+            <div className="section-label mb-1.5">원본 입력</div>
+            <div className="text-sm font-semibold">{title}</div>
             {description && (
-              <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{description}</div>
+              <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed">{description}</div>
             )}
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            AI가 {tasks.length}개 Task로 분해했습니다. 수정 후 컨펌하세요.
-            {tasks.length > 1 && " (위에서 아래 순서로 실행됩니다)"}
-          </p>
 
           {tasks.map((task, idx) => (
             <TaskPreviewCard
@@ -246,19 +267,19 @@ export default function NewTaskPage() {
           <button
             type="button"
             onClick={addTask}
-            className="w-full rounded-lg border border-dashed border-border bg-card/50 p-3 text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors flex items-center justify-center gap-1.5"
+            className="w-full rounded-xl border-2 border-dashed border-border/60 bg-transparent p-4 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/[0.02] transition-all flex items-center justify-center gap-2"
           >
-            <Plus className="h-3 w-3" />
-            Add Task
+            <Plus className="h-3.5 w-3.5" />
+            Task 추가
           </button>
 
           {analyzeError && (
-            <div className="text-sm text-red-500 bg-red-500/10 rounded px-3 py-2">
+            <div className="text-sm text-red-500 bg-red-500/10 rounded-lg px-3 py-2.5 border border-red-500/20">
               {analyzeError}
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="flex items-center justify-between pt-2 border-t border-border/50">
             <button
               type="button"
               onClick={() => router.push("/tasks")}
@@ -266,36 +287,38 @@ export default function NewTaskPage() {
             >
               Cancel
             </button>
-            <button
-              type="button"
-              onClick={() => setStep("input")}
-              className="filter-pill text-xs"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirm}
-              disabled={confirming || tasks.length === 0 || tasks.some((t) => !t.title.trim())}
-              className={cn(
-                "filter-pill text-xs flex items-center gap-1.5",
-                !confirming && tasks.length > 0 && tasks.every((t) => t.title.trim())
-                  ? "active"
-                  : "opacity-50 cursor-not-allowed",
-              )}
-            >
-              {confirming ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Check className="h-3 w-3" />
-                  Confirm ({tasks.length} task{tasks.length !== 1 ? "s" : ""})
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setStep("input")}
+                className="filter-pill text-xs"
+              >
+                ← 다시 입력
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={confirming || tasks.length === 0 || tasks.some((t) => !t.title.trim())}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all",
+                  !confirming && tasks.length > 0 && tasks.every((t) => t.title.trim())
+                    ? "bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
+                    : "bg-muted text-muted-foreground cursor-not-allowed",
+                )}
+              >
+                {confirming ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    생성 중...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-3.5 w-3.5" />
+                    {tasks.length}개 Task 생성
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -321,18 +344,26 @@ function TaskPreviewCard({
   totalTasks: number;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+    <div className={cn(
+      "rounded-xl border bg-card p-4 space-y-3 transition-all",
+      isEditing ? "border-primary/50 shadow-sm ring-1 ring-primary/10" : "border-border hover:border-border/80",
+    )}>
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-mono text-muted-foreground">
-          {totalTasks > 1 ? `Step ${index + 1}/${totalTasks}` : "Task"}
-        </span>
+      <div className="flex items-center gap-2.5">
+        {/* Step badge */}
+        {totalTasks > 1 && (
+          <span className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">
+            {index + 1}
+          </span>
+        )}
         {index > 0 && totalTasks > 1 && (
-          <span className="text-[10px] text-muted-foreground">← Step {index} 완료 후 실행</span>
+          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+            ← Step {index} 이후
+          </span>
         )}
         <span
           className={cn(
-            "text-[10px] px-1.5 py-0.5 rounded border font-medium",
+            "text-[10px] px-1.5 py-0.5 rounded border font-semibold leading-none",
             PRIORITY_COLORS[task.priority],
           )}
         >
@@ -342,8 +373,11 @@ function TaskPreviewCard({
         <button
           type="button"
           onClick={onEdit}
-          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-          title={isEditing ? "Done editing" : "Edit"}
+          className={cn(
+            "p-1.5 rounded-md transition-colors text-xs font-medium",
+            isEditing ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground hover:text-foreground",
+          )}
+          title={isEditing ? "완료" : "편집"}
         >
           {isEditing ? <Check className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
         </button>
@@ -351,8 +385,8 @@ function TaskPreviewCard({
           <button
             type="button"
             onClick={onRemove}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-red-400"
-            title="Remove"
+            className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
+            title="삭제"
           >
             <Trash2 className="h-3 w-3" />
           </button>
@@ -465,20 +499,20 @@ function TaskPreviewCard({
           </div>
         </div>
       ) : (
-        <div>
-          <h3 className="text-sm font-medium">{task.title || "(Untitled)"}</h3>
+        <div className="space-y-2.5">
+          <h3 className="text-sm font-semibold leading-snug">
+            {task.title || <span className="text-muted-foreground italic">(Untitled)</span>}
+          </h3>
           {task.description && (
-            <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{task.description}</p>
           )}
           {task.criteria.length > 0 && (
-            <div className="mt-2">
-              <span className="text-[11px] font-medium text-muted-foreground">
-                Completion Criteria:
-              </span>
-              <ul className="mt-1 space-y-0.5">
+            <div>
+              <span className="section-label block mb-1.5">Completion Criteria</span>
+              <ul className="space-y-1">
                 {task.criteria.map((c, ci) => (
-                  <li key={ci} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                    <span className="mt-0.5 shrink-0">-</span>
+                  <li key={ci} className="text-xs text-muted-foreground flex items-start gap-2">
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0 mt-1.5" />
                     <span>{c}</span>
                   </li>
                 ))}
@@ -486,18 +520,13 @@ function TaskPreviewCard({
             </div>
           )}
           {(task.scope?.length ?? 0) > 0 && (
-            <div className="mt-2">
-              <span className="text-[11px] font-medium text-muted-foreground">
-                Scope:
-              </span>
-              <ul className="mt-1 space-y-0.5">
+            <div>
+              <span className="section-label block mb-1.5">Scope</span>
+              <div className="flex flex-wrap gap-1">
                 {(task.scope ?? []).map((s, si) => (
-                  <li key={si} className="text-xs text-muted-foreground font-mono flex items-start gap-1.5">
-                    <span className="mt-0.5 shrink-0">-</span>
-                    <span>{s}</span>
-                  </li>
+                  <span key={si} className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-muted border border-border text-muted-foreground">{s}</span>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </div>

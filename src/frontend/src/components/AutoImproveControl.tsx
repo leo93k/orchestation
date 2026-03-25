@@ -78,45 +78,51 @@ export default function AutoImproveControl() {
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       {status === "idle" || status === "completed" || status === "failed" ? (
         <button
           type="button"
           onClick={handleRun}
           disabled={loading}
           className={cn(
-            "filter-pill active flex items-center gap-1.5 text-xs",
-            loading && "opacity-50 cursor-not-allowed"
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+            loading
+              ? "bg-muted text-muted-foreground cursor-not-allowed"
+              : "bg-primary text-primary-foreground hover:opacity-90 shadow-sm",
           )}
         >
-          <Play className="h-3 w-3" />
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
           Run
         </button>
       ) : status === "stopping" ? (
-        <span className="filter-pill flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground bg-muted border border-border">
           <Loader2 className="h-3 w-3 animate-spin" />
           Stopping...
         </span>
       ) : status === "running" ? (
-        <>
+        <div className="flex items-center gap-2">
           <HorseRunningIndicator />
           <button
             type="button"
             onClick={handleStop}
             disabled={loading}
             className={cn(
-              "filter-pill flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300",
-              loading && "opacity-50 cursor-not-allowed"
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+              loading
+                ? "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
+                : "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:text-red-300",
             )}
           >
             <Square className="h-3 w-3" />
             Stop
           </button>
-        </>
+        </div>
       ) : null}
 
       {error && (
-        <span className="text-xs text-red-500">{error}</span>
+        <span className="text-xs text-red-500 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20 max-w-[200px] truncate" title={error}>
+          {error}
+        </span>
       )}
     </div>
   );

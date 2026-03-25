@@ -158,7 +158,8 @@ body {
 .filter-pill {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
+  gap: 4px;
+  padding: 3px 10px;
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 500;
@@ -168,16 +169,19 @@ body {
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  line-height: 1.4;
 }
 
 .filter-pill:hover {
   background: var(--muted);
+  color: var(--foreground);
 }
 
 .filter-pill.active {
   background: var(--primary);
   color: var(--primary-foreground);
   border-color: var(--primary);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
 /* Sidebar tree items */
@@ -553,20 +557,21 @@ body {
 .board-card {
   display: flex;
   flex-direction: column;
-  padding: 6px 8px;
-  min-height: 40px;
+  padding: 8px 10px;
+  min-height: 44px;
   justify-content: center;
   border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--background);
+  border-radius: 6px;
+  background: var(--card);
   text-align: left;
-  cursor: pointer;
-  transition: background-color 0.1s ease, box-shadow 0.1s ease;
+  cursor: default;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
 
 .board-card:hover {
-  background-color: var(--muted);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  background-color: color-mix(in srgb, var(--muted) 60%, var(--card));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-color: color-mix(in srgb, var(--border) 70%, var(--muted-foreground));
 }
 
 /* ── Timeline View ────────────────────────────────────── */
@@ -752,6 +757,51 @@ button.timeline-task-label:hover {
 
 .toast-slide-out {
   animation: toast-slide-out 0.25s ease-in forwards;
+}
+
+/* ── Task status accent card ───────────────────────────── */
+.board-card-in-progress {
+  border-left-width: 2px;
+  border-left-color: #3b82f6;
+}
+.board-card-reviewing {
+  border-left-width: 2px;
+  border-left-color: #f97316;
+}
+.board-card-done {
+  border-left-width: 2px;
+  border-left-color: #22c55e;
+  opacity: 0.8;
+}
+.board-card-rejected {
+  border-left-width: 2px;
+  border-left-color: #ef4444;
+  opacity: 0.8;
+}
+.board-card-stopped {
+  border-left-width: 2px;
+  border-left-color: #8b5cf6;
+}
+
+/* ── Section header utility ────────────────────────────── */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+/* ── Meta info bar ─────────────────────────────────────── */
+.meta-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
 }
 
 /* ── Sidebar collapsible section ──────────────────────── */

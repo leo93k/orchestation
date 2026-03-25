@@ -309,23 +309,31 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     );
   }
 
+  const isDisabledRun = isPipelineRunning || task.status === "in_progress" || task.status === "done" || task.status === "rejected";
+
   return (
     <div className="space-y-5 max-w-3xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <button
           type="button"
           onClick={() => router.push("/tasks")}
-          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-0.5"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <span className="font-mono text-xs text-muted-foreground">{displayTaskId(task.id)}</span>
-        <h1 className="text-lg font-semibold flex-1">{task.title}</h1>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="font-mono text-[11px] text-muted-foreground/70 bg-muted px-1.5 py-0.5 rounded">{displayTaskId(task.id)}</span>
+            {task.branch && <BranchBadge branch={task.branch} />}
+          </div>
+          <h1 className="text-xl font-semibold leading-snug">{task.title}</h1>
+        </div>
       </div>
 
-      {/* Meta */}
-      <div className="flex items-center gap-3 flex-wrap">
+      {/* Meta bar */}
+      <div className="meta-bar">
+        {/* Status */}
         <div className="flex items-center gap-1.5">
           {task.status === "in_progress" ? (
             <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -334,19 +342,20 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
           )}
           <span className="text-xs font-medium">{STATUS_LABEL[task.status] || task.status}</span>
         </div>
-        <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium", PRIORITY_COLORS[task.priority])}>
+
+        {/* Priority */}
+        <span className={cn("text-[10px] px-2 py-0.5 rounded-full border font-semibold leading-none", PRIORITY_COLORS[task.priority])}>
           {task.priority}
         </span>
-        <span className="text-[11px] text-muted-foreground">
-          Created: {task.created}
+
+        {/* Created */}
+        <span className="text-[11px] text-muted-foreground tabular-nums">
+          Created {task.created?.slice(0, 10)}
         </span>
-        {task.branch && <BranchBadge branch={task.branch} />}
 
         {/* Run / Stop / Delete buttons */}
         <div className="ml-auto flex items-center gap-2">
-          {runStatus === "running" && (
-            <HorseRunningIndicator />
-          )}
+          {runStatus === "running" && <HorseRunningIndicator />}
           {task.status === "pending" && (
             <button
               type="button"
@@ -365,30 +374,27 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
             <button
               type="button"
               onClick={handleStop}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-red-600 hover:bg-red-700 text-white transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-red-500 hover:bg-red-600 text-white font-medium transition-colors shadow-sm"
             >
-              <Square className="h-3 w-3" />
+              <Square className="h-3 w-3 fill-current" />
               중지
             </button>
           ) : (
             <button
               type="button"
               onClick={handleRun}
-              disabled={isPipelineRunning || task.status === "in_progress" || task.status === "done" || task.status === "rejected"}
+              disabled={isDisabledRun}
               title={
-                isPipelineRunning
-                  ? "파이프라인 실행 중에는 개별 실행 불가"
-                  : task.status === "in_progress"
-                    ? "이미 실행 중인 태스크입니다"
-                    : task.status === "done" || task.status === "rejected"
-                      ? "완료된 태스크입니다"
-                      : `${displayTaskId(task.id)} 실행`
+                isPipelineRunning ? "파이프라인 실행 중에는 개별 실행 불가"
+                : task.status === "in_progress" ? "이미 실행 중인 태스크입니다"
+                : task.status === "done" || task.status === "rejected" ? "완료된 태스크입니다"
+                : `${displayTaskId(task.id)} 실행`
               }
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors",
-                isPipelineRunning || task.status === "in_progress" || task.status === "done" || task.status === "rejected"
+                "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md font-medium transition-colors",
+                isDisabledRun
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
-                  : "bg-muted hover:bg-muted/80 text-foreground border border-border",
+                  : "bg-primary text-primary-foreground hover:opacity-90 shadow-sm",
               )}
             >
               <Play className="h-3 w-3" />
@@ -424,67 +430,94 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       {/* Dependency Flow — 탭 위 고정 */}
       {((task.depends_on_detail?.length ?? 0) > 0 || (task.depended_by?.length ?? 0) > 0) && (
         <div className="rounded-lg border border-border bg-card p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Dependency Flow
-          </h2>
-          <div className="flex items-center gap-0">
-            {task.depends_on_detail?.map((dep) => (
-              <div key={dep.id} className="flex items-center gap-0 w-1/3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => router.push(`/tasks/${dep.id}`)}
-                  className="flex flex-col gap-1 px-2.5 py-2 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors flex-1 min-w-0"
-                >
-                  <div className="flex items-center gap-1.5">
-                    {dep.status === "in_progress" ? (
-                      <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[dep.status] || "bg-gray-400")} />
-                    )}
-                    <span className="font-mono text-[10px] text-muted-foreground">{dep.id}</span>
-                  </div>
-                  <span className="text-[11px] leading-tight truncate">{dep.title}</span>
-                </button>
-                <span className="text-muted-foreground mx-1.5 text-sm shrink-0">&rarr;</span>
+          <h2 className="section-label mb-3">Dependency Flow</h2>
+          <div className="flex items-center gap-0 overflow-x-auto">
+            {/* Dependencies (left nodes) */}
+            {(task.depends_on_detail?.length ?? 0) > 0 && (
+              <div className="flex flex-col gap-1.5 shrink-0 min-w-0" style={{ maxWidth: "30%" }}>
+                {task.depends_on_detail?.map((dep) => (
+                  <button
+                    key={dep.id}
+                    type="button"
+                    onClick={() => router.push(`/tasks/${dep.id}`)}
+                    className="flex flex-col gap-1 px-2.5 py-2 rounded-lg border border-border hover:border-primary/40 hover:bg-muted/50 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {dep.status === "in_progress" ? (
+                        <span className="w-1.5 h-1.5 shrink-0 border border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", STATUS_DOT[dep.status] || "bg-gray-400")} />
+                      )}
+                      <span className="font-mono text-[10px] text-muted-foreground group-hover:text-primary transition-colors">{dep.id}</span>
+                    </div>
+                    <span className="text-[11px] leading-tight truncate text-muted-foreground">{dep.title}</span>
+                  </button>
+                ))}
               </div>
-            ))}
-            <div className="flex flex-col gap-1 px-2.5 py-2 rounded-lg border-2 border-primary bg-primary/5 w-1/3 shrink-0 min-w-0">
+            )}
+
+            {/* Arrow in */}
+            {(task.depends_on_detail?.length ?? 0) > 0 && (
+              <div className="flex items-center px-2 shrink-0">
+                <div className="flex items-center gap-0.5 text-muted-foreground/40">
+                  <div className="h-px w-6 bg-current" />
+                  <span className="text-xs">›</span>
+                </div>
+              </div>
+            )}
+
+            {/* Current task (center) */}
+            <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border-2 border-primary/60 bg-primary/5 shrink-0 min-w-0" style={{ maxWidth: "35%" }}>
               <div className="flex items-center gap-1.5">
                 {task.status === "in_progress" ? (
                   <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[task.status] || "bg-gray-400")} />
                 )}
-                <span className="font-mono text-[10px] font-semibold">{task.id}</span>
+                <span className="font-mono text-[10px] font-semibold text-primary">{task.id}</span>
               </div>
-              <span className="text-[11px] leading-tight font-medium truncate">{task.title}</span>
+              <span className="text-[12px] leading-tight font-semibold truncate">{task.title}</span>
             </div>
-            {task.depended_by?.map((dep) => (
-              <div key={dep.id} className="flex items-center gap-0 w-1/3 shrink-0">
-                <span className="text-muted-foreground mx-1.5 text-sm shrink-0">&rarr;</span>
-                <button
-                  type="button"
-                  onClick={() => router.push(`/tasks/${dep.id}`)}
-                  className="flex flex-col gap-1 px-2.5 py-2 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors flex-1 min-w-0"
-                >
-                  <div className="flex items-center gap-1.5">
-                    {dep.status === "in_progress" ? (
-                      <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[dep.status] || "bg-gray-400")} />
-                    )}
-                    <span className="font-mono text-[10px] text-muted-foreground">{dep.id}</span>
-                  </div>
-                  <span className="text-[11px] leading-tight truncate">{dep.title}</span>
-                </button>
+
+            {/* Arrow out */}
+            {(task.depended_by?.length ?? 0) > 0 && (
+              <div className="flex items-center px-2 shrink-0">
+                <div className="flex items-center gap-0.5 text-muted-foreground/40">
+                  <div className="h-px w-6 bg-current" />
+                  <span className="text-xs">›</span>
+                </div>
               </div>
-            ))}
+            )}
+
+            {/* Depended by (right nodes) */}
+            {(task.depended_by?.length ?? 0) > 0 && (
+              <div className="flex flex-col gap-1.5 shrink-0 min-w-0" style={{ maxWidth: "30%" }}>
+                {task.depended_by?.map((dep) => (
+                  <button
+                    key={dep.id}
+                    type="button"
+                    onClick={() => router.push(`/tasks/${dep.id}`)}
+                    className="flex flex-col gap-1 px-2.5 py-2 rounded-lg border border-border hover:border-primary/40 hover:bg-muted/50 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {dep.status === "in_progress" ? (
+                        <span className="w-1.5 h-1.5 shrink-0 border border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", STATUS_DOT[dep.status] || "bg-gray-400")} />
+                      )}
+                      <span className="font-mono text-[10px] text-muted-foreground group-hover:text-primary transition-colors">{dep.id}</span>
+                    </div>
+                    <span className="text-[11px] leading-tight truncate text-muted-foreground">{dep.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-border">
+      <div className="flex items-center gap-0.5 border-b border-border">
         {([
           { key: "detail" as const, label: "Content", icon: FileText },
           { key: "scope" as const, label: "Scope", icon: FileText },
@@ -498,10 +531,10 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
             type="button"
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors",
+              "flex items-center gap-1.5 px-3 py-2 text-[11px] font-medium border-b-2 -mb-px transition-all rounded-t-sm whitespace-nowrap",
               activeTab === tab.key
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "border-primary text-primary bg-primary/5"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
             )}
           >
             <tab.icon className="h-3 w-3" />
@@ -512,32 +545,27 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Tab Content */}
       {activeTab === "detail" && (
-        <div className="space-y-5">
-          {/* Description */}
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Description
-            </h2>
-            {task.content ? (
-              <MarkdownContent>{task.content}</MarkdownContent>
-            ) : <p className="text-sm text-muted-foreground">(No description)</p>}
-          </div>
-
+        <div className="space-y-5 pt-1">
+          {task.content ? (
+            <MarkdownContent>{task.content}</MarkdownContent>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">(No description)</p>
+          )}
         </div>
       )}
 
       {/* logs 탭은 아래에서 통합 렌더링 */}
 
       {activeTab === "scope" && (
-        <div>
+        <div className="pt-1">
           {task.scope?.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {task.scope.map((s, i) => (
-                <span key={i} className="inline-flex items-center text-[11px] font-mono px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground">{s}</span>
+                <span key={i} className="inline-flex items-center text-[11px] font-mono px-2.5 py-1 rounded-md bg-muted border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground transition-colors">{s}</span>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Scope가 지정되지 않았습니다.</p>
+            <p className="text-sm text-muted-foreground italic">Scope가 지정되지 않았습니다.</p>
           )}
         </div>
       )}
@@ -559,29 +587,44 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
       {activeTab === "cost" && (
         task.costEntries && task.costEntries.length > 0 ? (
-          <div>
-            <div className="space-y-1">
-              {task.costEntries.map((entry, i) => (
-                <div key={i} className="flex items-center gap-3 text-xs">
-                  <span className="text-muted-foreground w-16 shrink-0 capitalize">{entry.phase}</span>
-                  <span className="font-mono w-16 shrink-0">{entry.cost}</span>
-                  <span className="text-muted-foreground w-16 shrink-0">{entry.duration}</span>
-                  <span className="text-muted-foreground font-mono">{entry.tokens}</span>
-                </div>
-              ))}
-              <div className="border-t border-border pt-1 mt-1 flex items-center gap-3 text-xs font-medium">
-                <span className="w-16 shrink-0">Total</span>
-                <span className="font-mono w-16 shrink-0">
-                  ${task.costEntries.reduce((sum, e) => sum + parseFloat((e.cost ?? "0").replace("$", "")), 0).toFixed(4)}
-                </span>
-                <span className="text-muted-foreground w-16 shrink-0">
-                  {task.costEntries.reduce((sum, e) => sum + parseFloat(e.duration || "0"), 0).toFixed(1)}s
-                </span>
-              </div>
+          <div className="pt-1">
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/60 border-b border-border">
+                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Phase</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Cost</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Duration</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Tokens</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {task.costEntries.map((entry, i) => (
+                    <tr key={i} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-3 py-2 capitalize font-medium">{entry.phase}</td>
+                      <td className="px-3 py-2 text-right font-mono text-emerald-600 dark:text-emerald-400">{entry.cost}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">{entry.duration}</td>
+                      <td className="px-3 py-2 text-right font-mono text-muted-foreground">{entry.tokens}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-border bg-muted/40">
+                    <td className="px-3 py-2 font-bold text-xs">Total</td>
+                    <td className="px-3 py-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      ${task.costEntries.reduce((sum, e) => sum + parseFloat((e.cost ?? "0").replace("$", "")), 0).toFixed(4)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium text-muted-foreground">
+                      {task.costEntries.reduce((sum, e) => sum + parseFloat(e.duration || "0"), 0).toFixed(1)}s
+                    </td>
+                    <td className="px-3 py-2" />
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
         ) : (
-          <div className="text-center py-12 text-sm text-muted-foreground">
+          <div className="text-center py-12 text-sm text-muted-foreground italic">
             비용 정보가 없습니다.
           </div>
         )
