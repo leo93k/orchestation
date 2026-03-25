@@ -244,21 +244,43 @@ export default function DAGCanvas({ requests, tasks, onClickItem }: { requests: 
   const onMU = useCallback(() => { pan.current = null; svgRef.current?.classList.remove("panning"); }, []);
   const onWh = useCallback((e: React.WheelEvent) => { e.preventDefault(); const r = svgRef.current?.getBoundingClientRect(); if (!r) return; const t = tf.current, cx = e.clientX - r.left, cy = e.clientY - r.top, ns = Math.min(Math.max(t.scale * (e.deltaY < 0 ? 1.1 : 0.9), 0.1), 3), ra = ns / t.scale; tf.current = { x: cx - (cx - t.x) * ra, y: cy - (cy - t.y) * ra, scale: ns }; apply(); kick((n) => n + 1); }, [apply]);
 
-  if (requests.length === 0) return <div className="text-center py-12 text-muted-foreground"><Layers className="h-8 w-8 mx-auto mb-3 opacity-40" /><p className="text-sm">No tasks yet.</p></div>;
+  if (requests.length === 0) return (
+    <div className="text-center py-16 text-muted-foreground">
+      <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+        <Layers className="h-6 w-6 opacity-40" />
+      </div>
+      <p className="text-sm font-medium">No tasks yet.</p>
+      <p className="text-xs mt-1 text-muted-foreground/60">Task를 추가하면 여기에 그래프가 표시됩니다.</p>
+    </div>
+  );
 
   const bc = (s: string, nu: boolean) => nu ? "#facc15" : s === "in_progress" || s === "reviewing" ? "#3b82f6" : s === "done" ? "#22c55e" : s === "rejected" ? "#ef4444" : "var(--border)";
 
   return (
     <div className="relative w-full" style={{ height: "calc(100vh - 180px)", minHeight: 400 }}>
-      <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-card/80 backdrop-blur border border-border rounded-md px-2 py-1">
-        <button type="button" onClick={fit} className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded hover:bg-muted transition-colors flex items-center gap-1"><Maximize2 className="h-3 w-3" />Fit</button>
-        <span className="text-[10px] text-muted-foreground w-8 text-center">{Math.round(tf.current.scale * 100)}%</span>
+      <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-card/90 backdrop-blur-sm border border-border rounded-lg px-2 py-1.5 shadow-sm">
+        <button
+          type="button"
+          onClick={fit}
+          className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded-md hover:bg-muted transition-colors flex items-center gap-1 font-medium"
+        >
+          <Maximize2 className="h-3 w-3" />Fit
+        </button>
+        <div className="h-3 w-px bg-border" />
+        <span className="text-[10px] text-muted-foreground w-9 text-center font-mono tabular-nums">{Math.round(tf.current.scale * 100)}%</span>
       </div>
-      <div className="absolute bottom-2 left-2 z-20 flex items-center gap-3 bg-card/80 backdrop-blur border border-border rounded-md px-3 py-1.5">
-        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="w-2 h-2 rounded-full bg-yellow-500" />Pending</span>
-        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="w-2 h-2 rounded-full bg-red-500" />Failed</span>
-        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="w-2 h-2 rounded-full bg-blue-500" />In Progress</span>
-        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="w-2 h-2 rounded-full bg-emerald-500" />Done</span>
+      <div className="absolute bottom-2 left-2 z-20 flex items-center gap-3 bg-card/90 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 shadow-sm">
+        {([
+          { color: "bg-yellow-500", label: "Pending" },
+          { color: "bg-red-500", label: "Failed" },
+          { color: "bg-blue-500", label: "In Progress" },
+          { color: "bg-emerald-500", label: "Done" },
+        ]).map((item) => (
+          <span key={item.label} className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", item.color)} />
+            {item.label}
+          </span>
+        ))}
       </div>
       <svg ref={svgRef} className="dag-canvas w-full h-full rounded-lg border border-border bg-background" onMouseDown={onMD} onMouseMove={onMM} onMouseUp={onMU} onMouseLeave={onMU} onWheel={onWh}>
         <defs>
@@ -282,14 +304,38 @@ export default function DAGCanvas({ requests, tasks, onClickItem }: { requests: 
           {layout.edges.map((e) => { const k = `${e.fromId}-${e.toId}`, h = hovEdge === k, cp = Math.max(Math.abs(e.x2 - e.x1) * 0.4, 40), d = `M ${e.x1} ${e.y1} C ${e.x1 + cp} ${e.y1}, ${e.x2 - cp} ${e.y2}, ${e.x2} ${e.y2}`; return (<g key={k}><path d={d} fill="none" stroke="transparent" strokeWidth={14} style={{ pointerEvents: "stroke", cursor: "pointer" }} onMouseEnter={() => setHovEdge(k)} onMouseLeave={() => setHovEdge(null)} /><path d={d} fill="none" stroke={h ? "var(--primary)" : "#ffffff"} strokeWidth={h ? 2.5 : 1.5} opacity={h ? 1 : 0.5} markerEnd={h ? "url(#dag-arrow-hover)" : "url(#dag-arrow)"} style={{ transition: "all 0.15s ease" }} /></g>); })}
           {layout.nodes.map((n) => (
             <foreignObject key={n.id} x={n.x} y={n.y} width={NODE_W} height={NODE_H} style={{ overflow: "visible" }}>
-              <div className={cn("flex flex-col gap-1 p-2.5 rounded-lg border transition-all h-full", n.req.status === "done" && "opacity-50", n.req.status === "rejected" && "opacity-50", n.isNextUp && "dag-node-next-up", (n.req.status === "in_progress" || n.req.status === "reviewing") && "dag-node-active")} style={{ borderColor: bc(n.req.status, n.isNextUp), background: "var(--card)" }}>
-                <div className="flex items-center gap-1.5">
-                  {n.req.status === "in_progress" ? <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" /> : <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[n.req.status])} />}
-                  <span className="font-mono text-[10px] text-muted-foreground">{n.id}</span>
-                  <span className={cn("text-[9px] px-1 py-0.5 rounded border font-medium ml-auto shrink-0", PRIORITY_COLORS[n.req.priority])}>{n.req.priority}</span>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); if (!pan.current?.moved) onClickItem(n.req); }} className="text-[9px] px-1.5 py-0.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-muted/50 transition-colors shrink-0">상세</button>
+              <div
+                className={cn(
+                  "flex flex-col gap-1.5 p-2.5 rounded-lg border transition-all h-full shadow-sm",
+                  n.req.status === "done" && "opacity-50",
+                  n.req.status === "rejected" && "opacity-50",
+                  n.isNextUp && "dag-node-next-up",
+                  (n.req.status === "in_progress" || n.req.status === "reviewing") && "dag-node-active",
+                )}
+                style={{
+                  borderColor: bc(n.req.status, n.isNextUp),
+                  borderLeftWidth: n.req.status === "in_progress" ? "2px" : n.req.status === "reviewing" ? "2px" : "1px",
+                  borderLeftColor: n.req.status === "in_progress" ? "#3b82f6" : n.req.status === "reviewing" ? "#f97316" : bc(n.req.status, n.isNextUp),
+                  background: "var(--card)",
+                }}
+              >
+                <div className="flex items-center gap-1 min-w-0">
+                  {n.req.status === "in_progress" ? (
+                    <span className="w-1.5 h-1.5 shrink-0 border border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", STATUS_DOT[n.req.status])} />
+                  )}
+                  <span className="font-mono text-[10px] text-muted-foreground/70 truncate">{n.id}</span>
+                  <span className={cn("text-[9px] px-1 py-0.5 rounded border font-semibold ml-auto shrink-0 leading-none", PRIORITY_COLORS[n.req.priority])}>{n.req.priority[0].toUpperCase()}</span>
                 </div>
-                <span className="text-[11px] leading-snug line-clamp-2">{n.req.title}</span>
+                <span className="text-[11px] font-medium leading-snug line-clamp-2 flex-1">{n.req.title}</span>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); if (!pan.current?.moved) onClickItem(n.req); }}
+                  className="text-[9px] px-1.5 py-0.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-muted/50 transition-colors self-start leading-relaxed"
+                >
+                  상세 보기
+                </button>
               </div>
             </foreignObject>
           ))}

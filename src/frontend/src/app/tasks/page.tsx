@@ -17,16 +17,32 @@ function ChainGroup({ items, onUpdate, onDelete, onReorder, isFirst, isLast }: {
   const [expanded, setExpanded] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const first = items[0];
+
+  const statusAccent: Record<string, string> = {
+    in_progress: "#3b82f6", reviewing: "#f97316", done: "#22c55e",
+    rejected: "#ef4444", stopped: "#8b5cf6",
+  };
+
   return (
-    <div className="board-card">
+    <div
+      className="board-card border border-yellow-500/20 bg-yellow-500/[0.02]"
+      style={statusAccent[first.status] ? { borderLeftWidth: "2px", borderLeftColor: statusAccent[first.status] } : { borderLeftWidth: "2px", borderLeftColor: "#eab308" }}
+    >
       <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <ChevronRight className={cn("h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-200", expanded && "rotate-90")} />
-        {first.status === "in_progress" ? <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" /> : <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[first.status])} />}
-        <Link2 className="h-3 w-3 text-yellow-500 shrink-0" />
-        <span className="font-mono text-[11px] text-muted-foreground shrink-0">{first.id}</span>
-        <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium shrink-0", PRIORITY_COLORS[first.priority])}>{first.priority}</span>
-        <span className="text-sm flex-1 truncate text-left">{first.title} <span className="text-muted-foreground text-xs">외 {items.length - 1}건</span></span>
-        <span className="text-[10px] text-muted-foreground shrink-0">{items.reduce((latest, r) => { const d = r.updated || r.created; return d > latest ? d : latest; }, first.updated || first.created)}</span>
+        {first.status === "in_progress" ? (
+          <span className="w-2 h-2 shrink-0 border-[1.5px] border-blue-500 border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[first.status])} />
+        )}
+        <span className="flex items-center gap-1 shrink-0 text-[10px] font-medium text-yellow-600 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded-full">
+          <Link2 className="h-2.5 w-2.5" />
+          {items.length}개 체인
+        </span>
+        <span className="font-mono text-[10px] text-muted-foreground/70 shrink-0">{first.id}</span>
+        <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium shrink-0 leading-none", PRIORITY_COLORS[first.priority])}>{first.priority}</span>
+        <span className="text-[13px] font-medium flex-1 truncate text-left">{first.title}</span>
+        <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">{(items.reduce((latest, r) => { const d = r.updated || r.created; return d > latest ? d : latest; }, first.updated || first.created)).slice(0, 10)}</span>
         {onReorder && (
           <div className="flex flex-col shrink-0" onClick={(e) => e.stopPropagation()}>
             <button type="button" disabled={isFirst} onClick={() => onReorder(first.id, "up")} className={cn("p-0.5 rounded transition-colors", isFirst ? "text-muted-foreground/30 cursor-default" : "text-muted-foreground hover:text-foreground hover:bg-muted")}><ChevronUp className="h-3 w-3" /></button>
@@ -39,7 +55,7 @@ function ChainGroup({ items, onUpdate, onDelete, onReorder, isFirst, isLast }: {
         className="overflow-hidden transition-all duration-200 ease-out"
         style={{ maxHeight: expanded ? "none" : 0, opacity: expanded ? 1 : 0 }}
       >
-        <div className="mt-2 pt-2 border-t border-border space-y-1">
+        <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
           {items.map((req) => (
             <RequestCard key={req.id} req={req} onUpdate={onUpdate} onDelete={onDelete} isFirst isLast />
           ))}
@@ -216,22 +232,51 @@ function TasksPageInner() {
   return (
     <div className="space-y-4 max-w-3xl mx-auto pb-16">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4"><h1 className="text-lg font-semibold">Tasks</h1><AutoImproveControl hasRunningTasks={requests.some((r) => r.status === "in_progress")} /></div>
-        <button type="button" onClick={() => router.push("/tasks/new")} className="filter-pill active flex items-center gap-1"><Plus className="h-3 w-3" />New Task</button>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold tracking-tight">Tasks</h1>
+          <AutoImproveControl hasRunningTasks={requests.some((r) => r.status === "in_progress")} />
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push("/tasks/new")}
+          className="filter-pill active flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New Task
+        </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-border">
+      <div className="flex items-center gap-0.5 border-b border-border">
         {TABS.map((tab) => {
           const count = tab === TAB_STACK ? requests.length : tab === TAB_ALL ? filtered.length : grouped[tab]?.length ?? 0;
+          const isActive = activeTab === tab;
           return (
             <span key={tab} className="flex items-center">
-              <button type="button" onClick={() => setActiveTab(tab)} className={cn("flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium border-b-2 transition-colors -mb-px whitespace-nowrap", activeTab === tab ? (tab === TAB_STACK ? "border-violet-400 text-violet-400" : "border-primary text-primary") : "border-transparent text-muted-foreground hover:text-foreground")}>
+              <button
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 text-[11px] font-medium border-b-2 transition-all -mb-px whitespace-nowrap rounded-t-sm",
+                  isActive
+                    ? tab === TAB_STACK
+                      ? "border-violet-400 text-violet-500 bg-violet-500/5"
+                      : "border-primary text-primary bg-primary/5"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                )}
+              >
                 {tab === TAB_STACK && <Layers className="h-3 w-3 shrink-0" />}
-                {tab !== TAB_ALL && tab !== TAB_STACK && <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[tab])} />}
+                {tab !== TAB_ALL && tab !== TAB_STACK && (
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", STATUS_DOT[tab])} />
+                )}
                 {TAB_LABEL[tab]}
-                <span className="text-[10px] text-muted-foreground">({count})</span>
+                <span className={cn(
+                  "text-[10px] px-1 py-0.5 rounded-full tabular-nums",
+                  isActive ? "bg-primary/15 text-primary" : "text-muted-foreground/70",
+                )}>
+                  {count}
+                </span>
               </button>
               {tab === TAB_STACK && <span className="h-4 w-px bg-border mx-1" />}
             </span>
@@ -241,9 +286,24 @@ function TasksPageInner() {
 
       {/* Search */}
       {showFilters && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <input type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); resetPage(); }} placeholder="ID, 제목, 내용으로 검색..." className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-3 py-2 text-xs outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50" />
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground transition-colors group-focus-within:text-primary" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); resetPage(); }}
+            placeholder="ID, 제목, 내용으로 검색..."
+            className="w-full bg-card border border-border rounded-lg pl-9 pr-3 py-2 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/40"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(""); resetPage(); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
       )}
 
@@ -253,15 +313,36 @@ function TasksPageInner() {
           {/* Priority */}
           <div className="flex items-center gap-1">
             {(["all", "high", "medium", "low"] as const).map((p) => (
-              <button key={p} type="button" onClick={() => { setPriorityFilter(p); resetPage(); }} className={cn("filter-pill text-[11px]", priorityFilter === p && "active", priorityFilter === p && p !== "all" && PRIORITY_COLORS[p])}>{p === "all" ? "All" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
+              <button
+                key={p}
+                type="button"
+                onClick={() => { setPriorityFilter(p); resetPage(); }}
+                className={cn(
+                  "filter-pill text-[11px]",
+                  priorityFilter === p
+                    ? p === "all"
+                      ? "active"
+                      : cn("active", PRIORITY_COLORS[p])
+                    : "",
+                )}
+              >
+                {p !== "all" && (
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", {
+                    "bg-red-500": p === "high",
+                    "bg-yellow-500": p === "medium",
+                    "bg-green-500": p === "low",
+                  })} />
+                )}
+                {p === "all" ? "All" : p.charAt(0).toUpperCase() + p.slice(1)}
+              </button>
             ))}
           </div>
 
-          <span className="h-4 w-px bg-border" />
+          <span className="h-4 w-px bg-border/60" />
 
           {/* Sort */}
-          <div className="flex items-center gap-1">
-            <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <ArrowUpDown className="h-3 w-3" />
             <Select size="inline" value={sortKey} onChange={(e) => { setSortKey(e.target.value as SortKey); resetPage(); }}>
               <option value="newest">최신순</option>
               <option value="oldest">오래된순</option>
@@ -270,7 +351,7 @@ function TasksPageInner() {
             </Select>
           </div>
 
-          <span className="h-4 w-px bg-border" />
+          <span className="h-4 w-px bg-border/60" />
 
           {/* Date Range */}
           <div className="flex items-center gap-1.5">
@@ -279,7 +360,7 @@ function TasksPageInner() {
               onChange={(v) => { setDateFrom(v); resetPage(); }}
               placeholder="시작일"
             />
-            <span className="text-[10px] text-muted-foreground">~</span>
+            <span className="text-[10px] text-muted-foreground">—</span>
             <DatePicker
               value={dateTo}
               onChange={(v) => { setDateTo(v); resetPage(); }}
@@ -292,7 +373,7 @@ function TasksPageInner() {
             <button
               type="button"
               onClick={() => { setPriorityFilter("all"); setDateFrom(""); setDateTo(""); resetPage(); }}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-red-400 transition-colors"
             >
               <X className="h-3 w-3" />
               초기화
@@ -303,9 +384,24 @@ function TasksPageInner() {
 
       {/* Search only for Graph */}
       {activeTab === TAB_STACK && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ID, 제목, 내용으로 검색..." className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-3 py-2 text-xs outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50" />
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground transition-colors group-focus-within:text-primary" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ID, 제목, 내용으로 검색..."
+            className="w-full bg-card border border-border rounded-lg pl-9 pr-3 py-2 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/40"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
       )}
 
@@ -338,8 +434,20 @@ function TasksPageInner() {
       )}
 
       {activeTab !== TAB_STACK && totalItems === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <p className="text-sm">{requests.length === 0 ? "No tasks yet." : "해당 조건의 태스크가 없습니다."}</p>
+        <div className="text-center py-16 text-muted-foreground">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <Layers className="h-5 w-5 opacity-40" />
+          </div>
+          <p className="text-sm font-medium">{requests.length === 0 ? "No tasks yet." : "해당 조건의 태스크가 없습니다."}</p>
+          {requests.length === 0 && (
+            <button
+              type="button"
+              onClick={() => router.push("/tasks/new")}
+              className="mt-3 text-xs text-primary hover:underline"
+            >
+              + 첫 Task 만들기
+            </button>
+          )}
         </div>
       )}
 
