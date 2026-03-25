@@ -1,7 +1,7 @@
 ---
 id: TASK-138
 title: orchestrate.sh iTerm 패널 실행을 옵션으로 전환
-status: in_progress
+status: done
 branch: task/task-138
 worktree: ../repo-wt-task-138
 priority: medium
