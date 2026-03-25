@@ -1,7 +1,7 @@
 ---
 id: TASK-140
 title: "e2e/tasks-list.spec.ts 순환 타입 참조(TS2502) 수정"
-status: in_progress
+status: done
 branch: task/task-140
 worktree: ../repo-wt-task-140
 priority: medium
