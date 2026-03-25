@@ -1,7 +1,7 @@
 ---
 id: TASK-122
 title: 프론트엔드 UI/인터랙션 버그 전수 탐색 및 수정
-status: in_progress
+status: done
 branch: task/task-122
 worktree: ../repo-wt-task-122
 priority: medium
