@@ -103,7 +103,7 @@ export default function SettingsPage() {
                     value={draft.apiKey}
                     onChange={(e) => setDraft((prev) => ({ ...prev, apiKey: e.target.value }))}
                     placeholder="sk-ant-api03-..."
-                    className="w-full rounded border border-border bg-background px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full rounded border border-border bg-transparent text-foreground px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <p className="text-[11px] text-muted-foreground">
                     Anthropic API 키. orchestrate.sh와 Night Worker가 사용합니다.
@@ -167,7 +167,7 @@ export default function SettingsPage() {
                             next[i] = e.target.value;
                             setDraft((prev) => ({ ...prev, srcPaths: next }));
                           }}
-                          className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+                          className="flex-1 rounded border border-border bg-transparent text-foreground px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
                           placeholder="src/"
                         />
                         {draft.srcPaths.length > 1 && (
@@ -215,7 +215,7 @@ export default function SettingsPage() {
                         const v = parseInt(e.target.value, 10);
                         if (!isNaN(v) && v >= 1 && v <= 10) setDraft((prev) => ({ ...prev, maxParallel: v }));
                       }}
-                      className="w-16 rounded border border-border bg-background px-2 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-16 rounded border border-border bg-transparent text-foreground px-2 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -257,7 +257,7 @@ export default function SettingsPage() {
                         const v = parseInt(e.target.value, 10);
                         if (!isNaN(v) && v >= 0 && v <= 5) setDraft((prev) => ({ ...prev, maxReviewRetry: v }));
                       }}
-                      className="w-16 rounded border border-border bg-background px-2 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-16 rounded border border-border bg-transparent text-foreground px-2 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
