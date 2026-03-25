@@ -635,17 +635,6 @@ export function TaskSidebar({
           )}
         </div>
 
-        {/* ── Night Worker ── */}
-        <div className="mb-2">
-          <Link
-            href="/night-worker"
-            className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/night-worker" && "active")}
-          >
-            <Moon className="h-3.5 w-3.5" />
-            <span>Night Worker</span>
-          </Link>
-        </div>
-
         {/* ── Notices ── */}
         <div className="mb-2">
           <div className="px-2 mb-1 flex items-center justify-between">
@@ -693,6 +682,10 @@ export function TaskSidebar({
         <Link href="/terminal" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/terminal" && "active")}>
           <SquareTerminal className="h-3.5 w-3.5" />
           <span>Terminal</span>
+        </Link>
+        <Link href="/night-worker" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/night-worker" && "active")}>
+          <Moon className="h-3.5 w-3.5" />
+          <span>Night Worker</span>
         </Link>
         <Link href="/settings" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/settings" && "active")}>
           <Settings className="h-3.5 w-3.5" />

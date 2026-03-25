@@ -103,6 +103,7 @@ Rules:
                 priority: "medium",
                 criteria: ["Complete the requested work"],
                 scope: [],
+                depends_on: [],
               },
             ],
           };

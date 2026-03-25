@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 export interface RequestItem {
   id: string;
   title: string;
-  status: "pending" | "stopped" | "in_progress" | "reviewing" | "done" | "rejected";
+  status: "pending" | "stopped" | "in_progress" | "reviewing" | "done" | "failed" | "rejected";
   priority: "high" | "medium" | "low";
   created: string;
   updated: string;
