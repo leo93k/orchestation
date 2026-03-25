@@ -1,7 +1,7 @@
 ---
 id: TASK-145
 title: "Settings 페이지에 Base Branch 설정 기능 추가"
-status: in_progress
+status: done
 branch: task/task-145
 worktree: ../repo-wt-task-145
 priority: high
