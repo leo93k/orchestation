@@ -1,4 +1,4 @@
 {
-  "maxParallel": 3,
+  "maxParallel": 5,
   "workerMode": "background"
 }
