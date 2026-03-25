@@ -40,8 +40,7 @@ export function TaskLogTab({ taskId, taskStatus }: TaskLogTabProps) {
     try {
       const res = await fetch(`/api/tasks/${taskId}/logs`);
       if (res.status === 404) {
-        // No logs found — not an error, just empty
-        setLogs([]);
+        setLogs((prev) => prev.length > 0 ? prev : []);
         setError(null);
         return;
       }
@@ -49,8 +48,10 @@ export function TaskLogTab({ taskId, taskStatus }: TaskLogTabProps) {
         throw new Error("로그를 불러올 수 없습니다.");
       }
       const data: LogEntry[] = await res.json();
-      if (!Array.isArray(data)) {
-        setLogs([]);
+      if (!Array.isArray(data)) return;
+      // 이미 로그가 있으면 빈 응답으로 덮어쓰지 않음 (일시적 파일 읽기 실패 방지)
+      if (data.length === 0) {
+        setLogs((prev) => prev.length > 0 ? prev : []);
         return;
       }
       setLogs(data);
