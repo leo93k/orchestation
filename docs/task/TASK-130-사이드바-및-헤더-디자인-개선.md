@@ -1,7 +1,7 @@
 ---
 id: TASK-130
 title: 사이드바 및 헤더 디자인 개선
-status: in_progress
+status: failed
 branch: task/task-130
 worktree: ../repo-wt-task-130
 priority: medium
