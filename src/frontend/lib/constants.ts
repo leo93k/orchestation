@@ -1,7 +1,7 @@
 // Task 상태 타입 및 스타일 상수
 export type TaskStatus = "pending" | "stopped" | "in_progress" | "reviewing" | "done" | "rejected";
 
-export const STATUS_STYLES: Record<TaskStatus, { bg: string; dot: string; label: string }> = {
+export const STATUS_STYLES: Record<TaskStatus, { bg: string; dot: string; label: string; text?: string }> = {
   stopped: { bg: "bg-violet-500", dot: "bg-violet-500", label: "Stopped" },
   pending: { bg: "bg-gray-500", dot: "bg-yellow-500", label: "Pending" },
   in_progress: { bg: "bg-blue-500", dot: "bg-blue-500", label: "In Progress" },
