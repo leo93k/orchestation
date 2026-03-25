@@ -752,3 +752,18 @@ button.timeline-task-label:hover {
 .toast-slide-out {
   animation: toast-slide-out 0.25s ease-in forwards;
 }
+
+/* ── Sidebar collapsible section ──────────────────────── */
+.sidebar-collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease-out;
+}
+
+.sidebar-collapsible-open {
+  grid-template-rows: 1fr;
+}
+
+.sidebar-collapsible-inner {
+  overflow: hidden;
+}
