@@ -82,7 +82,7 @@ function LiveLogPanel({ taskId }: { taskId: string }) {
         if (!res.ok) return;
         const data: LogEntry[] = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          setEntries(data.reverse());
+          setEntries([...data].reverse());
           setWaiting(false);
         }
       } catch {
@@ -371,7 +371,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       )}
 
       {/* Dependency Flow — 탭 위 고정 */}
-      {(task.depends_on_detail?.length > 0 || task.depended_by?.length > 0) && (
+      {((task.depends_on_detail?.length ?? 0) > 0 || (task.depended_by?.length ?? 0) > 0) && (
         <div className="rounded-lg border border-border bg-card p-4">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
             Dependency Flow
@@ -472,7 +472,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
           </div>
 
           {/* Cost Info */}
-          {task.costEntries.length > 0 && (
+          {task.costEntries && task.costEntries.length > 0 && (
             <div className="rounded-lg border border-border bg-card p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Cost

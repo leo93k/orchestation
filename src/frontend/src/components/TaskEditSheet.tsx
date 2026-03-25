@@ -173,10 +173,12 @@ export function TaskEditSheet({
                   }}
                   className="w-full bg-muted border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
                 >
+                  <option value="stopped">Stopped</option>
                   <option value="pending">Pending</option>
                   <option value="in_progress">In Progress</option>
-                  <option value="in_review">In Review</option>
+                  <option value="reviewing">Reviewing</option>
                   <option value="done">Done</option>
+                  <option value="rejected">Rejected</option>
                 </select>
               </div>
 
@@ -193,7 +195,6 @@ export function TaskEditSheet({
                   }}
                   className="w-full bg-muted border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
                 >
-                  <option value="critical">Critical</option>
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>

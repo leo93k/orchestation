@@ -32,7 +32,7 @@ const TABS: { key: TabKey; label: string }[] = [
 const BOARD_COLUMNS: { status: TaskStatus; label: string; headerColor: string }[] = [
   { status: "pending", label: "Pending", headerColor: "board-col-gray" },
   { status: "in_progress", label: "In Progress", headerColor: "board-col-blue" },
-  { status: "in_review", label: "In Review", headerColor: "board-col-orange" },
+  { status: "reviewing", label: "Reviewing", headerColor: "board-col-orange" },
   { status: "done", label: "Done", headerColor: "board-col-green" },
 ];
 
@@ -48,7 +48,7 @@ function BoardView({
   const grouped: Record<string, SprintDetailTask[]> = {
     pending: [],
     in_progress: [],
-    in_review: [],
+    reviewing: [],
     done: [],
   };
 

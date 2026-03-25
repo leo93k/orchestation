@@ -97,12 +97,12 @@ function SprintInlineDetail({ sprintId }: { sprintId: string }) {
         /* 보드 뷰 */
         <div className="p-3">
           <div className="board-container">
-            {(["pending", "in_progress", "in_review", "done"] as TaskStatus[]).map((status) => {
+            {(["pending", "in_progress", "reviewing", "done"] as TaskStatus[]).map((status) => {
               const style = STATUS_STYLES[status];
               const tasks = allTasks.filter((t) => t.status === status);
               const colColor = status === "pending" ? "board-col-gray" :
                 status === "in_progress" ? "board-col-blue" :
-                status === "in_review" ? "board-col-orange" : "board-col-green";
+                status === "reviewing" ? "board-col-orange" : "board-col-green";
               return (
                 <div key={status} className="board-column">
                   <div className={cn("board-column-header", colColor)}>

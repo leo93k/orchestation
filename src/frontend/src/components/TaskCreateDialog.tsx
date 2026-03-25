@@ -134,7 +134,6 @@ export function TaskCreateDialog({
                 onChange={(e) => setPriority(e.target.value)}
                 className="w-full bg-muted border border-border rounded px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
               >
-                <option value="critical">Critical</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>

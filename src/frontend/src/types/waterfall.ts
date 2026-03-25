@@ -1,8 +1,11 @@
 export type WaterfallTaskStatus =
   | "pending"
+  | "stopped"
   | "in_progress"
   | "in_review"
-  | "done";
+  | "reviewing"
+  | "done"
+  | "rejected";
 
 export type WaterfallTask = {
   id: string;
