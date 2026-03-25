@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import type { CostEntry } from "@/lib/cost-parser";
+
+const PAGE_SIZE = 20;
 
 interface CostTableProps {
   entries: CostEntry[];
@@ -22,8 +25,11 @@ function formatDuration(ms: number): string {
 }
 
 export function CostTable({ entries }: CostTableProps) {
-  const sorted = [...entries].sort((a, b) => b.costUsd - a.costUsd);
+  const sorted = [...entries].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   const maxCost = sorted.length > 0 ? sorted[0].costUsd : 0;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const visible = sorted.slice(0, visibleCount);
+  const hasMore = visibleCount < sorted.length;
 
   return (
     <div className="overflow-x-auto">
@@ -41,7 +47,7 @@ export function CostTable({ entries }: CostTableProps) {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((entry, idx) => {
+          {visible.map((entry, idx) => {
             const isHighest = entry.costUsd === maxCost && maxCost > 0;
             const totalTokens =
               entry.inputTokens +
@@ -101,6 +107,15 @@ export function CostTable({ entries }: CostTableProps) {
           })}
         </tbody>
       </table>
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+          className="w-full py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border-t border-border"
+        >
+          더보기 ({sorted.length - visibleCount}건 남음)
+        </button>
+      )}
     </div>
   );
 }

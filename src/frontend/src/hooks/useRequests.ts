@@ -10,6 +10,7 @@ export interface RequestItem {
   created: string;
   updated: string;
   content: string;
+  scope: string[];
   sort_order: number;
 }
 

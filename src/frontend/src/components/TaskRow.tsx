@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { PriorityBadge } from "@/components/ui/badge";
 import {
   STATUS_STYLES,
   PRIORITY_STYLES,
@@ -45,15 +46,10 @@ export function TaskRow({ task, isSelected, onClick }: TaskRowProps) {
       <span className="flex-1 truncate text-[12px]">{task.title}</span>
 
       {/* Priority badge */}
-      <span
-        className={cn(
-          "shrink-0 rounded px-1.5 py-0 text-[10px] font-medium leading-[18px]",
-          priorityStyle.bg,
-          priorityStyle.text,
-        )}
-      >
-        {priorityStyle.label}
-      </span>
+      <PriorityBadge
+        priority={task.priority as TaskPriority}
+        className="shrink-0 leading-[18px]"
+      />
 
       {/* Role */}
       <span className="shrink-0 text-[11px] text-muted-foreground w-16 truncate text-right">

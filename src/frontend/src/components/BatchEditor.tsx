@@ -3,6 +3,9 @@
 import { useState, useCallback } from "react";
 import { GripVertical, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { PriorityBadge } from "@/components/ui/badge";
 import {
   STATUS_STYLES,
   PRIORITY_STYLES,
@@ -105,11 +108,9 @@ export function BatchEditor({ batches, onSave, onClose }: BatchEditorProps) {
       <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border">
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={selected.size === taskOrder.length && taskOrder.length > 0}
               onChange={selectAll}
-              className="rounded"
             />
             <span className="text-muted-foreground">
               {selected.size > 0
@@ -133,28 +134,28 @@ export function BatchEditor({ batches, onSave, onClose }: BatchEditorProps) {
           <span className="text-[10px] text-muted-foreground uppercase shrink-0">
             일괄 변경:
           </span>
-          <select
+          <Select
+            size="inline"
             value={batchStatus}
             onChange={(e) => setBatchStatus(e.target.value)}
-            className="bg-muted border border-border rounded px-2 py-0.5 text-xs outline-none"
           >
             <option value="">상태 선택</option>
             <option value="pending">Pending</option>
             <option value="in_progress">In Progress</option>
             <option value="in_review">In Review</option>
             <option value="done">Done</option>
-          </select>
-          <select
+          </Select>
+          <Select
+            size="inline"
             value={batchPriority}
             onChange={(e) => setBatchPriority(e.target.value)}
-            className="bg-muted border border-border rounded px-2 py-0.5 text-xs outline-none"
           >
             <option value="">우선순위 선택</option>
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
-          </select>
+          </Select>
           <button
             type="button"
             onClick={handleApply}
@@ -190,11 +191,10 @@ export function BatchEditor({ batches, onSave, onClose }: BatchEditorProps) {
               )}
             >
               <GripVertical className="h-3 w-3 text-muted-foreground shrink-0" />
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={selected.has(task.id)}
                 onChange={() => toggleSelect(task.id)}
-                className="rounded shrink-0"
+                className="shrink-0"
               />
               <span
                 className={cn(
@@ -206,15 +206,11 @@ export function BatchEditor({ batches, onSave, onClose }: BatchEditorProps) {
                 {task.id}
               </span>
               <span className="text-xs truncate flex-1">{task.title}</span>
-              <span
-                className={cn(
-                  "inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-semibold shrink-0",
-                  priorityStyle.bg,
-                  priorityStyle.text,
-                )}
-              >
-                {priorityStyle.label}
-              </span>
+              <PriorityBadge
+                priority={task.priority as TaskPriority}
+                size="sm"
+                className="shrink-0"
+              />
               <span className="text-[10px] text-muted-foreground shrink-0">
                 {task.batch}
               </span>

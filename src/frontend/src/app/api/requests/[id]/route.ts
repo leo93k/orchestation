@@ -108,7 +108,7 @@ export async function PUT(
     const oldContent = existing.replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
 
     // Update frontmatter fields if provided
-    if (body.status && ["pending", "in_progress", "reviewing", "done", "rejected"].includes(body.status)) {
+    if (body.status && ["pending", "in_progress", "reviewing", "done", "rejected", "stopped", "failed"].includes(body.status)) {
       // Dependency validation: in_progress requires all depends_on tasks to be done
       if (body.status === "in_progress") {
         const currentData = parseRequestFile(filePath);

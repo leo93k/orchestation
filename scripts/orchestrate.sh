@@ -7,6 +7,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$REPO_ROOT/scripts/lib/sed-inplace.sh"
+source "$REPO_ROOT/scripts/lib/merge-resolver.sh"
 TASK_DIR="$REPO_ROOT/docs/task"
 REQ_DIR="$REPO_ROOT/docs/requests"
 MAX_REVIEW_RETRY="${MAX_REVIEW_RETRY:-2}"
@@ -157,6 +158,34 @@ deps_satisfied() {
   return 0
 }
 
+# 실패한 태스크에 의존하는 pending 태스크들을 stopped로 전환 (재귀)
+stop_dependents() {
+  local failed_id="$1"
+
+  while IFS= read -r tid; do
+    [ -z "$tid" ] && continue
+    local tf
+    tf=$(find_file "$tid")
+    [ -z "$tf" ] && continue
+
+    local st
+    st=$(get_field "$tf" "status")
+    [ "$st" != "pending" ] && continue
+
+    local deps
+    deps=$(get_list "$tf" "depends_on")
+    if echo "$deps" | grep -q "$failed_id"; then
+      echo "  ⏸️  ${tid}: 의존 태스크 ${failed_id} 실패 → stopped"
+      sed_inplace "s/^status: .*/status: stopped/" "$tf"
+      git -C "$REPO_ROOT" add "$tf"
+      git -C "$REPO_ROOT" commit --only "$tf" \
+        -m "chore(${tid}): status → stopped (dependency ${failed_id} failed)"
+      # 재귀: 이 태스크에 의존하는 것도 중단
+      stop_dependents "$tid"
+    fi
+  done <<< "$(get_task_ids)"
+}
+
 # ── 태스크 시작 헬퍼 ──────────────────────────────────
 
 start_task() {
@@ -227,7 +256,20 @@ process_done_task() {
     if [ -n "$branch" ]; then
       if git -C "$REPO_ROOT" log --oneline "main..$branch" 2>/dev/null | grep -q .; then
         echo "  🔀 ${task_id}: $branch → main 머지"
-        git -C "$REPO_ROOT" merge "$branch" --no-ff --no-edit
+        if ! git -C "$REPO_ROOT" merge "$branch" --no-ff --no-edit; then
+          # 머지 충돌 → Claude로 자동 해결 시도
+          if ! resolve_merge_conflict "$REPO_ROOT" "$task_id" "$branch"; then
+            # 해결 실패 → failed 처리 + 의존 태스크 연쇄 중단
+            sed_inplace "s/^status: .*/status: failed/" "$local_task_file"
+            git -C "$REPO_ROOT" add "$local_task_file"
+            git -C "$REPO_ROOT" commit --only "$local_task_file" \
+              -m "chore(${task_id}): status → failed (merge conflict)"
+            git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
+            rm -f "${SIGNAL_DIR}/${task_id}-done"
+            stop_dependents "$task_id"
+            return 1
+          fi
+        fi
       fi
       git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
     fi
@@ -236,6 +278,13 @@ process_done_task() {
       git -C "$REPO_ROOT" add "$local_task_file"
       git -C "$REPO_ROOT" commit --only "$local_task_file" -m "chore(${task_id}): status → done"
     fi
+
+    # 완료 Notice
+    local task_title
+    task_title=$(get_field "$local_task_file" "title")
+    post_notice "info" \
+      "${task_id} 완료" \
+      "**${task_id}:** ${task_title}\n\n태스크가 성공적으로 완료되어 main에 머지되었습니다."
 
     rm -f "${SIGNAL_DIR}/${task_id}-done"
     return 0
@@ -259,7 +308,16 @@ process_done_task() {
       git -C "$REPO_ROOT" worktree remove "$failed_wt_path" --force 2>/dev/null || true
     fi
 
+    # 실패 Notice
+    local failed_title
+    failed_title=$(get_field "$failed_task_file" "title")
+    post_notice "error" \
+      "${task_id} 실패" \
+      "**${task_id}:** ${failed_title}\n\n리뷰 retry 상한 초과로 실패했습니다. 리뷰 피드백을 확인해주세요."
+
     rm -f "${SIGNAL_DIR}/${task_id}-failed"
+    # 의존 태스크 연쇄 중단
+    stop_dependents "$task_id"
     return 1
   fi
   return 2  # 아직 진행 중

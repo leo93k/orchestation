@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { PriorityBadge } from "@/components/ui/badge";
 import {
   STATUS_STYLES,
   PRIORITY_STYLES,
@@ -37,15 +38,10 @@ export function TaskBar({ task, onClick }: TaskBarProps) {
       <span className="truncate text-sm">{task.title}</span>
 
       {/* Priority badge */}
-      <span
-        className={cn(
-          "ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
-          priorityStyle.bg,
-          priorityStyle.text,
-        )}
-      >
-        {priorityStyle.label}
-      </span>
+      <PriorityBadge
+        priority={task.priority as TaskPriority}
+        className="ml-auto shrink-0"
+      />
 
       {/* Role tag */}
       <span className="shrink-0 text-[11px] text-muted-foreground">

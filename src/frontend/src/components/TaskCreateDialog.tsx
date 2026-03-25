@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type TaskCreateDialogProps = {
   open: boolean;
@@ -36,8 +45,6 @@ export function TaskCreateDialog({
       setTimeout(() => titleRef.current?.focus(), 100);
     }
   }, [open]);
-
-  if (!open) return null;
 
   const toggleDep = (taskId: string) => {
     setDependsOn((prev) =>
@@ -86,21 +93,13 @@ export function TaskCreateDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold">
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent showCloseButton>
+        <DialogHeader>
+          <DialogTitle>
             New Task{sprintId ? ` (${sprintId})` : ""}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+          </DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-3">
           {error && (
@@ -110,71 +109,60 @@ export function TaskCreateDialog({
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
+            <Label>
               제목 <span className="text-red-400">*</span>
-            </label>
-            <input
+            </Label>
+            <Input
               ref={titleRef}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Task 제목을 입력하세요"
-              className="w-full bg-muted border border-border rounded px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
               maxLength={200}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">
-                우선순위
-              </label>
-              <select
+              <Label>우선순위</Label>
+              <Select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full bg-muted border border-border rounded px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
               >
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
-              </select>
+              </Select>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">
-                역할
-              </label>
-              <select
+              <Label>역할</Label>
+              <Select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-muted border border-border rounded px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
               >
                 <option value="general">General</option>
                 <option value="frontend">Frontend</option>
                 <option value="backend">Backend</option>
                 <option value="infra">Infra</option>
                 <option value="design">Design</option>
-              </select>
+              </Select>
             </div>
           </div>
 
           {existingTaskIds.length > 0 && (
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">
-                의존성 (Depends On)
-              </label>
+              <Label>의존성 (Depends On)</Label>
               <div className="max-h-32 overflow-y-auto bg-muted border border-border rounded p-2 space-y-1">
                 {existingTaskIds.map((taskId) => (
                   <label
                     key={taskId}
                     className="flex items-center gap-2 text-xs cursor-pointer hover:bg-background/50 rounded px-1 py-0.5"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={dependsOn.includes(taskId)}
                       onChange={() => toggleDep(taskId)}
-                      className="rounded"
                     />
                     <span className="font-mono">{taskId}</span>
                   </label>
@@ -201,7 +189,7 @@ export function TaskCreateDialog({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

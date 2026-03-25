@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -9,6 +8,10 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { Select } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { StatusBadge, PriorityBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   STATUS_STYLES,
@@ -132,25 +135,10 @@ export function TaskEditSheet({
               {/* Current badges */}
               <div className="flex flex-wrap gap-1.5">
                 {statusStyle && (
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold text-white",
-                      statusStyle.bg,
-                    )}
-                  >
-                    {statusStyle.label}
-                  </span>
+                  <StatusBadge status={task.status as TaskStatus} />
                 )}
                 {priorityStyle && (
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold",
-                      priorityStyle.bg,
-                      priorityStyle.text,
-                    )}
-                  >
-                    {priorityStyle.label}
-                  </span>
+                  <PriorityBadge priority={task.priority as TaskPriority} />
                 )}
               </div>
 
@@ -162,70 +150,62 @@ export function TaskEditSheet({
 
               {/* Status */}
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-muted-foreground uppercase">
-                  Status
-                </label>
-                <select
+                <Label size="sm">Status</Label>
+                <Select
+                  size="sm"
                   value={status}
                   onChange={(e) => {
                     setStatus(e.target.value);
                     setDirty(true);
                   }}
-                  className="w-full bg-muted border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
                 >
                   <option value="pending">Pending</option>
                   <option value="in_progress">In Progress</option>
                   <option value="in_review">In Review</option>
                   <option value="done">Done</option>
-                </select>
+                </Select>
               </div>
 
               {/* Priority */}
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-muted-foreground uppercase">
-                  Priority
-                </label>
-                <select
+                <Label size="sm">Priority</Label>
+                <Select
+                  size="sm"
                   value={priority}
                   onChange={(e) => {
                     setPriority(e.target.value);
                     setDirty(true);
                   }}
-                  className="w-full bg-muted border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
                 >
                   <option value="critical">Critical</option>
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
-                </select>
+                </Select>
               </div>
 
               {/* Role */}
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-muted-foreground uppercase">
-                  Role
-                </label>
-                <select
+                <Label size="sm">Role</Label>
+                <Select
+                  size="sm"
                   value={role}
                   onChange={(e) => {
                     setRole(e.target.value);
                     setDirty(true);
                   }}
-                  className="w-full bg-muted border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
                 >
                   <option value="general">General</option>
                   <option value="frontend">Frontend</option>
                   <option value="backend">Backend</option>
                   <option value="infra">Infra</option>
                   <option value="design">Design</option>
-                </select>
+                </Select>
               </div>
 
               {/* Dependencies */}
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-muted-foreground uppercase">
-                  Depends On
-                </label>
+                <Label size="sm">Depends On</Label>
                 {availableDeps.length > 0 ? (
                   <div className="max-h-36 overflow-y-auto bg-muted border border-border rounded p-2 space-y-0.5">
                     {availableDeps.map((depId) => (
@@ -233,11 +213,9 @@ export function TaskEditSheet({
                         key={depId}
                         className="flex items-center gap-2 text-xs cursor-pointer hover:bg-background/50 rounded px-1 py-0.5"
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={dependsOn.includes(depId)}
                           onChange={() => toggleDep(depId)}
-                          className="rounded"
                         />
                         <span className="font-mono">{depId}</span>
                       </label>
@@ -252,9 +230,7 @@ export function TaskEditSheet({
 
               {/* Blocks (read-only) */}
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-muted-foreground uppercase">
-                  Blocks
-                </label>
+                <Label size="sm">Blocks</Label>
                 {task.blocks.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
                     {task.blocks.map((id) => (

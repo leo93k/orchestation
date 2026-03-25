@@ -31,10 +31,9 @@ export const PRIORITY_COLORS: Record<string, string> = {
 // ── Tabs ─────────────────────────────────────────────
 
 export const TAB_STACK = "stack";
-export const TAB_TIMELINE = "timeline";
 export const TAB_ALL = "all";
-export const TABS = [TAB_STACK, TAB_TIMELINE, TAB_ALL, ...STATUS_ORDER] as const;
-export const TAB_LABEL: Record<string, string> = { stack: "Graph", timeline: "Timeline", all: "All", ...STATUS_LABEL };
+export const TABS = [TAB_STACK, TAB_ALL, ...STATUS_ORDER] as const;
+export const TAB_LABEL: Record<string, string> = { stack: "Graph", all: "All", ...STATUS_LABEL };
 
 // ── DAG Layout ───────────────────────────────────────
 

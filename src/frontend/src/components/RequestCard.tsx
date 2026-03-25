@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, ChevronUp, Pencil, Trash2, Square, Bot } from "lucide-react";
 import { type RequestItem } from "@/hooks/useRequests";
 import { PRIORITY_COLORS, STATUS_DOT } from "@/app/tasks/constants";
+import { MarkdownContent } from "@/components/MarkdownContent";
 
 export const RequestCard = memo(function RequestCard({ req, onUpdate, onDelete, onReorder, isFirst, isLast }: {
   req: RequestItem;
@@ -68,7 +69,17 @@ export const RequestCard = memo(function RequestCard({ req, onUpdate, onDelete, 
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{req.content || "(No description)"}</p>
+                  {req.content ? <MarkdownContent>{req.content}</MarkdownContent> : <p className="text-sm text-muted-foreground">(No description)</p>}
+                  {req.scope?.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Scope</span>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {req.scope.map((s, i) => (
+                          <span key={i} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{s}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {!isReadOnly && (
                     <div className="flex items-center gap-2 mt-2">
                       <button type="button" onClick={() => setEditing(true)} className="filter-pill text-xs flex items-center gap-1"><Pencil className="h-3 w-3" />Edit</button>
@@ -81,7 +92,7 @@ export const RequestCard = memo(function RequestCard({ req, onUpdate, onDelete, 
           )}
           {cardTab === "ai-result" && (
             <div style={{ minHeight: 150 }}>
-              {aiResultLoading ? <p className="text-xs text-muted-foreground">Loading...</p> : aiResult ? <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{aiResult}</p> : <p className="text-xs text-muted-foreground">No result available.</p>}
+              {aiResultLoading ? <p className="text-xs text-muted-foreground">Loading...</p> : aiResult ? <MarkdownContent>{aiResult}</MarkdownContent> : <p className="text-xs text-muted-foreground">No result available.</p>}
             </div>
           )}
         </div>

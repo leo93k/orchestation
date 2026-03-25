@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { execSync } from "child_process";
 import taskRunnerManager from "@/lib/task-runner-manager";
 import orchestrationManager from "@/lib/orchestration-manager";
 
@@ -55,10 +56,49 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  // 1) TaskRunnerManager로 관리되는 프로세스 중지 시도
   const result = taskRunnerManager.stop(id);
 
+  // 2) TaskRunnerManager에 없으면 (orchestrate.sh로 실행된 경우)
+  //    run-worker.sh 프로세스를 직접 찾아서 kill
   if (!result.success) {
-    return NextResponse.json({ error: result.error }, { status: 409 });
+    try {
+      const pids = execSync(
+        `pgrep -f "run-worker\\.sh ${id}" 2>/dev/null || true`,
+        { encoding: "utf-8" },
+      ).trim();
+
+      if (!pids) {
+        return NextResponse.json(
+          { error: `${id}에 대한 실행 중인 프로세스를 찾을 수 없습니다.` },
+          { status: 409 },
+        );
+      }
+
+      // 프로세스 그룹 전체 kill (claude CLI 포함)
+      for (const pid of pids.split("\n")) {
+        const trimmedPid = pid.trim();
+        if (trimmedPid) {
+          try {
+            // 프로세스 그룹 kill (-pid)
+            process.kill(-parseInt(trimmedPid, 10), "SIGTERM");
+          } catch {
+            // 프로세스 그룹 kill 실패 시 개별 kill
+            try {
+              process.kill(parseInt(trimmedPid, 10), "SIGTERM");
+            } catch { /* already dead */ }
+          }
+        }
+      }
+
+      return NextResponse.json({ message: `Task ${id} stop requested (via process kill)` });
+    } catch {
+      return NextResponse.json(
+        { error: `${id} 중지 실패` },
+        { status: 500 },
+      );
+    }
   }
 
   return NextResponse.json({ message: `Task ${id} stop requested` });

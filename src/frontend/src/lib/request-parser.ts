@@ -10,7 +10,9 @@ export interface RequestData {
   updated: string;
   content: string;
   depends_on: string[];
+  scope: string[];
   sort_order: number;
+  branch: string;
 }
 
 const TASKS_DIR = path.join(process.cwd(), "../../docs/task");
@@ -30,6 +32,7 @@ export function parseRequestFile(filePath: string): RequestData | null {
     const created = fm.match(/^created:\s*(.+)$/m)?.[1]?.trim() || "";
     const updated = fm.match(/^updated:\s*(.+)$/m)?.[1]?.trim() || created;
     const sort_order = parseInt(fm.match(/^sort_order:\s*(.+)$/m)?.[1]?.trim() || "0", 10) || 0;
+    const branch = fm.match(/^branch:\s*(.+)$/m)?.[1]?.trim() || "";
 
     const content = raw.replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
 
@@ -45,7 +48,14 @@ export function parseRequestFile(filePath: string): RequestData | null {
       }
     }
 
-    return { id, title, status, priority, created, updated, content, depends_on, sort_order };
+    // Parse scope: multi-line YAML list
+    let scope: string[] = [];
+    const scopeMatch = fm.match(/^scope:\s*\n((?:\s+-\s+.+\n?)*)/m);
+    if (scopeMatch) {
+      scope = scopeMatch[1].match(/-\s*(.+)/g)?.map((s) => s.replace(/^- \s*/, "").trim()) || [];
+    }
+
+    return { id, title, status, priority, created, updated, content, depends_on, scope, sort_order, branch };
   } catch {
     return null;
   }

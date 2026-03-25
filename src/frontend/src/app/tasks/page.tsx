@@ -7,10 +7,9 @@ import { cn } from "@/lib/utils";
 import { Plus, Layers, Search } from "lucide-react";
 import { useTasks } from "@/hooks/useTasks";
 import AutoImproveControl from "@/components/AutoImproveControl";
-import TimelineView from "@/components/TimelineView";
 import DAGCanvas from "@/components/DAGCanvas";
 import { RequestCard } from "@/components/RequestCard";
-import { PRIORITY_COLORS, STATUS_DOT, STATUS_LABEL, STATUS_ORDER, TAB_STACK, TAB_TIMELINE, TAB_ALL, TABS, TAB_LABEL } from "./constants";
+import { PRIORITY_COLORS, STATUS_DOT, STATUS_LABEL, STATUS_ORDER, TAB_STACK, TAB_ALL, TABS, TAB_LABEL } from "./constants";
 
 function TasksPageInner() {
   const { requests, isLoading, error, updateRequest, deleteRequest, reorderRequest } = useRequests();
@@ -29,7 +28,7 @@ function TasksPageInner() {
       const q = searchQuery.toLowerCase();
       result = result.filter((r) => r.id.toLowerCase().includes(q) || r.title.toLowerCase().includes(q) || r.content.toLowerCase().includes(q));
     }
-    if (priorityFilter !== "all" && activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE) {
+    if (priorityFilter !== "all" && activeTab !== TAB_STACK && activeTab !== TAB_STACK) {
       result = result.filter((r) => r.priority === priorityFilter);
     }
     return result;
@@ -58,16 +57,16 @@ function TasksPageInner() {
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-border">
         {TABS.map((tab) => {
-          const count = tab === TAB_ALL || tab === TAB_STACK || tab === TAB_TIMELINE ? requests.length : grouped[tab]?.length ?? 0;
+          const count = tab === TAB_ALL || tab === TAB_STACK || tab === TAB_STACK ? requests.length : grouped[tab]?.length ?? 0;
           return (
             <span key={tab} className="flex items-center">
-              <button type="button" onClick={() => setActiveTab(tab)} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px", activeTab === tab ? (tab === TAB_STACK || tab === TAB_TIMELINE ? "border-violet-400 text-violet-400" : "border-primary text-primary") : "border-transparent text-muted-foreground hover:text-foreground")}>
+              <button type="button" onClick={() => setActiveTab(tab)} className={cn("flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px", activeTab === tab ? (tab === TAB_STACK || tab === TAB_STACK ? "border-violet-400 text-violet-400" : "border-primary text-primary") : "border-transparent text-muted-foreground hover:text-foreground")}>
                 {tab === TAB_STACK && <Layers className="h-3 w-3 shrink-0" />}
-                {tab !== TAB_ALL && tab !== TAB_STACK && tab !== TAB_TIMELINE && <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[tab])} />}
+                {tab !== TAB_ALL && tab !== TAB_STACK && tab !== TAB_STACK && <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[tab])} />}
                 {TAB_LABEL[tab]}
                 <span className="text-[10px] text-muted-foreground">({count})</span>
               </button>
-              {tab === TAB_TIMELINE && <span className="h-4 w-px bg-border mx-1" />}
+              {tab === TAB_STACK && <span className="h-4 w-px bg-border mx-1" />}
             </span>
           );
         })}
@@ -90,10 +89,9 @@ function TasksPageInner() {
 
       {/* Views */}
       {activeTab === TAB_STACK && <DAGCanvas requests={filtered} tasks={allWaterfallTasks} onClickItem={(req) => router.push(`/tasks/${req.id}`)} />}
-      {activeTab === TAB_TIMELINE && <TimelineView requests={filtered} tasks={allWaterfallTasks} onClickItem={(req) => router.push(`/tasks/${req.id}`)} priorityFilter={priorityFilter} />}
 
       {/* List View */}
-      {activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE && filteredStatuses.map((status) => {
+      {activeTab !== TAB_STACK && activeTab !== TAB_STACK && filteredStatuses.map((status) => {
         const items = grouped[status];
         if (!items || items.length === 0) return null;
         return (
@@ -112,7 +110,7 @@ function TasksPageInner() {
         );
       })}
 
-      {activeTab !== TAB_STACK && activeTab !== TAB_TIMELINE && requests.length === 0 && (
+      {activeTab !== TAB_STACK && activeTab !== TAB_STACK && requests.length === 0 && (
         <div className="text-center py-12 text-muted-foreground"><p className="text-sm">No tasks yet.</p></div>
       )}
     </div>

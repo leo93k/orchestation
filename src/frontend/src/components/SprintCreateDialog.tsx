@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 type SprintCreateDialogProps = {
   open: boolean;
@@ -30,8 +39,6 @@ export function SprintCreateDialog({
       setTimeout(() => titleRef.current?.focus(), 100);
     }
   }, [open]);
-
-  if (!open) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,22 +77,11 @@ export function SprintCreateDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
-      <div className="relative bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold">New Sprint</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent showCloseButton>
+        <DialogHeader>
+          <DialogTitle>New Sprint</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-3">
           {error && (
@@ -95,47 +91,40 @@ export function SprintCreateDialog({
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
+            <Label>
               제목 <span className="text-red-400">*</span>
-            </label>
-            <input
+            </Label>
+            <Input
               ref={titleRef}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Sprint 제목을 입력하세요"
-              className="w-full bg-muted border border-border rounded px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
               maxLength={200}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              목표
-            </label>
-            <textarea
+            <Label>목표</Label>
+            <Textarea
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               placeholder="Sprint 목표를 입력하세요"
-              className="w-full bg-muted border border-border rounded px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors resize-none"
               rows={3}
               maxLength={1000}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              상태
-            </label>
-            <select
+            <Label>상태</Label>
+            <Select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full bg-muted border border-border rounded px-3 py-1.5 text-sm outline-none focus:border-primary transition-colors"
             >
               <option value="ready">Ready</option>
               <option value="in_progress">In Progress</option>
               <option value="done">Done</option>
-            </select>
+            </Select>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -156,7 +145,7 @@ export function SprintCreateDialog({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

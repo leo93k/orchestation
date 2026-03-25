@@ -38,7 +38,7 @@ export interface CostData {
 // Log format (legacy, without model):
 // [2026-03-23 12:15:45] TASK-029 | phase=task | input=1500 cache_create=100 cache_read=0 output=2400 | turns=3 | duration=5230ms | cost=$0.045
 const LOG_LINE_REGEX_WITH_MODEL =
-  /^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+([\w-]+)\s+\|\s+phase=(\w+)\s+\|\s+model=([\w.:/-]+)\s+\|\s+input=(\d+)\s+cache_create=(\d+)\s+cache_read=(\d+)\s+output=(\d+)\s+\|\s+turns=(\d+)\s+\|\s+duration=(\d+)ms\s+\|\s+cost=\$([\d.]+)/;
+  /^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+([\w-]+)\s+\|\s+phase=(\w+)\s+\|\s+model=([\w.:/\[\]-]+)\s+\|\s+input=(\d+)\s+cache_create=(\d+)\s+cache_read=(\d+)\s+output=(\d+)\s+\|\s+turns=(\d+)\s+\|\s+duration=(\d+)ms\s+\|\s+cost=\$([\d.]+)/;
 const LOG_LINE_REGEX_LEGACY =
   /^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+([\w-]+)\s+\|\s+phase=(\w+)\s+\|\s+input=(\d+)\s+cache_create=(\d+)\s+cache_read=(\d+)\s+output=(\d+)\s+\|\s+turns=(\d+)\s+\|\s+duration=(\d+)ms\s+\|\s+cost=\$([\d.]+)/;
 

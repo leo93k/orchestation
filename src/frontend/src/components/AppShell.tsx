@@ -7,6 +7,7 @@ import { usePrds } from "@/hooks/usePrds";
 import { useDocTree } from "@/hooks/useDocTree";
 import { useOrchestrationStatus } from "@/hooks/useOrchestrationStatus";
 import { useRequests } from "@/hooks/useRequests";
+import { useNotices } from "@/hooks/useNotices";
 import { TaskSidebar, type SidebarFilter } from "@/components/sidebar";
 import type { RequestItem } from "@/hooks/useRequests";
 import { TaskLogModal } from "@/components/TaskLogModal";
@@ -115,6 +116,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { tree: docTree, createDoc, updateDoc, deleteDoc, reorderDoc, fetchTree } = useDocTree();
   const { justFinished, clearFinished } = useOrchestrationStatus();
   const { requests: requestItems, createRequest, updateRequest, refetch: refetchRequests } = useRequests();
+  const { notices: noticeItems } = useNotices();
   const { addToast } = useToast();
   const [logModalTask, setLogModalTask] = useState<WaterfallTask | null>(null);
 
@@ -221,9 +223,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           await createRequest(title, content, "medium");
         }}
         onStopTask={async (id) => {
-          await updateRequest(id, { status: "pending" });
+          // 1) 프로세스 kill
+          try {
+            await fetch(`/api/tasks/${id}/run`, { method: "DELETE" });
+          } catch { /* ignore - process may not exist */ }
+          // 2) status → stopped
+          await updateRequest(id, { status: "stopped" });
           await refetchRequests();
         }}
+        noticeItems={noticeItems}
         currentPath={pathname}
       />
 

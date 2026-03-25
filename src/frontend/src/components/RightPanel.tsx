@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { StatusBadge, PriorityBadge } from "@/components/ui/badge";
 import {
   STATUS_STYLES,
   PRIORITY_STYLES,
@@ -101,29 +102,12 @@ export function RightPanel({ task, prd }: RightPanelProps) {
 
       {/* Status */}
       <Section label="Status">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-            statusStyle.bg,
-            "text-white",
-          )}
-        >
-          <span className={cn("w-1.5 h-1.5 rounded-full", statusStyle.dot)} />
-          {statusStyle.label}
-        </span>
+        <StatusBadge status={task.status as TaskStatus} size="md" />
       </Section>
 
       {/* Priority */}
       <Section label="Priority">
-        <span
-          className={cn(
-            "inline-flex items-center rounded px-2 py-0.5 text-xs font-medium",
-            priorityStyle.bg,
-            priorityStyle.text,
-          )}
-        >
-          {priorityStyle.label}
-        </span>
+        <PriorityBadge priority={task.priority as TaskPriority} size="md" />
       </Section>
 
       {/* Role */}

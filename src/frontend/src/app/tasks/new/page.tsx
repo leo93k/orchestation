@@ -10,6 +10,7 @@ interface AnalyzedTask {
   description: string;
   priority: "high" | "medium" | "low";
   criteria: string[];
+  scope?: string[];
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -76,6 +77,7 @@ export default function NewTaskPage() {
             title: task.title,
             content,
             priority: task.priority,
+            scope: task.scope ?? [],
           }),
         });
 
@@ -412,6 +414,44 @@ function TaskPreviewCard({
               Add criterion
             </button>
           </div>
+          <div>
+            <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+              Scope (작업 범위 파일)
+            </label>
+            {(task.scope ?? []).map((s, si) => (
+              <div key={si} className="flex items-center gap-1 mb-1">
+                <span className="text-muted-foreground text-xs">-</span>
+                <input
+                  type="text"
+                  value={s}
+                  onChange={(e) => {
+                    const newScope = [...(task.scope ?? [])];
+                    newScope[si] = e.target.value;
+                    onUpdate({ scope: newScope });
+                  }}
+                  className="flex-1 bg-muted border border-border rounded px-2 py-1 text-xs font-mono outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newScope = (task.scope ?? []).filter((_, i) => i !== si);
+                    onUpdate({ scope: newScope });
+                  }}
+                  className="p-0.5 text-muted-foreground hover:text-red-400"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => onUpdate({ scope: [...(task.scope ?? []), ""] })}
+              className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1"
+            >
+              <Plus className="h-3 w-3" />
+              Add file
+            </button>
+          </div>
         </div>
       ) : (
         <div>
@@ -429,6 +469,21 @@ function TaskPreviewCard({
                   <li key={ci} className="text-xs text-muted-foreground flex items-start gap-1.5">
                     <span className="mt-0.5 shrink-0">-</span>
                     <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {(task.scope?.length ?? 0) > 0 && (
+            <div className="mt-2">
+              <span className="text-[11px] font-medium text-muted-foreground">
+                Scope:
+              </span>
+              <ul className="mt-1 space-y-0.5">
+                {(task.scope ?? []).map((s, si) => (
+                  <li key={si} className="text-xs text-muted-foreground font-mono flex items-start gap-1.5">
+                    <span className="mt-0.5 shrink-0">-</span>
+                    <span>{s}</span>
                   </li>
                 ))}
               </ul>

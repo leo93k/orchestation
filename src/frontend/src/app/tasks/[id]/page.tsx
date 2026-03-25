@@ -3,9 +3,8 @@
 import { useState, useEffect, useRef, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Loader2, FileText, Terminal, ClipboardCheck, Play, Square } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { ArrowLeft, Loader2, FileText, Terminal, ClipboardCheck, Play, Square, RotateCcw, CheckCircle2, GitBranch, Check, Copy } from "lucide-react";
+import { MarkdownContent } from "@/components/MarkdownContent";
 import { HorseRunningIndicator } from "@/components/HorseRunningIndicator";
 
 interface CostEntry {
@@ -35,6 +34,8 @@ interface TaskDetail {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reviewResult: Record<string, any> | null;
   costEntries: CostEntry[];
+  scope: string[];
+  branch: string;
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -142,6 +143,22 @@ function LiveLogPanel({ taskId }: { taskId: string }) {
         )}
       </div>
     </div>
+  );
+}
+
+function BranchBadge({ branch }: { branch: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => { navigator.clipboard.writeText(branch); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      className="flex items-center gap-1 text-[11px] text-muted-foreground font-mono max-w-[240px] truncate hover:text-foreground transition-colors cursor-pointer"
+      title="클릭하여 복사"
+    >
+      {copied ? <Check className="h-3 w-3 shrink-0 text-emerald-400" /> : <GitBranch className="h-3 w-3 shrink-0" />}
+      <span className="truncate">{branch}</span>
+      {copied && <span className="text-emerald-400 text-[9px] ml-0.5">copied</span>}
+    </button>
   );
 }
 
@@ -306,10 +323,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         <span className="text-[11px] text-muted-foreground">
           Created: {task.created}
         </span>
+        {task.branch && <BranchBadge branch={task.branch} />}
 
         {/* Run / Stop button */}
         <div className="ml-auto flex items-center gap-2">
-          {(runStatus === "running" || task.status === "in_progress") && (
+          {runStatus === "running" && (
             <HorseRunningIndicator />
           )}
           {runStatus === "running" || task.status === "in_progress" ? (
@@ -433,7 +451,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-1">
+      <div className="flex items-center gap-1 border-b border-border">
         {([
           { key: "detail" as const, label: "상세", icon: FileText },
           { key: "logs" as const, label: "로그", icon: Terminal },
@@ -444,10 +462,10 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
             type="button"
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors",
+              "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors",
               activeTab === tab.key
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
             <tab.icon className="h-3 w-3" />
@@ -458,22 +476,37 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Tab Content */}
       {activeTab === "detail" && (
-        <>
-          {/* Content */}
-          <div className="rounded-lg border border-border bg-card p-4">
+        <div className="space-y-5">
+          {/* Description */}
+          <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Description
             </h2>
-            <div className="text-sm text-foreground prose prose-invert prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:rounded">
-              {task.content ? (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{task.content}</ReactMarkdown>
-              ) : "(No description)"}
-            </div>
+            {task.content ? (
+              <MarkdownContent>{task.content}</MarkdownContent>
+            ) : <p className="text-sm text-muted-foreground">(No description)</p>}
           </div>
+
+          {/* Scope */}
+          {task.scope?.length > 0 && (
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Scope
+              </h2>
+              <ul className="space-y-0.5">
+                {task.scope.map((s, i) => (
+                  <li key={i} className="text-xs text-muted-foreground font-mono flex items-start gap-1.5">
+                    <span className="mt-0.5 shrink-0">-</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Cost Info */}
           {task.costEntries.length > 0 && (
-            <div className="rounded-lg border border-border bg-card p-4">
+            <div>
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Cost
               </h2>
@@ -498,7 +531,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* logs 탭은 아래에서 통합 렌더링 */}
@@ -520,8 +553,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
               )}
             </div>
             {task.reviewResult.result && (
-              <div className="p-3 bg-muted rounded text-xs whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
-                {String(task.reviewResult.result)}
+              <div className="p-3 bg-muted rounded max-h-[60vh] overflow-y-auto">
+                <MarkdownContent>{String(task.reviewResult.result)}</MarkdownContent>
               </div>
             )}
           </div>
@@ -569,8 +602,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
               )}
             </div>
             {task.executionLog.result && (
-              <div className="p-3 bg-muted rounded text-xs whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
-                {String(task.executionLog.result)}
+              <div className="p-3 bg-muted rounded max-h-[60vh] overflow-y-auto">
+                <MarkdownContent>{String(task.executionLog.result)}</MarkdownContent>
               </div>
             )}
           </div>

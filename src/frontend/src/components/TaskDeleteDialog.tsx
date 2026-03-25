@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type TaskDeleteDialogProps = {
   taskId: string | null;
@@ -17,9 +23,8 @@ export function TaskDeleteDialog({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!taskId) return null;
-
   const handleDelete = async () => {
+    if (!taskId) return;
     setDeleting(true);
     setError(null);
 
@@ -45,22 +50,14 @@ export function TaskDeleteDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-card border border-border rounded-lg shadow-xl w-full max-w-sm mx-4">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold text-red-400 flex items-center gap-2">
+    <Dialog open={taskId !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm z-[60]" showCloseButton>
+        <DialogHeader>
+          <DialogTitle className="text-red-400 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             Task 삭제
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="p-4 space-y-3">
           {error && (
@@ -97,7 +94,7 @@ export function TaskDeleteDialog({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -11,6 +11,7 @@ interface AnalyzedTask {
   description: string;
   priority: "high" | "medium" | "low";
   criteria: string[];
+  scope: string[];
 }
 
 export async function POST(request: Request) {
@@ -42,9 +43,10 @@ ${description.trim() ? `Description: ${description.trim()}` : ""}
 
 Rules:
 - If the request is simple, return 1 task. If complex, split into 2-5 tasks.
-- Each task must have: title, description, priority (high/medium/low), criteria (completion criteria as string array).
+- Each task must have: title, description, priority (high/medium/low), criteria (completion criteria as string array), scope (array of file paths that will likely be modified or read).
+- scope must use glob patterns ending with ** for the relevant directories, not individual file paths. Be conservative and include broadly. Use relative paths from project root (e.g. "src/frontend/src/components/**", "scripts/lib/**"). Only go to the directory level, never specify exact filenames.
 - Return ONLY valid JSON in this exact format, no markdown, no explanation:
-{"tasks":[{"title":"...","description":"...","priority":"medium","criteria":["criterion 1","criterion 2"]}]}`;
+{"tasks":[{"title":"...","description":"...","priority":"medium","criteria":["criterion 1"],"scope":["src/frontend/src/components/**"]}]}`;
 
   return new Promise<Response>((resolve) => {
     const child = spawn(
@@ -98,6 +100,7 @@ Rules:
                 description: description.trim() || title.trim(),
                 priority: "medium",
                 criteria: ["Complete the requested work"],
+                scope: [],
               },
             ],
           };
@@ -126,6 +129,9 @@ Rules:
             criteria: Array.isArray(t.criteria)
               ? t.criteria.filter((c: unknown) => typeof c === "string")
               : [],
+            scope: Array.isArray(t.scope)
+              ? t.scope.filter((s: unknown) => typeof s === "string")
+              : [],
           }),
         );
 
@@ -146,6 +152,7 @@ Rules:
                   description: description.trim() || title.trim(),
                   priority: "medium",
                   criteria: ["Complete the requested work"],
+                scope: [],
                 },
               ],
             }),

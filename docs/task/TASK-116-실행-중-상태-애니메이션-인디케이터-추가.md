@@ -1,7 +1,7 @@
 ---
 id: TASK-116
 title: 실행 중 상태 애니메이션 인디케이터 추가
-status: in_progress
+status: done
 branch: task/task-116
 worktree: ../repo-wt-task-116
 priority: medium
@@ -11,7 +11,7 @@ scope:
   - src/frontend/src/components/RunningIndicator.tsx
   - src/frontend/src/hooks/useRequests.ts
 created: 2026-03-24
-updated: 2026-03-24
+updated: 2026-03-24 11:02:59
 ---
 run이 실행 중일 때 상단(헤더 또는 사이드바 상단)에 스피너, 펄스 애니메이션, 또는 움직이는 아이콘을 표시하여 사용자가 작업이 진행 중임을 시각적으로 인지할 수 있도록 한다. 실행 완료 시 인디케이터가 사라지거나 완료 상태로 전환된다.
 
