@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef, useEffect, useCallback, useState } from "react";
+import { queryKeys } from "@/lib/query-keys";
 
 export type OrchestrationStatus = "idle" | "running" | "completed" | "failed";
 
@@ -19,66 +21,57 @@ type UseOrchestrationStatusResult = {
   clearFinished: () => void;
 };
 
-const POLL_INTERVAL_IDLE = 5000;
-const POLL_INTERVAL_RUNNING = 2000;
+const DEFAULT_DATA: OrchestrationStatusData = {
+  status: "idle",
+  startedAt: null,
+  finishedAt: null,
+  exitCode: null,
+  taskResults: [],
+};
+
+async function fetchOrchestrationStatus(): Promise<OrchestrationStatusData> {
+  const res = await fetch("/api/orchestrate/status");
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
 
 export function useOrchestrationStatus(): UseOrchestrationStatusResult {
-  const [data, setData] = useState<OrchestrationStatusData>({
-    status: "idle",
-    startedAt: null,
-    finishedAt: null,
-    exitCode: null,
-    taskResults: [],
-  });
-  const [justFinished, setJustFinished] = useState(false);
+  const queryClient = useQueryClient();
   const prevStatusRef = useRef<OrchestrationStatus>("idle");
+  const [justFinished, setJustFinished] = useState(false);
+
+  const { data = DEFAULT_DATA } = useQuery({
+    queryKey: queryKeys.orchestration.status(),
+    queryFn: fetchOrchestrationStatus,
+    // always fresh: staleTime 0
+    staleTime: 0,
+    // 조건부 polling: running이면 2s, idle이면 5s
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === "running") return 2_000;
+      return 5_000;
+    },
+    // 에러 시 조용히 처리
+    retry: false,
+  });
+
+  // running → completed/failed 전환 감지
+  useEffect(() => {
+    const currentStatus = data.status;
+    if (
+      prevStatusRef.current === "running" &&
+      (currentStatus === "completed" || currentStatus === "failed")
+    ) {
+      setJustFinished(true);
+      // orchestration 완료 시 costs, run-history 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: queryKeys.costs.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.runHistory.all });
+    }
+    prevStatusRef.current = currentStatus;
+  }, [data.status, queryClient]);
 
   const clearFinished = useCallback(() => {
     setJustFinished(false);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    async function poll() {
-      if (cancelled) return;
-
-      try {
-        const res = await fetch("/api/orchestrate/status");
-        if (res.ok) {
-          const json: OrchestrationStatusData = await res.json();
-          if (!cancelled) {
-            // Detect transition from running → completed/failed
-            if (
-              prevStatusRef.current === "running" &&
-              (json.status === "completed" || json.status === "failed")
-            ) {
-              setJustFinished(true);
-            }
-            prevStatusRef.current = json.status;
-            setData(json);
-          }
-        }
-      } catch {
-        // silently ignore fetch errors
-      }
-
-      if (!cancelled) {
-        const interval =
-          prevStatusRef.current === "running"
-            ? POLL_INTERVAL_RUNNING
-            : POLL_INTERVAL_IDLE;
-        timeoutId = setTimeout(poll, interval);
-      }
-    }
-
-    poll();
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-    };
   }, []);
 
   return {
