@@ -50,7 +50,7 @@ function StatusBadge({
   return (
     <Badge
       size={size}
-      className={cn(style.bg, "text-white font-semibold", className)}
+      className={cn(style.bg, style.text ?? "text-white", "font-semibold", className)}
       {...props}
     >
       {style.label}
