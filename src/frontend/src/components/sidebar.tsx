@@ -456,7 +456,7 @@ export function TaskSidebar({
   };
 
   // Show only the 10 most recently updated tasks in the sidebar
-  const recentItems = [...requestItems]
+  const recentItems = [...new Map(requestItems.map((r) => [r.id, r])).values()]
     .sort((a, b) => (b.updated ?? b.created).localeCompare(a.updated ?? a.created))
     .slice(0, 10);
 
