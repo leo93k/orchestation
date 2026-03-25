@@ -18,8 +18,9 @@ fi
 REQ_DIR="$REPO_ROOT/docs/requests"
 MAX_REVIEW_RETRY="${MAX_REVIEW_RETRY:-2}"
 MAX_PARALLEL="${MAX_PARALLEL:-3}"
-SIGNAL_DIR="/tmp/orchestrate-$$"
+SIGNAL_DIR="$REPO_ROOT/.orchestration/signals"
 mkdir -p "$SIGNAL_DIR"
+# 이전 실행의 남은 시그널 정리하지 않음 — 재시작 시 이전 done/failed 시그널 처리 가능
 
 # ── workerMode 결정 (환경변수 > config.json > 기본값 background) ──
 CONFIG_FILE="$REPO_ROOT/config.json"
