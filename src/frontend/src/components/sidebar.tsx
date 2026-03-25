@@ -482,10 +482,10 @@ export function TaskSidebar({
 
         {/* ── Docs (문서 트리) ── */}
         <div className="mb-2">
-          <div className="px-2 mb-1 flex items-center justify-between">
+          <div className="px-2 mb-1.5 flex items-center justify-between">
             <button
               type="button"
-              className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-none p-0"
+              className="flex items-center gap-1 sidebar-section-link bg-transparent border-none p-0 cursor-pointer"
               onClick={() => setDocsExpanded((v) => !v)}
             >
               {docsExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
@@ -568,11 +568,17 @@ export function TaskSidebar({
 
         {/* ── Tasks (merged from Requests) ── */}
         <div className="mb-2">
-          <div className="px-2 mb-1 flex items-center justify-between">
-            <Link href="/tasks" className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground no-underline hover:text-foreground transition-colors", currentPath === "/tasks" && "text-foreground")}>
+          <div className="sidebar-section-sep" />
+          <div className="px-2 mb-1.5 flex items-center justify-between">
+            <Link
+              href="/tasks"
+              className={cn("sidebar-section-link", currentPath.startsWith("/tasks") && "active")}
+            >
               Tasks
             </Link>
-            <span className="text-[10px] text-muted-foreground">{requestItems.length}</span>
+            <span className={cn("text-[10px] font-medium tabular-nums px-1 rounded", currentPath.startsWith("/tasks") ? "text-primary" : "text-muted-foreground")}>
+              {requestItems.length}
+            </span>
           </div>
 
           {/* In Progress tasks */}
@@ -826,14 +832,20 @@ export function TaskSidebar({
 
         {/* ── Notices ── */}
         <div className="mb-2">
-          <div className="px-2 mb-1 flex items-center justify-between">
-            <Link href="/notices" className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground no-underline hover:text-foreground transition-colors", currentPath === "/notices" && "text-foreground")}>
+          <div className="sidebar-section-sep" />
+          <div className="px-2 mb-1.5 flex items-center justify-between">
+            <Link
+              href="/notices"
+              className={cn("sidebar-section-link", currentPath === "/notices" && "active")}
+            >
               Notices
             </Link>
-            {noticeItems.filter((n) => !n.read).length > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500 text-white font-medium">
+            {noticeItems.filter((n) => !n.read).length > 0 ? (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500 text-white font-bold leading-tight">
                 {noticeItems.filter((n) => !n.read).length}
               </span>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">{noticeItems.length}</span>
             )}
           </div>
           {noticeItems.filter((n) => !n.read).slice(0, 5).map((notice) => (
@@ -856,22 +868,22 @@ export function TaskSidebar({
       </div>
 
       {/* Bottom: Cost + Terminal + Settings */}
-      <div className="border-t border-sidebar-border px-2 py-2">
+      <div className="border-t border-sidebar-border px-2 pt-2 pb-3 flex flex-col gap-0.5">
         <Link href="/cost" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/cost" && "active")}>
-          <DollarSign className="h-3.5 w-3.5" />
-          <span>Cost</span>
+          <DollarSign className="h-3.5 w-3.5 shrink-0" />
+          <span className="text-xs">Cost</span>
         </Link>
         <Link href="/monitor" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/monitor" && "active")}>
-          <Activity className="h-3.5 w-3.5" />
-          <span>Monitor</span>
+          <Activity className="h-3.5 w-3.5 shrink-0" />
+          <span className="text-xs">Monitor</span>
         </Link>
         <Link href="/terminal" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/terminal" && "active")}>
-          <SquareTerminal className="h-3.5 w-3.5" />
-          <span>Terminal</span>
+          <SquareTerminal className="h-3.5 w-3.5 shrink-0" />
+          <span className="text-xs">Terminal</span>
         </Link>
         <Link href="/settings" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/settings" && "active")}>
-          <Settings className="h-3.5 w-3.5" />
-          <span>Settings</span>
+          <Settings className="h-3.5 w-3.5 shrink-0" />
+          <span className="text-xs">Settings</span>
         </Link>
       </div>
     </div>

@@ -189,7 +189,7 @@ body {
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.1s ease;
+  transition: background-color 0.1s ease, color 0.1s ease;
   user-select: none;
 }
 
@@ -198,9 +198,37 @@ body {
 }
 
 .tree-item.active {
-  background-color: var(--sidebar-accent);
+  background-color: color-mix(in srgb, var(--primary) 14%, transparent);
   font-weight: 600;
+  color: var(--foreground);
   border-left: 2px solid var(--primary);
+  padding-left: 6px;
+}
+
+/* Sidebar section divider */
+.sidebar-section-sep {
+  border-top: 1px solid var(--sidebar-border);
+  margin: 6px 0 4px;
+}
+
+/* Sidebar section header link */
+.sidebar-section-link {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color 0.1s ease;
+  line-height: 1;
+}
+
+.sidebar-section-link:hover {
+  color: var(--foreground);
+}
+
+.sidebar-section-link.active {
+  color: var(--primary);
 }
 
 /* Right panel section */
@@ -453,9 +481,12 @@ body {
   color: var(--foreground);
   transition: background 0.1s;
 }
-.search-item:hover,
-.search-item-active {
+.search-item:hover {
   background: var(--muted);
+}
+.search-item-active {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--foreground);
 }
 .search-item-icon {
   color: var(--muted-foreground);
@@ -478,14 +509,18 @@ body {
   padding: 1px 6px;
   border-radius: 4px;
   flex-shrink: 0;
+  font-weight: 500;
 }
 .search-item-type {
   font-size: 10px;
   color: var(--muted-foreground);
   flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--muted);
 }
 .search-empty {
-  padding: 16px;
+  padding: 20px 16px;
   text-align: center;
   font-size: 12px;
   color: var(--muted-foreground);
@@ -496,6 +531,18 @@ body {
   font-size: 11px;
   color: var(--muted-foreground);
   border-top: 1px solid var(--border);
+}
+.search-group-label {
+  padding: 6px 12px 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted-foreground);
+  border-top: 1px solid var(--border);
+}
+.search-group-label:first-child {
+  border-top: none;
 }
 
 /* ── Board View (Kanban) ──────────────────────────────── */
