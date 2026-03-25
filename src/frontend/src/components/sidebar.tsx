@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   ChevronDown,
   ChevronRight,
-  ClipboardList,
   DollarSign,
   SquareTerminal,
   Settings,
@@ -23,17 +22,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
-import { StatusBadge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import type { WaterfallGroup } from "@/types/waterfall";
-import {
-  STATUS_STYLES,
-  type TaskStatus,
-} from "../../lib/constants";
 import type { DocNode } from "@/hooks/useDocTree";
 import { STATUS_DOT } from "@/app/tasks/constants";
-import type { RequestItem } from "@/hooks/useRequests";
-import type { NoticeItem } from "@/hooks/useNotices";
+import { useTasksStore } from "@/store/tasksStore";
+import { useNoticesStore } from "@/store/noticesStore";
 
 /* ── Types ── */
 
@@ -41,22 +35,7 @@ export type SidebarFilter =
   | { type: "all" }
   | { type: "prd"; prdId: string }
   | { type: "sprint"; sprintId: string }
-  | { type: "status"; status: TaskStatus };
-
-type NavItem = {
-  label: string;
-  icon: React.ReactNode;
-  href: string;
-};
-
-const pageNavItems: NavItem[] = [
-  { label: "Task", icon: <ClipboardList className="h-3.5 w-3.5" />, href: "/" },
-  { label: "Cost", icon: <DollarSign className="h-3.5 w-3.5" />, href: "/cost" },
-  { label: "Monitor", icon: <Activity className="h-3.5 w-3.5" />, href: "/monitor" },
-  { label: "Terminal", icon: <SquareTerminal className="h-3.5 w-3.5" />, href: "/terminal" },
-];
-
-/* ── Sidebar for IDE Task page ── */
+  | { type: "status"; status: string };
 
 export interface PrdInfo {
   id: string;
@@ -66,21 +45,24 @@ export interface PrdInfo {
 }
 
 type TaskSidebarProps = {
-  groups: WaterfallGroup[];
+  groups?: WaterfallGroup[];
   prds: PrdInfo[];
   docTree: DocNode[];
-  filter: SidebarFilter;
-  onFilterChange: (filter: SidebarFilter) => void;
-  onDocCreate?: (title: string, type: "doc" | "folder", parentId?: string | null) => Promise<void>;
+  filter?: SidebarFilter;
+  onFilterChange?: (filter: SidebarFilter) => void;
+  onDocCreate?: (
+    title: string,
+    type: "doc" | "folder",
+    parentId?: string | null,
+  ) => Promise<void>;
   onDocDelete?: (id: string) => Promise<void>;
   onDocRename?: (id: string, title: string) => Promise<void>;
-  onDocReorder?: (nodeId: string, targetParentId: string | null, position: number) => Promise<void>;
+  onDocReorder?: (
+    nodeId: string,
+    targetParentId: string | null,
+    position: number,
+  ) => Promise<void>;
   onDocReorderError?: (error: unknown) => void;
-  requestItems?: RequestItem[];
-  onNewTask?: (title: string, content: string) => Promise<void>;
-  onStopTask?: (id: string) => Promise<void>;
-  noticeItems?: NoticeItem[];
-  currentPath?: string;
 };
 
 /* ── Inline rename input ── */
@@ -186,15 +168,25 @@ function DocTreeNode({
   toggleFolder: (id: string) => void;
   onDelete?: (id: string) => Promise<void>;
   onRename?: (id: string, title: string) => Promise<void>;
-  onCreate?: (title: string, type: "doc" | "folder", parentId?: string | null) => Promise<void>;
-  onReorder?: (nodeId: string, targetParentId: string | null, position: number) => Promise<void>;
+  onCreate?: (
+    title: string,
+    type: "doc" | "folder",
+    parentId?: string | null,
+  ) => Promise<void>;
+  onReorder?: (
+    nodeId: string,
+    targetParentId: string | null,
+    position: number,
+  ) => Promise<void>;
   onReorderError?: (error: unknown) => void;
 }) {
   const { addToast } = useToast();
   const [isRenaming, setIsRenaming] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [newItemType, setNewItemType] = useState<"doc" | "folder" | null>(null);
-  const [dragOver, setDragOver] = useState<"above" | "inside" | "below" | null>(null);
+  const [dragOver, setDragOver] = useState<
+    "above" | "inside" | "below" | null
+  >(null);
   const isFolder = node.type === "folder";
   const isExpanded = expandedFolders.has(node.id);
   const isActive = currentPath === `/docs/${node.id}`;
@@ -261,7 +253,6 @@ function DocTreeNode({
     } catch (err) {
       console.error("Reorder failed:", err);
       addToast("문서 순서 변경에 실패했습니다.", "error");
-      // Delegate to parent for state rollback/refetch
       onReorderError?.(err);
     } finally {
       setDragOver(null);
@@ -270,13 +261,14 @@ function DocTreeNode({
 
   const paddingLeft = 8 + depth * 12;
 
-  const dropIndicator = dragOver === "above"
-    ? "border-t-2 border-primary"
-    : dragOver === "below"
-    ? "border-b-2 border-primary"
-    : dragOver === "inside"
-    ? "bg-primary/20 ring-1 ring-primary/40 rounded"
-    : "";
+  const dropIndicator =
+    dragOver === "above"
+      ? "border-t-2 border-primary"
+      : dragOver === "below"
+        ? "border-b-2 border-primary"
+        : dragOver === "inside"
+          ? "bg-primary/20 ring-1 ring-primary/40 rounded"
+          : "";
 
   return (
     <div>
@@ -300,7 +292,11 @@ function DocTreeNode({
               type="button"
               className="shrink-0 p-0 bg-transparent border-none cursor-pointer text-muted-foreground"
             >
-              {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              {isExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
             </button>
             {isExpanded ? (
               <FolderOpen className="h-3 w-3 text-primary shrink-0" />
@@ -320,7 +316,10 @@ function DocTreeNode({
         ) : (
           <Link
             href={`/docs/${node.id}`}
-            className={cn("tree-item no-underline text-sidebar-foreground", isActive && "active")}
+            className={cn(
+              "tree-item no-underline text-sidebar-foreground",
+              isActive && "active",
+            )}
             style={{ paddingLeft }}
             draggable={false}
           >
@@ -346,7 +345,11 @@ function DocTreeNode({
                   type="button"
                   title="New document"
                   className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
-                  onClick={(e) => { e.stopPropagation(); setNewItemType("doc"); if (!isExpanded) toggleFolder(node.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNewItemType("doc");
+                    if (!isExpanded) toggleFolder(node.id);
+                  }}
                 >
                   <FileText className="h-2.5 w-2.5" />
                 </button>
@@ -354,7 +357,11 @@ function DocTreeNode({
                   type="button"
                   title="New folder"
                   className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
-                  onClick={(e) => { e.stopPropagation(); setNewItemType("folder"); if (!isExpanded) toggleFolder(node.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNewItemType("folder");
+                    if (!isExpanded) toggleFolder(node.id);
+                  }}
                 >
                   <Folder className="h-2.5 w-2.5" />
                 </button>
@@ -364,7 +371,11 @@ function DocTreeNode({
               type="button"
               title="Rename"
               className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setIsRenaming(true); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setIsRenaming(true);
+              }}
             >
               <Pencil className="h-2.5 w-2.5" />
             </button>
@@ -372,7 +383,11 @@ function DocTreeNode({
               type="button"
               title="Delete"
               className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-red-400"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleDelete(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleDelete();
+              }}
             >
               <Trash2 className="h-2.5 w-2.5" />
             </button>
@@ -414,29 +429,33 @@ function DocTreeNode({
 }
 
 export function TaskSidebar({
-  groups,
   prds,
   docTree,
-  filter,
-  onFilterChange,
   onDocCreate,
   onDocDelete,
   onDocRename,
   onDocReorder,
   onDocReorderError,
-  requestItems = [],
-  onStopTask,
-  noticeItems = [],
-  currentPath = "/",
 }: TaskSidebarProps) {
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const currentPath = usePathname();
+
+  // Store에서 직접 구독 (prop drilling 제거)
+  const requestItems = useTasksStore((s) => s.requests);
+  const noticeItems = useNoticesStore((s) => s.notices);
+  const stopTask = useTasksStore((s) => s.stopTask);
+  const createRequest = useTasksStore((s) => s.createRequest);
+
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+    new Set(),
+  );
   const [docsExpanded, setDocsExpanded] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [noticesExpanded, setNoticesExpanded] = useState(true);
-  const [newRootItemType, setNewRootItemType] = useState<"doc" | "folder" | null>(null);
+  const [newRootItemType, setNewRootItemType] = useState<
+    "doc" | "folder" | null
+  >(null);
   const [showNewMenu, setShowNewMenu] = useState(false);
   const [stoppingTaskId, setStoppingTaskId] = useState<string | null>(null);
-  // showNewTaskForm, newTaskTitle, newTaskContent removed - now using /tasks/new page
 
   const toggleFolder = useCallback((id: string) => {
     setExpandedFolders((prev) => {
@@ -456,25 +475,29 @@ export function TaskSidebar({
 
   // Show only the 10 most recently updated tasks in the sidebar
   const recentItems = [...requestItems]
-    .sort((a, b) => (b.updated ?? b.created).localeCompare(a.updated ?? a.created))
+    .sort((a, b) =>
+      (b.updated ?? b.created).localeCompare(a.updated ?? a.created),
+    )
     .slice(0, 10);
 
-  // Group recent items by status for sidebar display
-
-  // Display task ID as TASK-XXX in UI
   const displayTaskId = (id: string) => id;
 
   return (
     <div className="ide-sidebar flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center px-3 h-10 border-b border-sidebar-border shrink-0">
-        <Link href="/" className="text-sm font-semibold text-sidebar-foreground no-underline hover:text-primary transition-colors">
+        <Link
+          href="/"
+          className="text-sm font-semibold text-sidebar-foreground no-underline hover:text-primary transition-colors"
+        >
           Home
         </Link>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-2" style={{ scrollbarWidth: "none" }}>
-
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-2"
+        style={{ scrollbarWidth: "none" }}
+      >
         {/* ── Docs (문서 트리) ── */}
         <div className="mb-2">
           <div className="px-2 mb-1 flex items-center justify-between">
@@ -483,11 +506,17 @@ export function TaskSidebar({
               className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-none p-0"
               onClick={() => setDocsExpanded((v) => !v)}
             >
-              {docsExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              {docsExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
               Docs
             </button>
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-muted-foreground">{docTree.length}</span>
+              <span className="text-[10px] text-muted-foreground">
+                {docTree.length}
+              </span>
               {docsExpanded && (
                 <div className="relative">
                   <button
@@ -503,7 +532,10 @@ export function TaskSidebar({
                       <button
                         type="button"
                         className="w-full text-left px-3 py-1 text-xs hover:bg-sidebar-accent flex items-center gap-2"
-                        onClick={() => { setNewRootItemType("doc"); setShowNewMenu(false); }}
+                        onClick={() => {
+                          setNewRootItemType("doc");
+                          setShowNewMenu(false);
+                        }}
                       >
                         <FileText className="h-3 w-3" />
                         New Document
@@ -511,7 +543,10 @@ export function TaskSidebar({
                       <button
                         type="button"
                         className="w-full text-left px-3 py-1 text-xs hover:bg-sidebar-accent flex items-center gap-2"
-                        onClick={() => { setNewRootItemType("folder"); setShowNewMenu(false); }}
+                        onClick={() => {
+                          setNewRootItemType("folder");
+                          setShowNewMenu(false);
+                        }}
                       >
                         <Folder className="h-3 w-3" />
                         New Folder
@@ -524,7 +559,12 @@ export function TaskSidebar({
           </div>
 
           {/* Collapsible doc tree content */}
-          <div className={cn("sidebar-collapsible", docsExpanded && "sidebar-collapsible-open")}>
+          <div
+            className={cn(
+              "sidebar-collapsible",
+              docsExpanded && "sidebar-collapsible-open",
+            )}
+          >
             <div className="sidebar-collapsible-inner">
               {/* New root item input */}
               {newRootItemType && (
@@ -569,10 +609,22 @@ export function TaskSidebar({
               className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-none p-0"
               onClick={() => setTasksExpanded((v) => !v)}
             >
-              {tasksExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-              <Link href="/tasks" className={cn("no-underline text-inherit")} onClick={(e) => e.stopPropagation()}>Tasks</Link>
+              {tasksExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              <Link
+                href="/tasks"
+                className={cn("no-underline text-inherit")}
+                onClick={(e) => e.stopPropagation()}
+              >
+                Tasks
+              </Link>
             </button>
-            <span className="text-[10px] text-muted-foreground">{requestItems.length}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {requestItems.length}
+            </span>
           </div>
 
           {tasksExpanded && (
@@ -584,17 +636,33 @@ export function TaskSidebar({
                   <div key={task.id} className="group relative">
                     <Link
                       href={`/tasks/${taskDisplayId}`}
-                      className={cn("tree-item w-full text-left no-underline text-sidebar-foreground", isInProgress && "pr-7", currentPath === `/tasks/${taskDisplayId}` && "active")}
+                      className={cn(
+                        "tree-item w-full text-left no-underline text-sidebar-foreground",
+                        isInProgress && "pr-7",
+                        currentPath === `/tasks/${taskDisplayId}` && "active",
+                      )}
                     >
                       {isInProgress ? (
                         <span className="w-3 h-3 shrink-0 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        <span className={cn("w-2 h-2 rounded-full shrink-0", STATUS_DOT[task.status] || "bg-gray-400")} />
+                        <span
+                          className={cn(
+                            "w-2 h-2 rounded-full shrink-0",
+                            STATUS_DOT[task.status] || "bg-gray-400",
+                          )}
+                        />
                       )}
-                      <span className={cn("truncate flex-1 text-xs", task.status === "done" && "text-muted-foreground")}>{taskDisplayId} {task.title}</span>
+                      <span
+                        className={cn(
+                          "truncate flex-1 text-xs",
+                          task.status === "done" && "text-muted-foreground",
+                        )}
+                      >
+                        {taskDisplayId} {task.title}
+                      </span>
                     </Link>
-                    {isInProgress && onStopTask && (
-                      stoppingTaskId === task.id ? (
+                    {isInProgress &&
+                      (stoppingTaskId === task.id ? (
                         <span className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-red-400">
                           <Loader2 className="h-2.5 w-2.5 animate-spin" />
                         </span>
@@ -605,14 +673,17 @@ export function TaskSidebar({
                           onClick={async (e) => {
                             e.stopPropagation();
                             setStoppingTaskId(task.id);
-                            try { await onStopTask(task.id); } finally { setStoppingTaskId(null); }
+                            try {
+                              await stopTask(task.id);
+                            } finally {
+                              setStoppingTaskId(null);
+                            }
                           }}
                           className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-red-500/15 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <Square className="h-2.5 w-2.5" />
                         </button>
-                      )
-                    )}
+                      ))}
                   </div>
                 );
               })}
@@ -620,7 +691,10 @@ export function TaskSidebar({
               {/* More tasks link */}
               <Link
                 href="/tasks"
-                className={cn("tree-item w-full text-left text-muted-foreground hover:text-foreground no-underline", currentPath === "/tasks" && "active")}
+                className={cn(
+                  "tree-item w-full text-left text-muted-foreground hover:text-foreground no-underline",
+                  currentPath === "/tasks" && "active",
+                )}
               >
                 <span className="text-xs">more tasks →</span>
               </Link>
@@ -642,10 +716,22 @@ export function TaskSidebar({
               className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-none p-0"
               onClick={() => setNoticesExpanded((v) => !v)}
             >
-              {noticesExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-              <Link href="/notices" className={cn("no-underline text-inherit")} onClick={(e) => e.stopPropagation()}>Notices</Link>
+              {noticesExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              <Link
+                href="/notices"
+                className={cn("no-underline text-inherit")}
+                onClick={(e) => e.stopPropagation()}
+              >
+                Notices
+              </Link>
             </button>
-            <span className="text-[10px] text-muted-foreground">{noticeItems.length}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {noticeItems.length}
+            </span>
           </div>
 
           {noticesExpanded && (
@@ -654,14 +740,30 @@ export function TaskSidebar({
                 <Link
                   key={notice.id}
                   href="/notices"
-                  className={cn("tree-item w-full text-left no-underline text-sidebar-foreground")}
+                  className={cn(
+                    "tree-item w-full text-left no-underline text-sidebar-foreground",
+                  )}
                 >
-                  <Bell className={cn("h-3 w-3 shrink-0", notice.read ? "text-muted-foreground" : "text-primary")} />
-                  <span className={cn("truncate flex-1 text-xs", !notice.read && "font-medium")}>{notice.title}</span>
+                  <Bell
+                    className={cn(
+                      "h-3 w-3 shrink-0",
+                      notice.read ? "text-muted-foreground" : "text-primary",
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "truncate flex-1 text-xs",
+                      !notice.read && "font-medium",
+                    )}
+                  >
+                    {notice.title}
+                  </span>
                 </Link>
               ))}
               {noticeItems.length === 0 && (
-                <div className="px-2 py-1 text-[11px] text-muted-foreground">No notices</div>
+                <div className="px-2 py-1 text-[11px] text-muted-foreground">
+                  No notices
+                </div>
               )}
             </>
           )}
@@ -670,19 +772,43 @@ export function TaskSidebar({
 
       {/* Bottom: Cost + Terminal + Settings */}
       <div className="border-t border-sidebar-border px-2 py-2">
-        <Link href="/cost" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/cost" && "active")}>
+        <Link
+          href="/cost"
+          className={cn(
+            "tree-item text-sidebar-foreground no-underline",
+            currentPath === "/cost" && "active",
+          )}
+        >
           <DollarSign className="h-3.5 w-3.5" />
           <span>Cost</span>
         </Link>
-        <Link href="/monitor" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/monitor" && "active")}>
+        <Link
+          href="/monitor"
+          className={cn(
+            "tree-item text-sidebar-foreground no-underline",
+            currentPath === "/monitor" && "active",
+          )}
+        >
           <Activity className="h-3.5 w-3.5" />
           <span>Monitor</span>
         </Link>
-        <Link href="/terminal" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/terminal" && "active")}>
+        <Link
+          href="/terminal"
+          className={cn(
+            "tree-item text-sidebar-foreground no-underline",
+            currentPath === "/terminal" && "active",
+          )}
+        >
           <SquareTerminal className="h-3.5 w-3.5" />
           <span>Terminal</span>
         </Link>
-        <Link href="/settings" className={cn("tree-item text-sidebar-foreground no-underline", currentPath === "/settings" && "active")}>
+        <Link
+          href="/settings"
+          className={cn(
+            "tree-item text-sidebar-foreground no-underline",
+            currentPath === "/settings" && "active",
+          )}
+        >
           <Settings className="h-3.5 w-3.5" />
           <span>Settings</span>
         </Link>
@@ -693,13 +819,26 @@ export function TaskSidebar({
 
 /* ── Simple sidebar for non-Task pages ── */
 
+const pageNavItems = [
+  {
+    label: "Task",
+    icon: null,
+    href: "/",
+  },
+  { label: "Cost", href: "/cost" },
+  { label: "Monitor", href: "/monitor" },
+  { label: "Terminal", href: "/terminal" },
+];
+
 export function PageSidebar() {
   const pathname = usePathname();
 
   return (
     <aside className="flex h-screen w-48 flex-col border-r border-sidebar-border bg-sidebar">
       <div className="px-3 py-3">
-        <h1 className="text-sm font-semibold text-sidebar-foreground">Dashboard</h1>
+        <h1 className="text-sm font-semibold text-sidebar-foreground">
+          Dashboard
+        </h1>
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 px-2">
         {pageNavItems.map((item) => {
@@ -717,7 +856,6 @@ export function PageSidebar() {
                 isActive && "active",
               )}
             >
-              {item.icon}
               <span>{item.label}</span>
             </Link>
           );

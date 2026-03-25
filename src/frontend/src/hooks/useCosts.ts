@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import type { CostData } from "@/lib/cost-parser";
+import { useOrchestrationStore } from "@/store/orchestrationStore";
 
 type UseCostsResult = {
   data: CostData | null;
@@ -16,6 +17,9 @@ export function useCosts(): UseCostsResult {
   const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
+  // Orchestration 상태는 store에서 구독 (중복 polling 제거)
+  const isRunning = useOrchestrationStore((s) => s.isRunning);
+
   const refetch = useCallback(() => {
     setFetchKey((k) => k + 1);
   }, []);
@@ -26,13 +30,8 @@ export function useCosts(): UseCostsResult {
     async function fetchData() {
       try {
         const res = await fetch("/api/costs");
-
-        if (!res.ok) {
-          throw new Error("비용 데이터를 불러오는데 실패했습니다.");
-        }
-
+        if (!res.ok) throw new Error("비용 데이터를 불러오는데 실패했습니다.");
         const costData: CostData = await res.json();
-
         if (!cancelled) {
           setData(costData);
           setError(null);
@@ -40,9 +39,7 @@ export function useCosts(): UseCostsResult {
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error
-              ? err.message
-              : "알 수 없는 오류가 발생했습니다.",
+            err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.",
           );
         }
       } finally {
@@ -59,21 +56,13 @@ export function useCosts(): UseCostsResult {
     };
   }, [fetchKey]);
 
-  // Auto-poll when orchestration is running (every 5s)
+  // Orchestration이 running 상태일 때 5초마다 자동 갱신
+  // (orchestrate/status polling은 store에서 이미 수행 중이므로 직접 호출하지 않음)
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetch("/api/orchestrate/status")
-        .then((res) => res.json())
-        .then((statusData) => {
-          if (statusData.status === "running") {
-            refetch();
-          }
-        })
-        .catch(() => {});
-    }, 5000);
-
+    if (!isRunning) return;
+    const interval = setInterval(refetch, 5000);
     return () => clearInterval(interval);
-  }, [refetch]);
+  }, [isRunning, refetch]);
 
   return { data, isLoading, error, refetch };
 }

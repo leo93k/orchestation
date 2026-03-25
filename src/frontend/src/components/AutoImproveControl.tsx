@@ -1,46 +1,39 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Play, Square, Loader2 } from "lucide-react";
 import { HorseRunningIndicator } from "@/components/HorseRunningIndicator";
+import { useOrchestrationStore } from "@/store/orchestrationStore";
 
-type RunStatus = "idle" | "running" | "stopping" | "completed" | "failed";
-
-export default function AutoImproveControl({ hasRunningTasks = false }: { hasRunningTasks?: boolean } = {}) {
-  const [status, setStatus] = useState<RunStatus>("idle");
+export default function AutoImproveControl({
+  hasRunningTasks = false,
+}: {
+  hasRunningTasks?: boolean;
+} = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isStopping, setIsStopping] = useState(false);
 
-  const prevStatusRef = useRef<RunStatus>("idle");
-  const fetchStatus = useCallback(async () => {
-    try {
-      const res = await fetch("/api/orchestrate/status");
-      if (res.ok) {
-        const data = await res.json();
-        // running → failed 전환 감지 시 에러 표시
-        if (prevStatusRef.current === "running" && data.status === "failed") {
-          setError(`실행 실패 (exit code: ${data.exitCode ?? "unknown"})`);
-        }
-        prevStatusRef.current = data.status;
-        // stopping 중이면 실제 종료될 때까지 상태 유지
-        // 같은 상태면 setState 호출 자체를 건너뛰어 불필요한 리렌더 방지
-        setStatus((prev) => {
-          if (prev === "stopping" && data.status === "running") return prev;
-          if (prev === data.status) return prev;
-          return data.status;
-        });
-      }
-    } catch {
-      // silently ignore polling errors
-    }
-  }, []);
+  // Orchestration 상태를 store에서 직접 구독 (별도 polling 제거)
+  const orchestrationStatus = useOrchestrationStore((s) => s.data.status);
+  const exitCode = useOrchestrationStore((s) => s.data.exitCode);
 
+  const isRunning =
+    orchestrationStatus === "running" || hasRunningTasks;
+
+  // isStopping 해제: orchestration이 실제로 멈추면 stopping 상태 해제
   useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 2000);
-    return () => clearInterval(interval);
-  }, [fetchStatus]);
+    if (isStopping && orchestrationStatus !== "running") {
+      setIsStopping(false);
+    }
+  }, [isStopping, orchestrationStatus]);
+
+  const status = isStopping ? "stopping" : orchestrationStatus;
+
+  // failed 상태일 때 에러 메시지 표시
+  const showError =
+    orchestrationStatus === "failed" && exitCode != null && !isStopping;
 
   const handleRun = async () => {
     setLoading(true);
@@ -50,9 +43,8 @@ export default function AutoImproveControl({ hasRunningTasks = false }: { hasRun
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Failed to start");
-      } else {
-        setStatus("running");
       }
+      // store의 polling이 상태를 자동으로 업데이트함
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
     } finally {
@@ -62,22 +54,20 @@ export default function AutoImproveControl({ hasRunningTasks = false }: { hasRun
 
   const handleStop = async () => {
     setError(null);
-    setStatus("stopping");
+    setIsStopping(true);
     try {
       const res = await fetch("/api/orchestrate/stop", { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Failed to stop");
-        setStatus("running");
+        setIsStopping(false);
       }
-      // polling이 실제 종료 감지하면 idle로 전환
+      // store의 polling이 실제 종료 감지하면 상태가 idle로 전환됨
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
-      setStatus("running");
+      setIsStopping(false);
     }
   };
-
-  const isRunning = status === "running" || hasRunningTasks;
 
   return (
     <div className="flex items-center gap-3">
@@ -95,7 +85,7 @@ export default function AutoImproveControl({ hasRunningTasks = false }: { hasRun
             disabled={loading}
             className={cn(
               "filter-pill flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300",
-              loading && "opacity-50 cursor-not-allowed"
+              loading && "opacity-50 cursor-not-allowed",
             )}
           >
             <Square className="h-3 w-3" />
@@ -109,7 +99,7 @@ export default function AutoImproveControl({ hasRunningTasks = false }: { hasRun
           disabled={loading}
           className={cn(
             "filter-pill active flex items-center gap-1.5 text-xs",
-            loading && "opacity-50 cursor-not-allowed"
+            loading && "opacity-50 cursor-not-allowed",
           )}
         >
           <Play className="h-3 w-3" />
@@ -117,9 +107,12 @@ export default function AutoImproveControl({ hasRunningTasks = false }: { hasRun
         </button>
       )}
 
-      {error && (
-        <span className="text-xs text-red-500">{error}</span>
+      {showError && (
+        <span className="text-xs text-red-500">
+          실행 실패 (exit code: {exitCode ?? "unknown"})
+        </span>
       )}
+      {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   );
 }
