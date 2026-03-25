@@ -173,7 +173,7 @@ scope:
 
 이슈를 찾지 못했으면 NOT_FOUND 라고만 출력하세요."
 
-  log "🔍 스캔 시작: $scan_type (${task_id})"
+  log "🔍 스캔 시작: $scan_type → 발견 시 ${task_id}로 생성"
   log "   프롬프트 길이: $(echo "$prompt" | wc -c | tr -d ' ')자"
 
   local output_file="$LOG_DIR/night-worker-scan-${task_id}.json"
