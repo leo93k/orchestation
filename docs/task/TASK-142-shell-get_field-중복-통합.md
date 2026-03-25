@@ -1,7 +1,7 @@
 ---
 id: TASK-142
 title: shell get_field() 중복 구현 통합
-status: in_progress
+status: done
 branch: task/task-142
 worktree: ../repo-wt-task-142
 priority: medium
