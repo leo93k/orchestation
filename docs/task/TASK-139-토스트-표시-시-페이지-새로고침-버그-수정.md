@@ -1,7 +1,7 @@
 ---
 id: TASK-139
 title: 토스트 표시 시 페이지 새로고침 버그 수정
-status: in_progress
+status: done
 branch: task/task-139
 worktree: ../repo-wt-task-139
 priority: high
