@@ -1,7 +1,7 @@
 ---
 id: TASK-124
 title: 상태 관리, 컨텍스트, 데이터 흐름 분석
-status: in_progress
+status: done
 branch: task/task-124
 worktree: ../repo-wt-task-124
 priority: high
