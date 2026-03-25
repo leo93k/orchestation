@@ -693,7 +693,24 @@ button.timeline-task-label:hover {
   animation: dag-active-pulse 2s ease-in-out infinite;
 }
 
-/* Toast slide-in animation */
+/* Toast viewport - promoted to own compositing layer to prevent page repaints */
+.toast-viewport {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+  /* Create isolated compositing layer — prevents toast mutations from
+     triggering repaints/reflows on the rest of the page */
+  isolation: isolate;
+  transform: translateZ(0);
+  contain: layout style;
+}
+
+/* Toast slide-in animation — use transform only (GPU-composited) */
 @keyframes toast-slide-in {
   from {
     transform: translateX(100%);
@@ -718,4 +735,20 @@ button.timeline-task-label:hover {
 .horse-bounce {
   display: inline-block;
   animation: horse-bounce 0.4s ease-in-out infinite;
+}
+
+/* Toast slide-out animation — use transform only (GPU-composited) */
+@keyframes toast-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.toast-slide-out {
+  animation: toast-slide-out 0.25s ease-in forwards;
 }
