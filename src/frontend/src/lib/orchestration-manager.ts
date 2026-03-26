@@ -32,6 +32,10 @@ export interface OrchestrationState {
 
 class OrchestrationManager {
   private process: ChildProcess | null = null;
+  private pid: number | null = null;        // OS PID — source of truth
+  private currentRunId = 0;                  // 세대 관리 — stale 콜백 무시
+  private launching = false;
+
   private state: OrchestrationState = {
     status: "idle",
     startedAt: null,
@@ -45,104 +49,63 @@ class OrchestrationManager {
     this.cleanupZombies();
   }
 
-  /** 서버 시작 시 좀비 in_progress 태스크 정리 */
-  private cleanupZombies() {
-    try {
-      const projectRoot = path.resolve(process.cwd(), "..", "..");
-      const tasksDir = path.join(projectRoot, ".orchestration", "tasks");
-      if (!fs.existsSync(tasksDir)) return;
+  // ── Source of Truth: OS 프로세스 생존 여부 ──────────────
 
-      const files = fs.readdirSync(tasksDir).filter((f) => f.endsWith(".md"));
-      let cleaned = 0;
+  /**
+   * 상태를 읽을 때마다 OS 실제 상태와 동기화.
+   * this.state.status가 아니라 "PID가 살아있는가"가 진실.
+   */
+  private reconcileStateWithOS() {
+    if (this.state.status !== "running" || this.launching) return;
 
-      for (const file of files) {
-        const filePath = path.join(tasksDir, file);
-        const content = fs.readFileSync(filePath, "utf-8");
-        if (!content.includes("status: in_progress")) continue;
-
-        // PID 파일 체크: 워커가 실제로 살아있는지
-        const idMatch = file.match(/^(TASK-\d+)/);
-        if (!idMatch) continue;
-        const taskId = idMatch[1];
-        const pidFile = `/tmp/worker-${taskId}.pid`;
-
-        // 1) PID 파일로 체크
-        let alive = false;
-        if (fs.existsSync(pidFile)) {
-          try {
-            const pid = parseInt(fs.readFileSync(pidFile, "utf-8").trim(), 10);
-            if (!isNaN(pid)) {
-              execSync(`kill -0 ${pid}`, { stdio: "ignore" });
-              alive = true;
-            }
-          } catch {
-            try { fs.unlinkSync(pidFile); } catch { /* ignore */ }
-          }
-        }
-
-        // 2) PID 파일 없어도 pgrep으로 실제 프로세스 확인 (PID 파일만 정리된 경우)
-        if (!alive) {
-          try {
-            const result = execSync(`pgrep -f "job-task.sh ${taskId}|job-review.sh ${taskId}" 2>/dev/null || true`, { encoding: "utf-8" }).trim();
-            if (result) {
-              alive = true;
-              console.log(`[orchestrate] ${taskId}: PID 파일 없으나 프로세스 생존 확인 → in_progress 유지`);
-            }
-          } catch { /* ignore */ }
-        }
-
-        if (!alive) {
-          const updated = content.replace("status: in_progress", "status: stopped");
-          fs.writeFileSync(filePath, updated);
-          cleaned++;
-          console.log(`[orchestrate] zombie cleanup: ${taskId} in_progress → stopped`);
-        }
+    // 1) PID가 있으면 OS 레벨 생존 확인
+    if (this.pid) {
+      try {
+        process.kill(this.pid, 0); // signal 0 = 생존 확인만
+        return; // 살아있음 → running 유지
+      } catch {
+        // ESRCH = 프로세스 없음 → 죽었는데 Node.js가 모르는 상태
+        this.handleProcessDeath("OS 레벨에서 프로세스 사라짐 (pid=" + this.pid + ")");
+        return;
       }
+    }
 
-      if (cleaned > 0) {
-        console.log(`[orchestrate] ${cleaned}개 좀비 태스크 정리 완료`);
-      }
+    // 2) PID 없으면 running일 수 없음
+    if (!this.process) {
+      this.handleProcessDeath("process 객체 없음, pid 없음");
+      return;
+    }
 
-      // stale lock 정리
-      const lockDir = "/tmp/orchestrate.lock";
-      if (fs.existsSync(lockDir)) {
-        const pidFile = path.join(lockDir, "pid");
-        if (fs.existsSync(pidFile)) {
-          try {
-            const pid = parseInt(fs.readFileSync(pidFile, "utf-8").trim(), 10);
-            execSync(`kill -0 ${pid}`, { stdio: "ignore" });
-            // 살아있으면 건드리지 않음
-          } catch {
-            // 죽어있으면 lock 제거
-            fs.rmSync(lockDir, { recursive: true, force: true });
-            console.log("[orchestrate] stale lock 제거");
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("[orchestrate] zombie cleanup error:", err);
+    // 3) process 객체는 있는데 PID가 없는 비정상 상태
+    if (this.process.exitCode !== null || this.process.killed) {
+      this.handleProcessDeath("process.exitCode/killed 감지");
     }
   }
 
+  /**
+   * 프로세스 종료 통합 처리.
+   * 어디서 호출되든 동일한 종료 로직.
+   */
+  private handleProcessDeath(reason: string) {
+    if (this.state.status !== "running" && this.state.status !== "idle") return; // 이미 종료됨
+    this.appendLog(`[orchestrate] 프로세스 종료 감지: ${reason}`);
+    this.state.status = "failed";
+    this.state.finishedAt = this.state.finishedAt ?? new Date().toISOString();
+    this.state.exitCode = this.state.exitCode ?? 1;
+    this.process = null;
+    this.pid = null;
+    this.saveRunHistory();
+  }
+
+  // ── Public API ─────────────────────────────────────────
+
   getState(): OrchestrationState {
-    this.getStatus(); // status 동기화
+    this.reconcileStateWithOS();
     return { ...this.state, logs: [...this.state.logs], taskResults: [...this.state.taskResults] };
   }
 
   getStatus(): OrchestrationStatus {
-    // process 객체가 있는데 실제로 죽어있으면 즉시 갱신
-    if (this.state.status === "running" && this.process) {
-      if (this.process.exitCode !== null || this.process.killed) {
-        this.state.status = "failed";
-        this.state.finishedAt = new Date().toISOString();
-        this.process = null;
-      }
-    }
-    // process 없는데 running이면 보정
-    if (this.state.status === "running" && !this.process && !this.launching) {
-      this.state.status = "failed";
-      this.state.finishedAt = new Date().toISOString();
-    }
+    this.reconcileStateWithOS();
     return this.state.status;
   }
 
@@ -154,36 +117,35 @@ class OrchestrationManager {
     return this.getStatus() === "running";
   }
 
-  private launching = false;
+  // ── Run ────────────────────────────────────────────────
 
   run(): { success: boolean; error?: string } {
     if (this.isRunning() || this.launching) {
       return { success: false, error: "Orchestration is already running" };
     }
 
-    // 이중 체크: lock 파일 + PID 생존 확인
+    // lock 파일 + PID 생존으로 중복 체크
     const lockPidFile = "/tmp/orchestrate.lock/pid";
     if (fs.existsSync(lockPidFile)) {
       try {
         const lockPid = parseInt(fs.readFileSync(lockPidFile, "utf-8").trim(), 10);
         if (!isNaN(lockPid)) {
-          execSync(`kill -0 ${lockPid}`, { stdio: "ignore" });
+          process.kill(lockPid, 0); // 살아있는지 확인
           return { success: false, error: "orchestrate.sh가 이미 실행 중입니다" };
         }
       } catch {
-        // lock PID가 죽어있음 → lock 제거하고 진행
+        // 죽어있음 → lock 제거
         fs.rmSync("/tmp/orchestrate.lock", { recursive: true, force: true });
       }
     }
 
     this.launching = true;
+    const runId = ++this.currentRunId;
 
-    // Resolve orchestrate.sh path relative to project root
-    // The frontend is at src/frontend, so project root is ../../
     const projectRoot = path.resolve(process.cwd(), "..", "..");
     const scriptPath = path.join(projectRoot, "scripts", "orchestrate.sh");
 
-    // Reset state
+    // 상태 리셋
     this.state = {
       status: "running",
       startedAt: new Date().toISOString(),
@@ -193,7 +155,7 @@ class OrchestrationManager {
       exitCode: null,
     };
 
-    this.appendLog(`[orchestrate] Starting orchestrate.sh at ${this.state.startedAt}`);
+    this.appendLog(`[orchestrate] Starting orchestrate.sh (runId=${runId})`);
     this.appendLog(`[orchestrate] Script: ${scriptPath}`);
     this.appendLog(`[orchestrate] CWD: ${projectRoot}`);
 
@@ -216,44 +178,61 @@ class OrchestrationManager {
       this.state.finishedAt = new Date().toISOString();
       this.state.exitCode = 1;
       this.process = null;
+      this.pid = null;
       this.launching = false;
       return { success: false, error: msg };
     }
 
+    this.pid = this.process.pid ?? null;
     this.launching = false;
     const proc = this.process;
 
+    this.appendLog(`[orchestrate] PID: ${this.pid}`);
+
     pipeProcessLogs(proc, (line) => this.appendLog(line), (line) => this.parseTaskResult(line));
 
+    // close 콜백: runId로 stale 콜백 무시
     proc.on("close", (code: number | null, signal: string | null) => {
+      if (runId !== this.currentRunId) return; // 오래된 콜백 무시
       this.state.exitCode = code ?? (signal ? 128 : 1);
       this.state.status = code === 0 ? "completed" : "failed";
       this.state.finishedAt = new Date().toISOString();
-      this.appendLog(
-        `[orchestrate] Process exited with code ${code} at ${this.state.finishedAt}`
-      );
+      this.appendLog(`[orchestrate] Process exited code=${code} signal=${signal}`);
       this.process = null;
+      this.pid = null;
       this.saveRunHistory();
     });
 
     proc.on("error", (err: Error) => {
+      if (runId !== this.currentRunId) return;
       this.appendLog(`[orchestrate] Process error: ${err.message}`);
       this.state.status = "failed";
       this.state.finishedAt = new Date().toISOString();
       this.process = null;
+      this.pid = null;
     });
 
     return { success: true };
   }
 
-  stop(): { success: boolean; error?: string } {
-    this.appendLog("[orchestrate] Stop requested by user — 즉시 전체 종료");
+  // ── Stop ───────────────────────────────────────────────
 
-    // 1) orchestrate.sh kill — process 객체 + lock PID
+  stop(): { success: boolean; error?: string } {
+    this.appendLog("[orchestrate] Stop — 즉시 전체 종료");
+
+    // runId 증가 → 진행 중인 close 콜백이 도착해도 무시
+    this.currentRunId++;
+
+    // 1) orchestrate.sh kill
     if (this.process) {
       killProcessGracefully(this.process);
     }
-    // lock 파일의 PID로도 kill (process 객체가 없는 경우)
+    if (this.pid) {
+      try { process.kill(this.pid, "SIGTERM"); } catch { /* ignore */ }
+      const killPid = this.pid;
+      setTimeout(() => { try { process.kill(killPid, "SIGKILL"); } catch { /* ignore */ } }, 2000);
+    }
+    // lock PID로도 kill
     const lockPidFile = "/tmp/orchestrate.lock/pid";
     if (fs.existsSync(lockPidFile)) {
       try {
@@ -265,39 +244,40 @@ class OrchestrationManager {
       } catch { /* ignore */ }
     }
 
-    // 2) 모든 워커 kill — PID 파일 기반 (pgrep 오탐 방지)
+    // 2) 모든 워커 kill — PID 파일 기반
     try {
       const tmpFiles = fs.readdirSync("/tmp").filter((f) => /^worker-TASK-\w+\.pid$/.test(f));
       for (const pf of tmpFiles) {
-        const pid = parseInt(fs.readFileSync(`/tmp/${pf}`, "utf-8").trim(), 10);
-        if (!isNaN(pid)) {
-          try { process.kill(pid, "SIGKILL"); } catch { /* ignore */ }
+        const workerPid = parseInt(fs.readFileSync(`/tmp/${pf}`, "utf-8").trim(), 10);
+        if (!isNaN(workerPid)) {
+          try { process.kill(workerPid, "SIGKILL"); } catch { /* ignore */ }
         }
-        fs.unlinkSync(`/tmp/${pf}`);
+        try { fs.unlinkSync(`/tmp/${pf}`); } catch { /* ignore */ }
       }
     } catch { /* ignore */ }
-    // claude 프로세스는 워커가 죽으면 자동 종료되지만, 혹시 남은 것도 정리
     try { execSync('pkill -9 -f "claude.*--dangerously-skip-permissions" 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
 
     // 3) in_progress → stopped
     this.markAllInProgressAsStopped();
 
     // 4) lock/signal/PID 정리
-    try { execSync('rm -rf /tmp/orchestrate.lock /tmp/orchestrate-retry /tmp/worker-TASK-*.pid 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
+    try { fs.rmSync("/tmp/orchestrate.lock", { recursive: true, force: true }); } catch { /* ignore */ }
+    try { fs.rmSync("/tmp/orchestrate-retry", { recursive: true, force: true }); } catch { /* ignore */ }
 
-    // 5) status 즉시 반영
+    // 5) 상태 즉시 반영
     this.state.status = "failed";
-    this.state.exitCode = 130; // SIGINT convention
+    this.state.exitCode = 130;
     this.state.finishedAt = new Date().toISOString();
     this.process = null;
+    this.pid = null;
     this.saveRunHistory();
 
     this.appendLog("[orchestrate] 전체 종료 완료");
-
     return { success: true };
   }
 
-  /** in_progress 태스크를 모두 stopped로 변경 */
+  // ── Internal ───────────────────────────────────────────
+
   private markAllInProgressAsStopped() {
     try {
       const projectRoot = path.resolve(process.cwd(), "..", "..");
@@ -321,13 +301,83 @@ class OrchestrationManager {
     }
   }
 
+  private cleanupZombies() {
+    try {
+      const projectRoot = path.resolve(process.cwd(), "..", "..");
+      const tasksDir = path.join(projectRoot, ".orchestration", "tasks");
+      if (!fs.existsSync(tasksDir)) return;
+
+      const files = fs.readdirSync(tasksDir).filter((f) => f.endsWith(".md"));
+      let cleaned = 0;
+
+      for (const file of files) {
+        const filePath = path.join(tasksDir, file);
+        const content = fs.readFileSync(filePath, "utf-8");
+        if (!content.includes("status: in_progress")) continue;
+
+        const idMatch = file.match(/^(TASK-\d+)/);
+        if (!idMatch) continue;
+        const taskId = idMatch[1];
+        const pidFile = `/tmp/worker-${taskId}.pid`;
+
+        let alive = false;
+
+        // PID 파일로 체크
+        if (fs.existsSync(pidFile)) {
+          try {
+            const workerPid = parseInt(fs.readFileSync(pidFile, "utf-8").trim(), 10);
+            if (!isNaN(workerPid)) {
+              process.kill(workerPid, 0);
+              alive = true;
+            }
+          } catch {
+            try { fs.unlinkSync(pidFile); } catch { /* ignore */ }
+          }
+        }
+
+        // pgrep fallback
+        if (!alive) {
+          try {
+            const result = execSync(`pgrep -f "job-task.sh ${taskId}|job-review.sh ${taskId}" 2>/dev/null || true`, { encoding: "utf-8" }).trim();
+            if (result) {
+              alive = true;
+              console.log(`[orchestrate] ${taskId}: PID 파일 없으나 프로세스 생존 → in_progress 유지`);
+            }
+          } catch { /* ignore */ }
+        }
+
+        if (!alive) {
+          fs.writeFileSync(filePath, content.replace("status: in_progress", "status: stopped"));
+          cleaned++;
+          console.log(`[orchestrate] zombie cleanup: ${taskId} in_progress → stopped`);
+        }
+      }
+
+      if (cleaned > 0) console.log(`[orchestrate] ${cleaned}개 좀비 태스크 정리 완료`);
+
+      // stale lock 정리
+      const lockDir = "/tmp/orchestrate.lock";
+      if (fs.existsSync(lockDir)) {
+        const pidFile = path.join(lockDir, "pid");
+        if (fs.existsSync(pidFile)) {
+          try {
+            const lockPid = parseInt(fs.readFileSync(pidFile, "utf-8").trim(), 10);
+            process.kill(lockPid, 0);
+          } catch {
+            fs.rmSync(lockDir, { recursive: true, force: true });
+            console.log("[orchestrate] stale lock 제거");
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[orchestrate] zombie cleanup error:", err);
+    }
+  }
+
   private appendLog(line: string) {
     this.state.logs.push(line);
   }
 
-  /**
-   * Save completed run to output/run-history.json
-   */
   private saveRunHistory() {
     try {
       if (!this.state.startedAt || !this.state.finishedAt) return;
@@ -336,7 +386,6 @@ class OrchestrationManager {
       const endTime = new Date(this.state.finishedAt).getTime();
       const durationMs = endTime - startTime;
 
-      // Calculate cost from token-usage.log entries that fall within this run
       let totalCostUsd = 0;
       try {
         const costData = parseCostLog();
@@ -346,16 +395,10 @@ class OrchestrationManager {
             totalCostUsd += entry.costUsd;
           }
         }
-      } catch {
-        // cost log may not exist
-      }
+      } catch { /* ignore */ }
 
-      const tasksCompleted = this.state.taskResults.filter(
-        (r) => r.status === "success"
-      ).length;
-      const tasksFailed = this.state.taskResults.filter(
-        (r) => r.status === "failure"
-      ).length;
+      const tasksCompleted = this.state.taskResults.filter((r) => r.status === "success").length;
+      const tasksFailed = this.state.taskResults.filter((r) => r.status === "failure").length;
 
       const entry: RunHistoryEntry = {
         id: `run-${this.state.startedAt.replace(/[^0-9]/g, "").slice(0, 14)}`,
@@ -371,37 +414,22 @@ class OrchestrationManager {
       };
 
       appendRunHistory(entry);
-      this.appendLog(
-        `[orchestrate] Run history saved: ${entry.id} (${tasksCompleted} completed, ${tasksFailed} failed, $${totalCostUsd.toFixed(4)})`
-      );
+      this.appendLog(`[orchestrate] Run history saved: ${entry.id} (${tasksCompleted} completed, ${tasksFailed} failed, $${totalCostUsd.toFixed(4)})`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.appendLog(`[orchestrate] Failed to save run history: ${msg}`);
     }
   }
 
-  /**
-   * Parse task results from orchestrate.sh output.
-   * Looks for patterns like:
-   *   ✅ TASK-001 completed
-   *   ❌ TASK-002 failed
-   */
   private parseTaskResult(line: string) {
     const successMatch = line.match(/[✅✓]\s*(TASK-\d+)/);
     if (successMatch) {
-      this.state.taskResults.push({
-        taskId: successMatch[1],
-        status: "success",
-      });
+      this.state.taskResults.push({ taskId: successMatch[1], status: "success" });
       return;
     }
-
     const failMatch = line.match(/[❌✗✘]\s*(TASK-\d+)/);
     if (failMatch) {
-      this.state.taskResults.push({
-        taskId: failMatch[1],
-        status: "failure",
-      });
+      this.state.taskResults.push({ taskId: failMatch[1], status: "failure" });
     }
   }
 }
