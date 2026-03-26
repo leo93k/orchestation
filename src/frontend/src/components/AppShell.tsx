@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { ChatBot } from "@/components/ChatBot";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { useNotices } from "@/hooks/useNotices";
 import { RunningIndicator } from "@/components/RunningIndicator";
 import type { WaterfallTask } from "@/types/waterfall";
 import type { RequestItem } from "@/store/tasksStore";
@@ -150,6 +151,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Requests는 store에서 직접 구독
   const requestItems = useTasksStore((s) => s.requests);
   const fetchAll = useTasksStore((s) => s.fetchAll);
+  const { notices: noticeItems } = useNotices();
 
   // Track previous task statuses for change detection
   const prevTaskStatusRef = useRef<Map<string, string>>(new Map());
@@ -254,15 +256,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-full">
-      {/* Sidebar — requestItems/noticeItems/groups/currentPath는 store에서 직접 구독 */}
       <TaskSidebar
         prds={prds}
         docTree={docTree}
+        requestItems={requestItems}
+        noticeItems={noticeItems}
+        currentPath={pathname}
         onDocCreate={handleDocCreate}
         onDocDelete={handleDocDelete}
         onDocRename={handleDocRename}
         onDocReorder={handleDocReorder}
         onDocReorderError={handleDocReorderError}
+        onStopTask={async (id) => {
+          try { await fetch(`/api/tasks/${id}/run`, { method: "DELETE" }); } catch {}
+          await fetch(`/api/requests/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "stopped" }) });
+          fetchAll();
+        }}
       />
 
       {/* Content area */}
