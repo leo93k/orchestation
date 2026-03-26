@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 
 /* ── Types (client-side mirror of server types) ── */
 
@@ -27,126 +28,119 @@ interface Manifest {
   tree: DocNode[];
 }
 
+async function fetchDocTree(): Promise<DocNode[]> {
+  const res = await fetch("/api/docs");
+  if (!res.ok) throw new Error("Failed to fetch doc tree");
+  const data: Manifest = await res.json();
+  return data.tree;
+}
+
 export function useDocTree() {
-  const [tree, setTree] = useState<DocNode[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.docs.tree();
 
-  const fetchTree = useCallback(async () => {
-    try {
-      const res = await fetch("/api/docs");
-      if (!res.ok) throw new Error("Failed to fetch doc tree");
-      const data: Manifest = await res.json();
-      setTree(data.tree);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const { data: tree = [], isLoading, error } = useQuery({
+    queryKey,
+    queryFn: fetchDocTree,
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    fetchTree();
-  }, [fetchTree]);
-
-  const createDoc = useCallback(
-    async (title: string, type: "doc" | "folder", parentId?: string | null) => {
+  // ── 생성
+  const createMutation = useMutation({
+    mutationFn: async (vars: { title: string; type: "doc" | "folder"; parentId?: string | null }) => {
       const res = await fetch("/api/docs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, type, parentId: parentId || null }),
+        body: JSON.stringify({ title: vars.title, type: vars.type, parentId: vars.parentId || null }),
       });
       if (!res.ok) throw new Error("Failed to create");
-      const data = await res.json();
-      await fetchTree();
-      return data.node as DocNode;
+      return res.json();
     },
-    [fetchTree],
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.docs.all });
+    },
+  });
 
-  const updateDoc = useCallback(
-    async (id: string, updates: { title?: string; content?: string }) => {
-      const res = await fetch(`/api/docs/${id}`, {
+  // ── 수정
+  const updateMutation = useMutation({
+    mutationFn: async (vars: { id: string; updates: { title?: string; content?: string } }) => {
+      const res = await fetch(`/api/docs/${vars.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(vars.updates),
       });
       if (!res.ok) throw new Error("Failed to update");
-      await fetchTree();
     },
-    [fetchTree],
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.docs.all });
+    },
+  });
 
-  const deleteDoc = useCallback(
-    async (id: string) => {
+  // ── 삭제
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
       const res = await fetch(`/api/docs/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
-      await fetchTree();
     },
-    [fetchTree],
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.docs.all });
+    },
+  });
 
-  const reorderDoc = useCallback(
-    async (id: string, parentId: string | null, index?: number) => {
+  // ── 재정렬
+  const reorderMutation = useMutation({
+    mutationFn: async (vars: { id: string; parentId: string | null; index?: number }) => {
       const res = await fetch("/api/docs/reorder", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, parentId, index }),
+        body: JSON.stringify(vars),
       });
       if (!res.ok) throw new Error("Failed to reorder");
-      await fetchTree();
     },
-    [fetchTree],
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.docs.all });
+    },
+  });
 
-  return { tree, isLoading, error, fetchTree, createDoc, updateDoc, deleteDoc, reorderDoc };
+  const fetchTree = () => queryClient.invalidateQueries({ queryKey: queryKeys.docs.all });
+
+  return {
+    tree,
+    isLoading,
+    error: error ? (error instanceof Error ? error.message : "Error") : null,
+    fetchTree,
+    createDoc: async (title: string, type: "doc" | "folder", parentId?: string | null) => {
+      const data = await createMutation.mutateAsync({ title, type, parentId });
+      return data.node as DocNode;
+    },
+    updateDoc: (id: string, updates: { title?: string; content?: string }) =>
+      updateMutation.mutateAsync({ id, updates }),
+    deleteDoc: (id: string) => deleteMutation.mutateAsync(id),
+    reorderDoc: (id: string, parentId: string | null, index?: number) =>
+      reorderMutation.mutateAsync({ id, parentId, index }),
+  };
+}
+
+async function fetchDocDetail(id: string): Promise<DocDetail> {
+  const res = await fetch(`/api/docs/${id}`);
+  if (!res.ok) throw new Error("Document not found");
+  return res.json();
 }
 
 export function useDocDetail(id: string) {
-  const [doc, setDoc] = useState<DocDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const abortController = new AbortController();
-    let cancelled = false;
+  const { data: doc = null, isLoading, error } = useQuery({
+    queryKey: queryKeys.docs.detail(id),
+    queryFn: () => fetchDocDetail(id),
+    staleTime: 30_000,
+    enabled: !!id,
+  });
 
-    const fetchDoc = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch(`/api/docs/${id}`, {
-          signal: abortController.signal,
-        });
-        if (cancelled) return;
-        if (!res.ok) throw new Error("Document not found");
-        const data: DocDetail = await res.json();
-        if (cancelled) return;
-        setDoc(data);
-        setError(null);
-      } catch (err) {
-        if (cancelled) return;
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : "Error");
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchDoc();
-
-    return () => {
-      cancelled = true;
-      abortController.abort();
-    };
-  }, [id, fetchKey]);
-
-  const refetch = useCallback(() => {
-    setFetchKey((k) => k + 1);
-  }, []);
-
-  return { doc, isLoading, error, refetch };
+  return {
+    doc,
+    isLoading,
+    error: error ? (error instanceof Error ? error.message : "Error") : null,
+    refetch: () => queryClient.invalidateQueries({ queryKey: queryKeys.docs.detail(id) }),
+  };
 }

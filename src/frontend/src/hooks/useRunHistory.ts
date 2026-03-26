@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 
 export interface RunHistoryEntry {
   id: string;
@@ -22,52 +23,27 @@ type UseRunHistoryResult = {
   refetch: () => void;
 };
 
+async function fetchRunHistory(): Promise<RunHistoryEntry[]> {
+  const res = await fetch("/api/run-history");
+  if (!res.ok) throw new Error("실행 기록을 불러오는데 실패했습니다.");
+  const data = await res.json();
+  return data.runs || [];
+}
+
 export function useRunHistory(): UseRunHistoryResult {
-  const [runs, setRuns] = useState<RunHistoryEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
+  const queryClient = useQueryClient();
 
-  const refetch = useCallback(() => {
-    setFetchKey((k) => k + 1);
-  }, []);
+  const { data: runs = [], isLoading, error } = useQuery({
+    queryKey: queryKeys.runHistory.list(),
+    queryFn: fetchRunHistory,
+    // 실행 이력: staleTime 60s (orchestration 완료 시 invalidate)
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchData() {
-      try {
-        setIsLoading(true);
-        const res = await fetch("/api/run-history");
-        if (!res.ok) {
-          throw new Error("실행 기록을 불러오는데 실패했습니다.");
-        }
-        const data = await res.json();
-        if (!cancelled) {
-          setRuns(data.runs || []);
-          setError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "알 수 없는 오류가 발생했습니다."
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchKey]);
-
-  return { runs, isLoading, error, refetch };
+  return {
+    runs,
+    isLoading,
+    error: error ? (error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.") : null,
+    refetch: () => queryClient.invalidateQueries({ queryKey: queryKeys.runHistory.all }),
+  };
 }

@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useRef, useEffect, useState } from "react";
+import type { QueryKey } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 
 export interface ClaudeProcess {
   pid: number;
@@ -29,32 +32,36 @@ export interface MonitorData {
 
 const MAX_HISTORY = 60; // 60초
 
+async function fetchMonitor(): Promise<MonitorSnapshot> {
+  const res = await fetch("/api/monitor");
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export function useMonitor(intervalMs = 1000): MonitorData & { error: string | null } {
-  const [current, setCurrent] = useState<MonitorSnapshot | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // history는 React Query 외부에서 누적 관리 (캐시에 snapshot 1개만 저장)
   const historyRef = useRef<MonitorSnapshot[]>([]);
   const [history, setHistory] = useState<MonitorSnapshot[]>([]);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const res = await fetch("/api/monitor");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: MonitorSnapshot = await res.json();
-      setCurrent(data);
-      setError(null);
+  const { data: current = null, error } = useQuery({
+    queryKey: queryKeys.monitor.current() as QueryKey,
+    queryFn: fetchMonitor,
+    // 실시간 모니터링: staleTime 0, refetchInterval 1s
+    staleTime: 0,
+    refetchInterval: intervalMs,
+    retry: false,
+  });
 
-      historyRef.current = [...historyRef.current.slice(-(MAX_HISTORY - 1)), data];
-      setHistory(historyRef.current);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    }
-  }, []);
-
+  // 최신 snapshot이 바뀔 때마다 history 누적
   useEffect(() => {
-    fetchData();
-    const id = setInterval(fetchData, intervalMs);
-    return () => clearInterval(id);
-  }, [fetchData, intervalMs]);
+    if (!current) return;
+    historyRef.current = [...historyRef.current.slice(-(MAX_HISTORY - 1)), current];
+    setHistory(historyRef.current);
+  }, [current]);
 
-  return { current, history, error };
+  return {
+    current,
+    history,
+    error: error ? (error instanceof Error ? error.message : "Unknown error") : null,
+  };
 }
