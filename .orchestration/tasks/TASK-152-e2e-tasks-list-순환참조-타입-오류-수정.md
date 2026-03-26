@@ -1,7 +1,7 @@
 ---
 id: TASK-152
 title: e2e tasks-list 순환참조 타입 오류 수정
-status: pending
+status: done
 priority: medium
 mode: night
 created: 2026-03-25

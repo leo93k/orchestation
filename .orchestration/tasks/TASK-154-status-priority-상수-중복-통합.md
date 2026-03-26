@@ -1,7 +1,7 @@
 ---
 id: TASK-154
 title: status/priority 검증 상수 및 UI 상수 중복 제거 — 공유 모듈로 통합
-status: pending
+status: done
 priority: medium
 mode: night
 created: 2026-03-25

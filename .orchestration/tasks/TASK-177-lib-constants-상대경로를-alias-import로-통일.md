@@ -1,7 +1,7 @@
 ---
 id: TASK-177
 title: lib/constants 상대경로 import를 @/ alias로 통일
-status: pending
+status: done
 priority: medium
 mode: night
 created: 2026-03-25

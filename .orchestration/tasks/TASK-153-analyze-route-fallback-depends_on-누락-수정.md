@@ -1,7 +1,7 @@
 ---
 id: TASK-153
 title: analyze/route.ts fallback 객체 depends_on 필드 누락 수정
-status: pending
+status: done
 priority: medium
 mode: night
 created: 2026-03-25
