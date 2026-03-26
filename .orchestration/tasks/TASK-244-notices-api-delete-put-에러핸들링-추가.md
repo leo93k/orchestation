@@ -1,7 +1,7 @@
 ---
 id: TASK-244
 title: notices-API-DELETE-PUT-에러핸들링-추가
-status: in_progress
+status: failed
 branch: task/task-244
 worktree: ../repo-wt-task-244
 priority: medium
