@@ -6,6 +6,7 @@ import type { TaskFrontmatter } from "@/lib/parser";
 import type { SprintResponse } from "@/lib/waterfall";
 import { buildWaterfallGroups } from "@/lib/waterfall";
 import type { WaterfallGroup } from "@/types/waterfall";
+import { getErrorMessage } from "@/lib/error-utils";
 
 export interface RequestItem {
   id: string;
@@ -87,8 +88,7 @@ export const useTasksStore = create<TasksState>()(
         } catch (err) {
           set(
             {
-              tasksError:
-                err instanceof Error ? err.message : "알 수 없는 오류",
+              tasksError: getErrorMessage(err, "알 수 없는 오류"),
             },
             false,
             "tasks/fetchTasks/error",
@@ -116,8 +116,7 @@ export const useTasksStore = create<TasksState>()(
         } catch (err) {
           set(
             {
-              requestsError:
-                err instanceof Error ? err.message : "오류 발생",
+              requestsError: getErrorMessage(err, "오류 발생"),
             },
             false,
             "tasks/fetchRequests/error",
@@ -223,36 +222,4 @@ export const useTasksStore = create<TasksState>()(
   ),
 );
 
-/* ── Polling 기반 변경 감지 (SSE 제거 — 브라우저 로딩 스피너 방지) ── */
-
-let pollConnected = false;
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-let lastSeen = Date.now();
-
-async function pollForChanges() {
-  try {
-    const res = await fetch(`/api/tasks/watch?since=${lastSeen}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.changed) {
-      lastSeen = data.lastChangedAt;
-      useTasksStore.getState().fetchAll();
-    }
-  } catch { /* ignore */ }
-}
-
-export function startTasksSSE() {
-  if (pollConnected || typeof window === "undefined") return;
-  pollConnected = true;
-  pollForChanges(); // 즉시 1회
-  pollTimer = setInterval(pollForChanges, 5000); // 5초 간격
-}
-
-export function stopTasksSSE() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = null;
-  pollConnected = false;
-}
-
-// 자동 시작 제거 — 컴포넌트에서 명시적으로 시작/정지할 것
-// useEffect(() => { fetchAll(); startTasksSSE(); return stopTasksSSE; }, []);
+// 변경 감지는 SseProvider(전역 SSE 연결)가 담당 — 중복 폴링 제거됨

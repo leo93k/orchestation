@@ -2,7 +2,7 @@
 
 import { AlertCircle } from "lucide-react";
 import { useCosts } from "@/hooks/useCosts";
-import { useOrchestrationStatus } from "@/hooks/useOrchestrationStatus";
+import { useOrchestrationStore } from "@/store/orchestrationStore";
 import { SummaryCards } from "@/components/cost/SummaryCards";
 import { CostTable } from "@/components/cost/CostTable";
 import { CumulativeCostChart } from "@/components/cost/CumulativeCostChart";
@@ -50,7 +50,8 @@ function EmptyState() {
 
 export default function CostPage() {
   const { data, isLoading, error, refetch: refetchCosts } = useCosts();
-  const { justFinished, clearFinished } = useOrchestrationStatus();
+  const justFinished = useOrchestrationStore((s) => s.justFinished);
+  const clearFinished = useOrchestrationStore((s) => s.clearFinished);
 
   // Auto-refresh when orchestration finishes
   useEffect(() => {

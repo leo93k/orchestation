@@ -1,10 +1,12 @@
 import { spawn, ChildProcess, execSync } from "child_process";
+import { EventEmitter } from "events";
 import path from "path";
 import fs from "fs";
 import { appendRunHistory, type RunHistoryEntry } from "./run-history";
 import { parseCostLog } from "./cost-parser";
 import { loadSettings } from "./settings";
 import { pipeProcessLogs, killProcessGracefully } from "./process-utils";
+import { getErrorMessage } from "./error-utils";
 
 export type OrchestrationStatus = "idle" | "running" | "completed" | "failed";
 
@@ -36,6 +38,9 @@ class OrchestrationManager {
   private currentRunId = 0;                  // 세대 관리 — stale 콜백 무시
   private launching = false;
 
+  /** SSE 클라이언트에게 상태 변경을 알리기 위한 이벤트 버스 */
+  public readonly events = new EventEmitter();
+
   private state: OrchestrationState = {
     status: "idle",
     startedAt: null,
@@ -46,7 +51,20 @@ class OrchestrationManager {
   };
 
   constructor() {
+    this.events.setMaxListeners(50); // SSE 클라이언트 수만큼
     this.cleanupZombies();
+  }
+
+  /** 상태 변경 시 SSE 클라이언트에 알림 */
+  private emitStatusChange() {
+    const state = this.getState();
+    this.events.emit("status-changed", {
+      status: state.status,
+      startedAt: state.startedAt,
+      finishedAt: state.finishedAt,
+      exitCode: state.exitCode,
+      taskResults: state.taskResults,
+    });
   }
 
   // ── Source of Truth: OS 프로세스 생존 여부 ──────────────
@@ -95,6 +113,7 @@ class OrchestrationManager {
     this.process = null;
     this.pid = null;
     this.saveRunHistory();
+    this.emitStatusChange();
   }
 
   // ── Public API ─────────────────────────────────────────
@@ -172,7 +191,7 @@ class OrchestrationManager {
         stdio: ["ignore", "pipe", "pipe"],
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err, String(err));
       this.appendLog(`[orchestrate] Failed to spawn: ${msg}`);
       this.state.status = "failed";
       this.state.finishedAt = new Date().toISOString();
@@ -188,6 +207,7 @@ class OrchestrationManager {
     const proc = this.process;
 
     this.appendLog(`[orchestrate] PID: ${this.pid}`);
+    this.emitStatusChange();
 
     pipeProcessLogs(proc, (line) => this.appendLog(line), (line) => this.parseTaskResult(line));
 
@@ -201,6 +221,7 @@ class OrchestrationManager {
       this.process = null;
       this.pid = null;
       this.saveRunHistory();
+      this.emitStatusChange();
     });
 
     proc.on("error", (err: Error) => {
@@ -210,6 +231,7 @@ class OrchestrationManager {
       this.state.finishedAt = new Date().toISOString();
       this.process = null;
       this.pid = null;
+      this.emitStatusChange();
     });
 
     return { success: true };
@@ -273,6 +295,7 @@ class OrchestrationManager {
     this.saveRunHistory();
 
     this.appendLog("[orchestrate] 전체 종료 완료");
+    this.emitStatusChange();
     return { success: true };
   }
 
@@ -416,7 +439,7 @@ class OrchestrationManager {
       appendRunHistory(entry);
       this.appendLog(`[orchestrate] Run history saved: ${entry.id} (${tasksCompleted} completed, ${tasksFailed} failed, $${totalCostUsd.toFixed(4)})`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err, String(err));
       this.appendLog(`[orchestrate] Failed to save run history: ${msg}`);
     }
   }
