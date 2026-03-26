@@ -1,7 +1,9 @@
 ---
 id: TASK-230
 title: API 라우트 검증 상수 중복 제거 및 중앙화
-status: pending
+status: in_progress
+branch: task/task-230
+worktree: ../repo-wt-task-230
 priority: medium
 mode: night
 created: 2026-03-26
