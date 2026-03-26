@@ -1,7 +1,7 @@
 ---
 id: TASK-190
 title: E2E 테스트 실행 및 실패 수정 — night-worker
-status: in_progress
+status: pending
 branch: task/task-190
 worktree: ../repo-wt-task-190
 priority: medium
