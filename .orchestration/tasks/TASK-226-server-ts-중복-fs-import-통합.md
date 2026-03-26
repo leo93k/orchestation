@@ -1,7 +1,9 @@
 ---
 id: TASK-226
 title: server.ts-중복-fs-import-통합
-status: pending
+status: in_progress
+branch: task/task-226
+worktree: ../repo-wt-task-226
 priority: medium
 mode: night
 created: 2026-03-26
