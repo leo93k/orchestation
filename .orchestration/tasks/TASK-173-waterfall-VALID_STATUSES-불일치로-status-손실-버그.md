@@ -1,7 +1,7 @@
 ---
 id: TASK-173
 title: waterfall VALID_STATUSES 불일치로 stopped/reviewing/rejected 태스크가 pending으로 표시되는 버그
-status: in_progress
+status: done
 branch: task/task-173
 worktree: ../repo-wt-task-173
 priority: medium
