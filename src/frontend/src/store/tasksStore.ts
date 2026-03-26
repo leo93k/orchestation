@@ -243,10 +243,20 @@ function connectSSE() {
     }
   };
 
+  // exponential backoff: 2s → 4s → 8s → 16s → max 30s
+  let sseBackoff = 2000;
+
   sseInstance.onerror = () => {
     sseInstance?.close();
     sseInstance = null;
-    sseReconnectTimer = setTimeout(connectSSE, 2000);
+    sseReconnectTimer = setTimeout(() => {
+      connectSSE();
+      sseBackoff = Math.min(sseBackoff * 2, 30000);
+    }, sseBackoff);
+  };
+
+  sseInstance.onopen = () => {
+    sseBackoff = 2000; // 연결 성공 시 backoff 리셋
   };
 }
 
@@ -264,10 +274,5 @@ export function stopTasksSSE() {
   sseConnected = false;
 }
 
-// Auto-start in browser environment
-if (typeof window !== "undefined") {
-  // Initial data fetch
-  useTasksStore.getState().fetchAll();
-  // Start SSE
-  startTasksSSE();
-}
+// 자동 시작 제거 — 컴포넌트에서 명시적으로 시작/정지할 것
+// useEffect(() => { fetchAll(); startTasksSSE(); return stopTasksSSE; }, []);

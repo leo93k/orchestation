@@ -31,10 +31,21 @@ export async function GET(request: Request) {
   const encoder = new TextEncoder();
   let closed = false;
   let intervalId: ReturnType<typeof setInterval>;
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const MAX_STREAM_MS = 10 * 60 * 1000; // 최대 10분
 
   const readable = new ReadableStream({
     start(controller) {
       let cursor = 0;
+
+      // 최대 연결 시간 타임아웃
+      timeoutId = setTimeout(() => {
+        if (!closed) {
+          closed = true;
+          clearInterval(intervalId);
+          try { controller.close(); } catch { /* already closed */ }
+        }
+      }, MAX_STREAM_MS);
 
       const sendLogs = () => {
         if (closed) return;
@@ -87,6 +98,7 @@ export async function GET(request: Request) {
     cancel() {
       closed = true;
       clearInterval(intervalId);
+      clearTimeout(timeoutId);
     },
   });
 

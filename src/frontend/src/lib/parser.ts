@@ -67,9 +67,21 @@ export function parseTaskFile(filePath: string): TaskFrontmatter | null {
   }
 }
 
+// TTL 캐시: 3초간 유효 (폴링 결합 시 초당 수회 디스크 I/O 방지)
+let _tasksCache: TaskFrontmatter[] | null = null;
+let _tasksCacheTime = 0;
+const CACHE_TTL_MS = 3000;
+
 export function parseAllTasks(): TaskFrontmatter[] {
+  const now = Date.now();
+  if (_tasksCache && now - _tasksCacheTime < CACHE_TTL_MS) {
+    return _tasksCache;
+  }
+
   if (!fs.existsSync(TASKS_DIR)) {
-    return [];
+    _tasksCache = [];
+    _tasksCacheTime = now;
+    return _tasksCache;
   }
 
   const files = fs.readdirSync(TASKS_DIR).filter((f) => f.endsWith(".md"));
@@ -82,7 +94,15 @@ export function parseAllTasks(): TaskFrontmatter[] {
     }
   }
 
+  _tasksCache = tasks;
+  _tasksCacheTime = now;
   return tasks;
+}
+
+/** 캐시 무효화 (태스크 변경 시 호출) */
+export function invalidateTasksCache() {
+  _tasksCache = null;
+  _tasksCacheTime = 0;
 }
 
 function toStringArray(value: unknown): string[] {

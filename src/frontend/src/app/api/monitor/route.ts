@@ -28,13 +28,11 @@ function getWorkerPidMap(): Map<number, string> {
   return map;
 }
 
-// 특정 PID의 모든 자손 PID 목록 (macOS ps 사용)
-function getDescendantPids(rootPid: number): Set<number> {
-  const descendants = new Set<number>();
+// 프로세스 트리를 1회만 조회하여 parentOf 맵 반환
+function getProcessTree(): Map<number, number> {
+  const parentOf = new Map<number, number>();
   try {
-    // ps axo pid,ppid 로 전체 프로세스 트리 조회
     const result = execSync("ps axo pid=,ppid=", { encoding: "utf-8", timeout: 3000 });
-    const parentOf = new Map<number, number>(); // pid → ppid
     for (const line of result.trim().split("\n")) {
       const parts = line.trim().split(/\s+/);
       if (parts.length < 2) continue;
@@ -44,21 +42,26 @@ function getDescendantPids(rootPid: number): Set<number> {
         parentOf.set(pid, ppid);
       }
     }
-    // rootPid의 자손인지 BFS로 확인
-    const queue = [rootPid];
-    const visited = new Set([rootPid]);
-    while (queue.length > 0) {
-      const cur = queue.shift()!;
-      for (const [pid, ppid] of parentOf) {
-        if (ppid === cur && !visited.has(pid)) {
-          visited.add(pid);
-          descendants.add(pid);
-          queue.push(pid);
-        }
+  } catch {
+    // 실패 시 빈 맵
+  }
+  return parentOf;
+}
+
+// 특정 PID의 모든 자손 PID 목록 (사전 조회된 트리 재사용)
+function getDescendantPids(rootPid: number, parentOf: Map<number, number>): Set<number> {
+  const descendants = new Set<number>();
+  const queue = [rootPid];
+  const visited = new Set([rootPid]);
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    for (const [pid, ppid] of parentOf) {
+      if (ppid === cur && !visited.has(pid)) {
+        visited.add(pid);
+        descendants.add(pid);
+        queue.push(pid);
       }
     }
-  } catch {
-    // 실패 시 빈 셋
   }
   return descendants;
 }
@@ -76,10 +79,13 @@ function getClaudeProcesses(): ClaudeProcess[] {
     // 워커 PID 맵: workerPid → taskId
     const workerPidMap = getWorkerPidMap();
 
+    // 프로세스 트리 1회만 조회 (이전: workerPid마다 ps 실행 → 초당 12회 execSync)
+    const processTree = getProcessTree();
+
     // 워커 PID에서 자손 PID → taskId 역매핑 구축
     const pidToTaskId = new Map<number, string>();
     for (const [workerPid, taskId] of workerPidMap) {
-      const descendants = getDescendantPids(workerPid);
+      const descendants = getDescendantPids(workerPid, processTree);
       for (const dpid of descendants) {
         pidToTaskId.set(dpid, taskId);
       }

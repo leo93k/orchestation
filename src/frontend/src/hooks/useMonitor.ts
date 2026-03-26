@@ -32,17 +32,25 @@ async function fetchMonitor(): Promise<MonitorSnapshot> {
   return res.json();
 }
 
-export function useMonitor(intervalMs = 1000): MonitorData & { error: string | null } {
+export function useMonitor(intervalMs = 10000): MonitorData & { error: string | null } {
   // history는 React Query 외부에서 누적 관리 (캐시에 snapshot 1개만 저장)
   const historyRef = useRef<MonitorSnapshot[]>([]);
   const [history, setHistory] = useState<MonitorSnapshot[]>([]);
 
+  // 페이지가 보일 때만 폴링 (탭 전환/최소화 시 중단)
+  const [isVisible, setIsVisible] = useState(true);
+  useEffect(() => {
+    const handler = () => setIsVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
+
   const { data: current = null, error } = useQuery({
     queryKey: queryKeys.monitor.current() as QueryKey,
     queryFn: fetchMonitor,
-    // 실시간 모니터링: staleTime 0, refetchInterval 1s
-    staleTime: 0,
-    refetchInterval: intervalMs,
+    staleTime: 5000,
+    refetchInterval: isVisible ? intervalMs : false,
+    enabled: isVisible,
     retry: false,
   });
 

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft, Loader2, FileText, Terminal, ClipboardCheck, Play, Square, CheckCircle2, GitBranch, Check, DollarSign, Trash2 } from "lucide-react";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import { HorseRunningIndicator } from "@/components/HorseRunningIndicator";
+import { useOrchestrationStore } from "@/store/orchestrationStore";
 
 interface CostEntry {
   phase: string;
@@ -214,22 +215,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     }
   }, [activeTab, aiResult, aiResultLoading, id]);
 
-  // Check orchestration status
+  // Orchestration 상태는 store에서 구독 (중복 interval 제거)
+  const isPipelineRunningFromStore = useOrchestrationStore((s) => s.isRunning);
   useEffect(() => {
-    async function checkOrchestration() {
-      try {
-        const res = await fetch("/api/orchestrate/status");
-        if (!res.ok) return;
-        const data = await res.json();
-        setIsPipelineRunning(data.status === "running");
-      } catch {
-        // ignore
-      }
-    }
-    checkOrchestration();
-    const interval = setInterval(checkOrchestration, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    setIsPipelineRunning(isPipelineRunningFromStore);
+  }, [isPipelineRunningFromStore]);
 
   // Check if task is already running on page load
   useEffect(() => {

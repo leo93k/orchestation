@@ -86,7 +86,25 @@ app.prepare().then(() => {
 
     console.log(`[pty] spawned shell="${shell}" pid=${ptyProcess.pid}`);
 
+    // idle timeout: 5분간 데이터 없으면 자동 종료
+    const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+    let idleTimer = setTimeout(() => {
+      console.log(`[pty] idle timeout, killing pid=${ptyProcess.pid}`);
+      ptyProcess.kill();
+      if (ws.readyState === WebSocket.OPEN) ws.close();
+    }, IDLE_TIMEOUT_MS);
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        console.log(`[pty] idle timeout, killing pid=${ptyProcess.pid}`);
+        ptyProcess.kill();
+        if (ws.readyState === WebSocket.OPEN) ws.close();
+      }, IDLE_TIMEOUT_MS);
+    };
+
     ptyProcess.onData((data: string) => {
+      resetIdleTimer();
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(data);
       }
@@ -94,6 +112,7 @@ app.prepare().then(() => {
 
     ptyProcess.onExit(({ exitCode }) => {
       console.log(`[pty] exited code=${exitCode}`);
+      clearTimeout(idleTimer);
       if (ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
@@ -124,11 +143,13 @@ app.prepare().then(() => {
 
     ws.on("close", () => {
       console.log(`[pty] client disconnected, killing pid=${ptyProcess.pid}`);
+      clearTimeout(idleTimer);
       ptyProcess.kill();
     });
 
     ws.on("error", (err: Error) => {
       console.error(`[ws] error: ${err.message}`);
+      clearTimeout(idleTimer);
       ptyProcess.kill();
     });
   });

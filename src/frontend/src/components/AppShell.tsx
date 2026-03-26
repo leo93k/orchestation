@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { useTasks } from "@/hooks/useTasks";
 import { usePrds } from "@/hooks/usePrds";
 import { useDocTree } from "@/hooks/useDocTree";
-import { useOrchestrationStore } from "@/store/orchestrationStore";
-import { useTasksStore } from "@/store/tasksStore";
+import { useOrchestrationStore, startOrchestrationPolling, stopOrchestrationPolling } from "@/store/orchestrationStore";
+import { useTasksStore, startTasksSSE, stopTasksSSE } from "@/store/tasksStore";
 import { TaskSidebar } from "@/components/sidebar";
 import { TaskLogModal } from "@/components/TaskLogModal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -144,6 +144,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   } = useDocTree();
   const { addToast } = useToast();
   const [logModalTask, setLogModalTask] = useState<WaterfallTask | null>(null);
+
+  // Store 폴링/SSE 시작 (컴포넌트 마운트 시) + 정리 (언마운트 시)
+  useEffect(() => {
+    startOrchestrationPolling();
+    useTasksStore.getState().fetchAll();
+    startTasksSSE();
+    return () => {
+      stopOrchestrationPolling();
+      stopTasksSSE();
+    };
+  }, []);
 
   // Orchestration 상태를 store에서 직접 구독
   const justFinished = useOrchestrationStore((s) => s.justFinished);

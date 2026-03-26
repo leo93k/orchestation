@@ -89,7 +89,5 @@ export function stopOrchestrationPolling() {
   isPolling = false;
 }
 
-// Auto-start in browser environment
-if (typeof window !== "undefined") {
-  startOrchestrationPolling();
-}
+// 자동 시작 제거 — 컴포넌트에서 명시적으로 시작/정지할 것
+// useEffect(() => { startOrchestrationPolling(); return stopOrchestrationPolling; }, []);
