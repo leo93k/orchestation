@@ -161,20 +161,20 @@ class OrchestrationManager {
       return { success: false, error: "Orchestration is already running" };
     }
 
-    // pgrep 이중 체크: process 객체 외에 실제 프로세스도 확인
-    // pgrep -x는 정확한 명령어 매칭, grep -v pgrep으로 자기 자신 제외
-    try {
-      const existing = execSync('pgrep -f "bash.*scripts/orchestrate.sh" 2>/dev/null | head -1 || true', { encoding: "utf-8" }).trim();
-      if (existing) {
-        // 실제로 살아있는지 한번 더 확인
-        try {
-          execSync(`kill -0 ${existing}`, { stdio: "ignore" });
+    // 이중 체크: lock 파일 + PID 생존 확인
+    const lockPidFile = "/tmp/orchestrate.lock/pid";
+    if (fs.existsSync(lockPidFile)) {
+      try {
+        const lockPid = parseInt(fs.readFileSync(lockPidFile, "utf-8").trim(), 10);
+        if (!isNaN(lockPid)) {
+          execSync(`kill -0 ${lockPid}`, { stdio: "ignore" });
           return { success: false, error: "orchestrate.sh가 이미 실행 중입니다" };
-        } catch {
-          // 이미 죽은 프로세스 → 무시
         }
+      } catch {
+        // lock PID가 죽어있음 → lock 제거하고 진행
+        fs.rmSync("/tmp/orchestrate.lock", { recursive: true, force: true });
       }
-    } catch { /* ignore */ }
+    }
 
     this.launching = true;
 
@@ -249,17 +249,35 @@ class OrchestrationManager {
   stop(): { success: boolean; error?: string } {
     this.appendLog("[orchestrate] Stop requested by user — 즉시 전체 종료");
 
-    // 1) orchestrate.sh kill
+    // 1) orchestrate.sh kill — process 객체 + lock PID
     if (this.process) {
       killProcessGracefully(this.process);
     }
-    // pgrep으로 놓친 인스턴스도 kill
-    try { execSync('pkill -f "bash.*scripts/orchestrate.sh" 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
+    // lock 파일의 PID로도 kill (process 객체가 없는 경우)
+    const lockPidFile = "/tmp/orchestrate.lock/pid";
+    if (fs.existsSync(lockPidFile)) {
+      try {
+        const lockPid = parseInt(fs.readFileSync(lockPidFile, "utf-8").trim(), 10);
+        if (!isNaN(lockPid)) {
+          try { process.kill(lockPid, "SIGTERM"); } catch { /* ignore */ }
+          setTimeout(() => { try { process.kill(lockPid, "SIGKILL"); } catch { /* ignore */ } }, 2000);
+        }
+      } catch { /* ignore */ }
+    }
 
-    // 2) 모든 워커 kill
-    try { execSync('pkill -f "job-task.sh" 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
-    try { execSync('pkill -f "job-review.sh" 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
-    try { execSync('pkill -f "claude.*--dangerously-skip-permissions" 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
+    // 2) 모든 워커 kill — PID 파일 기반 (pgrep 오탐 방지)
+    try {
+      const tmpFiles = fs.readdirSync("/tmp").filter((f) => /^worker-TASK-\w+\.pid$/.test(f));
+      for (const pf of tmpFiles) {
+        const pid = parseInt(fs.readFileSync(`/tmp/${pf}`, "utf-8").trim(), 10);
+        if (!isNaN(pid)) {
+          try { process.kill(pid, "SIGKILL"); } catch { /* ignore */ }
+        }
+        fs.unlinkSync(`/tmp/${pf}`);
+      }
+    } catch { /* ignore */ }
+    // claude 프로세스는 워커가 죽으면 자동 종료되지만, 혹시 남은 것도 정리
+    try { execSync('pkill -9 -f "claude.*--dangerously-skip-permissions" 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
 
     // 3) in_progress → stopped
     this.markAllInProgressAsStopped();
