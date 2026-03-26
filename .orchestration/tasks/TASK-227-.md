@@ -1,7 +1,9 @@
 ---
 id: TASK-227
 title: err-instanceof-Error-중복-패턴-유틸-함수-추출
-status: pending
+status: in_progress
+branch: task/task-227
+worktree: ../repo-wt-task-227
 priority: medium
 mode: night
 created: 2026-03-26
