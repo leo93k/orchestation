@@ -1,7 +1,9 @@
 ---
 id: TASK-237
 title: frontmatter-utils 단위 테스트 추가
-status: pending
+status: in_progress
+branch: task/task-237
+worktree: ../repo-wt-task-237
 priority: medium
 mode: night
 created: 2026-03-26
