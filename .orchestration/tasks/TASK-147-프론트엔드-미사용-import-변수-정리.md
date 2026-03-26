@@ -1,7 +1,7 @@
 ---
 id: TASK-147
 title: 프론트엔드 미사용 import·변수 34건 정리
-status: in_progress
+status: done
 branch: task/task-147
 worktree: ../repo-wt-task-147
 priority: medium

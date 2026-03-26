@@ -1,7 +1,7 @@
 ---
 id: TASK-146
 title: 글로벌 검색창 포커스 테두리 + 드롭다운 겹침 수정
-status: in_progress
+status: done
 branch: task/task-146
 worktree: ../repo-wt-task-146
 priority: medium
