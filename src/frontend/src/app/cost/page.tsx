@@ -9,7 +9,8 @@ import { CostTable } from "@/components/cost/CostTable";
 import { CumulativeCostChart } from "@/components/cost/CumulativeCostChart";
 import { RunHistory } from "@/components/cost/RunHistory";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type CostTab = "cost" | "history";
@@ -61,7 +62,10 @@ export default function CostPage() {
     refetch: refetchHistory,
   } = useRunHistory();
   const { justFinished, clearFinished } = useOrchestrationStatus();
-  const [activeTab, setActiveTab] = useState<CostTab>("cost");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = (searchParams.get("tab") as CostTab) || "cost";
+  const setActiveTab = (tab: CostTab) => router.replace(`/cost?tab=${tab}`);
 
   // Auto-refresh when orchestration finishes
   useEffect(() => {
