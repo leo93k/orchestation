@@ -48,7 +48,7 @@ class TaskRunnerManager {
     }
 
     const projectRoot = this.getProjectRoot();
-    const scriptPath = path.join(projectRoot, "scripts", "run-worker.sh");
+    const scriptPath = path.join(projectRoot, "scripts", "job-task.sh");
 
     const state: TaskRunState = {
       taskId,
