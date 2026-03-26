@@ -1,7 +1,9 @@
 ---
 id: TASK-243
 title: 핵심 파서 유닛 테스트 작성 (cost-parser, notice-parser, parser)
-status: pending
+status: in_progress
+branch: task/task-243
+worktree: ../repo-wt-task-243
 priority: medium
 mode: night
 created: 2026-03-26
@@ -14,7 +16,9 @@ scope: []
 ---
 id: TASK-243
 title: 핵심 파서 유닛 테스트 작성 (cost-parser, notice-parser, parser)
-status: pending
+status: in_progress
+branch: task/task-243
+worktree: ../repo-wt-task-243
 priority: medium
 mode: night
 created: 2026-03-26
