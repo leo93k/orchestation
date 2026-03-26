@@ -1,7 +1,7 @@
 ---
 id: TASK-196
 title: 마크다운 렌더링 개선 — 코드 하이라이팅, 체크박스, 테이블 등
-status: in_progress
+status: failed
 branch: task/task-196
 worktree: ../repo-wt-task-196
 priority: high
