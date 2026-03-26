@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Play, Square, Loader2 } from "lucide-react";
 import { HorseRunningIndicator } from "@/components/HorseRunningIndicator";
@@ -27,11 +27,13 @@ export default function AutoImproveControl({
   const isRunning =
     orchestrationStatus === "running" || runningTaskCount > 0;
 
-  // isStarting 해제: running으로 바뀌거나 failed면 starting 종료
+  // isStarting 해제: running으로 바뀔 때만 해제
+  const prevStatusRef = useRef(orchestrationStatus);
   useEffect(() => {
-    if (isStarting && (orchestrationStatus === "running" || orchestrationStatus === "failed")) {
+    if (isStarting && prevStatusRef.current !== "running" && orchestrationStatus === "running") {
       setIsStarting(false);
     }
+    prevStatusRef.current = orchestrationStatus;
   }, [isStarting, orchestrationStatus]);
 
   // isStarting 타임아웃: 15초 안에 running 안 되면 자동 해제
