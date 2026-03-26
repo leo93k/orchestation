@@ -1,7 +1,9 @@
 ---
 id: TASK-151
 title: ".catch(() => {}) 빈 콜백에 에러 로깅 추가"
-status: pending
+status: in_progress
+branch: task/task-151
+worktree: ../repo-wt-task-151
 priority: medium
 mode: night
 created: 2026-03-25
