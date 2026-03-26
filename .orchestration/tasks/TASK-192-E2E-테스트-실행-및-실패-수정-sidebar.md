@@ -1,7 +1,9 @@
 ---
 id: TASK-192
 title: E2E 테스트 실행 및 실패 수정 — sidebar
-status: pending
+status: in_progress
+branch: task/task-192
+worktree: ../repo-wt-task-192
 priority: medium
 created: 2026-03-26
 updated: 2026-03-26
