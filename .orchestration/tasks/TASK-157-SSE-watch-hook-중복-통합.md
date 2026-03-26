@@ -1,7 +1,7 @@
 ---
 id: TASK-157
 title: useTasks·useRequests SSE watch 로직 공통 훅으로 추출
-status: in_progress
+status: done
 branch: task/task-157
 worktree: ../repo-wt-task-157
 priority: medium
