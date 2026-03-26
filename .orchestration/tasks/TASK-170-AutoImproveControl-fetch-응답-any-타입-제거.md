@@ -1,7 +1,9 @@
 ---
 id: TASK-170
 title: "AutoImproveControl fetch 응답 any 타입 제거"
-status: pending
+status: in_progress
+branch: task/task-170
+worktree: ../repo-wt-task-170
 priority: medium
 mode: night
 created: 2026-03-25
