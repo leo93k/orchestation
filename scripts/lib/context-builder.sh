@@ -57,6 +57,9 @@ docs/task/archive/
 node_modules/
 .git/
 output/
+scripts/orchestrate.sh
+scripts/night-worker.sh
+scripts/run-pipeline.sh
 IGNORE
 
   # 완료된 태스크 파일들을 개별 제외
@@ -125,6 +128,7 @@ ${feedback}"
 - main 브랜치를 직접 수정하지 않는다
 - Task 상태를 완료 처리하지 않는다
 - 작업이 끝나면 변경사항을 커밋해라
+- orchestrate.sh, run-pipeline.sh, night-worker.sh를 절대 실행하지 않는다
 ${scope_section}
 ## Task 정의 (${task_filename})
 아래는 수행할 Task의 전체 내용이다. 완료 조건을 모두 충족하도록 작업해라.
