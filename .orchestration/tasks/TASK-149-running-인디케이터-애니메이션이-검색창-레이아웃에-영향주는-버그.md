@@ -1,7 +1,9 @@
 ---
 id: TASK-149
 title: Running 인디케이터 애니메이션이 검색창 레이아웃에 영향주는 버그 수정
-status: pending
+status: in_progress
+branch: task/task-149
+worktree: ../repo-wt-task-149
 priority: high
 created: 2026-03-25
 updated: 2026-03-25
