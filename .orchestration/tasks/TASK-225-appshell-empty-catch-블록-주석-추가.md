@@ -1,7 +1,9 @@
 ---
 id: TASK-225
 title: AppShell-empty-catch-블록-주석-추가
-status: pending
+status: in_progress
+branch: task/task-225
+worktree: ../repo-wt-task-225
 priority: medium
 mode: night
 created: 2026-03-26
