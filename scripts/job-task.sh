@@ -181,15 +181,38 @@ model_args=()
 [ -n "$selected_model" ] && model_args=(--model "$selected_model")
 
 CONV_FILE="$OUTPUT_DIR/${TASK_ID}-task-conversation.jsonl"
-if ! echo "$prompt" | claude --output-format json --dangerously-skip-permissions "${model_args[@]}" --system-prompt "$ROLE_PROMPT" > "$CONV_FILE"; then
+# claude 실행: stream-json으로 중간 이벤트를 stdout(→ 로그 → LiveLogPanel)에 실시간 출력
+# 최종 결과는 마지막 result 메시지에서 추출
+if ! echo "$prompt" | claude --output-format stream-json --dangerously-skip-permissions "${model_args[@]}" --system-prompt "$ROLE_PROMPT" 2>&1 | tee "$CONV_FILE" | while IFS= read -r line; do
+  # stream-json에서 사람이 읽을 수 있는 이벤트만 추출하여 실시간 출력
+  type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
+  case "$type" in
+    assistant)
+      text=$(echo "$line" | jq -r '.message.content[]? | select(.type=="text") | .text // empty' 2>/dev/null)
+      [ -n "$text" ] && echo "🤖 $text"
+      ;;
+    content_block_delta)
+      text=$(echo "$line" | jq -r '.delta.text // empty' 2>/dev/null)
+      [ -n "$text" ] && printf "%s" "$text"
+      ;;
+    result)
+      echo ""
+      echo "━━━ 작업 완료 ━━━"
+      ;;
+  esac
+done; then
   echo "❌ Claude 호출 실패" >&2
   exit 1
 fi
 
-JSON_OUTPUT=$(cat "$CONV_FILE")
-RESULT=$(echo "$JSON_OUTPUT" | jq -r '.result // empty')
-echo "$RESULT"
-echo "$JSON_OUTPUT" | jq . > "$OUTPUT_DIR/${TASK_ID}-task.json"
+# stream-json에서 최종 결과 추출 (마지막 result 타입 라인)
+JSON_OUTPUT=$(grep '"type":"result"' "$CONV_FILE" | tail -1)
+if [ -z "$JSON_OUTPUT" ]; then
+  # fallback: 파일 전체를 JSON으로 시도
+  JSON_OUTPUT=$(tail -1 "$CONV_FILE")
+fi
+RESULT=$(echo "$JSON_OUTPUT" | jq -r '.result // empty' 2>/dev/null)
+echo "$JSON_OUTPUT" | jq . > "$OUTPUT_DIR/${TASK_ID}-task.json" 2>/dev/null
 log_tokens "task"
 
 # 거절 감지: 결과 첫 줄이 "거절:" 으로 시작하면 task-rejected signal
