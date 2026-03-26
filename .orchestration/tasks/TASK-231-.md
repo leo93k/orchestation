@@ -1,7 +1,7 @@
 ---
 id: TASK-231
 title: query-client.ts 미사용 getQueryClient 함수 제거
-status: pending
+status: failed
 priority: medium
 mode: night
 created: 2026-03-26
