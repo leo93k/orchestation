@@ -1,7 +1,9 @@
 ---
 id: TASK-234
 title: orchestration-manager console.log를 logger 유틸로 교체
-status: pending
+status: in_progress
+branch: task/task-234
+worktree: ../repo-wt-task-234
 priority: medium
 mode: night
 created: 2026-03-26
