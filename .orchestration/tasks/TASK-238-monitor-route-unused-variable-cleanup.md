@@ -1,7 +1,9 @@
 ---
 id: TASK-238
 title: monitor-route-unused-variable-cleanup
-status: pending
+status: in_progress
+branch: task/task-238
+worktree: ../repo-wt-task-238
 priority: medium
 mode: night
 created: 2026-03-26
