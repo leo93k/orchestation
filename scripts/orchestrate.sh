@@ -54,27 +54,49 @@ fi
 [ -z "${BASE_BRANCH:-}" ] && BASE_BRANCH="main"
 echo "⚙️  Base Branch: ${BASE_BRANCH}"
 
-# ── 중복 실행 방지 (lock) ─────────────────────────────
+# ── 중복 실행 방지 (lock + stale 감지) ─────────────────
 LOCK_DIR="/tmp/orchestrate.lock"
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-  echo "⚠️  orchestrate.sh가 이미 실행 중입니다. 중복 실행 방지."
-  exit 0
+  # stale lock 감지: PID 파일이 있고 해당 프로세스가 죽어있으면 lock 제거
+  if [ -f "$LOCK_DIR/pid" ]; then
+    old_pid=$(cat "$LOCK_DIR/pid" 2>/dev/null)
+    if [ -n "$old_pid" ] && ! kill -0 "$old_pid" 2>/dev/null; then
+      echo "⚠️  이전 orchestrate (PID=${old_pid}) 비정상 종료 감지 → lock 정리"
+      rm -rf "$LOCK_DIR"
+      mkdir "$LOCK_DIR" 2>/dev/null || { echo "❌ lock 획득 실패"; exit 1; }
+    else
+      echo "⚠️  orchestrate.sh가 이미 실행 중입니다 (PID=${old_pid}). 중복 실행 방지."
+      exit 0
+    fi
+  else
+    echo "⚠️  orchestrate.sh가 이미 실행 중입니다. 중복 실행 방지."
+    exit 0
+  fi
 fi
+echo $$ > "$LOCK_DIR/pid"
 
 cleanup_lock() {
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "🛑 Pipeline 종료"
-  # background 모드: 실행 중인 워커 프로세스 종료
-  if [ "${WORKER_MODE:-background}" = "background" ]; then
-    for _tid in "${RUNNING[@]+"${RUNNING[@]}"}"; do
-      [ -z "$_tid" ] && continue
-      _stop_worker "$_tid"
-    done
-  fi
+  # 실행 중인 워커 프로세스 종료
+  for _tid in "${RUNNING[@]+"${RUNNING[@]}"}"; do
+    [ -z "$_tid" ] && continue
+    _stop_worker "$_tid"
+  done
+  # in_progress 태스크를 pending으로 원복
+  for _tid in "${RUNNING[@]+"${RUNNING[@]}"}"; do
+    [ -z "$_tid" ] && continue
+    local _tf
+    _tf=$(find_file "$_tid" 2>/dev/null)
+    if [ -n "$_tf" ] && grep -q 'status: in_progress' "$_tf" 2>/dev/null; then
+      sed_inplace "s/^status: in_progress/status: pending/" "$_tf"
+      echo "  ↩️  ${_tid}: in_progress → pending 원복"
+    fi
+  done
   rm -rf "$SIGNAL_DIR" "$LOCK_DIR" "$RETRY_DIR"
 }
-trap cleanup_lock EXIT
+trap cleanup_lock EXIT INT TERM
 
 # ── 사전 검증 ──────────────────────────────────────────
 
