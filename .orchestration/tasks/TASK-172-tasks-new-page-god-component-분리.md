@@ -1,7 +1,7 @@
 ---
 id: TASK-172
 title: tasks/new/page.tsx 840줄 god component 분리
-status: in_progress
+status: done
 branch: task/task-172
 worktree: ../repo-wt-task-172
 priority: medium
