@@ -1,7 +1,9 @@
 ---
 id: TASK-244
 title: notices-API-DELETE-PUT-에러핸들링-추가
-status: pending
+status: in_progress
+branch: task/task-244
+worktree: ../repo-wt-task-244
 priority: medium
 mode: night
 created: 2026-03-26
