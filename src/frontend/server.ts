@@ -111,9 +111,7 @@ app.prepare().then(() => {
     const ORCH_OUTPUT_DIR = resolve(PROJECT_ROOT, ".orchestration", "output");
     const watchedFiles: string[] = [
       resolve(OUTPUT_DIR, "logs", `${taskId}.log`),
-      resolve(OUTPUT_DIR, `${taskId}-task-conversation.jsonl`),
       resolve(ORCH_OUTPUT_DIR, "logs", `${taskId}.log`),
-      resolve(ORCH_OUTPUT_DIR, `${taskId}-task-conversation.jsonl`),
     ];
     const fileOffsets = new Map<string, number>();
 
@@ -136,48 +134,7 @@ app.prepare().then(() => {
           if (!trimmed) continue;
           if (ws.readyState !== WebSocket.OPEN) return;
 
-          // For JSONL conversation files, extract readable content
-          if (filePath.endsWith(".jsonl")) {
-            try {
-              const entry = JSON.parse(trimmed);
-              // stream-json: extract from "type":"assistant" messages
-              if (entry.type === "assistant" && Array.isArray(entry.message?.content)) {
-                for (const block of entry.message.content) {
-                  if (block.type === "text" && block.text) {
-                    ws.send(JSON.stringify({ type: "log", line: `🤖 ${block.text.substring(0, 500)}` }));
-                  } else if (block.type === "tool_use") {
-                    const name = block.name || "tool";
-                    const inputPreview = block.input ? JSON.stringify(block.input).substring(0, 150) : "";
-                    ws.send(JSON.stringify({ type: "log", line: `🔧 ${name}(${inputPreview})` }));
-                  } else if (block.type === "thinking" && block.thinking) {
-                    ws.send(JSON.stringify({ type: "log", line: `💭 ${block.thinking.substring(0, 300)}` }));
-                  }
-                }
-                continue;
-              }
-              // stream-json: user messages (tool results)
-              if (entry.type === "user" && Array.isArray(entry.message?.content)) {
-                for (const block of entry.message.content) {
-                  if (block.type === "tool_result") {
-                    const status = block.is_error ? "❌" : "✅";
-                    const content = typeof block.content === "string" ? block.content.substring(0, 200) : "";
-                    ws.send(JSON.stringify({ type: "log", line: `${status} result: ${content || "(ok)"}` }));
-                  }
-                }
-                continue;
-              }
-              // stream-json: "type":"result" means done
-              if (entry.type === "result") {
-                ws.send(JSON.stringify({ type: "log", line: "━━━ Claude 작업 완료 ━━━" }));
-                continue;
-              }
-            } catch {
-              // Not valid JSON, send raw
-              ws.send(JSON.stringify({ type: "log", line: trimmed }));
-            }
-          } else {
-            ws.send(JSON.stringify({ type: "log", line: trimmed }));
-          }
+          ws.send(JSON.stringify({ type: "log", line: trimmed }));
         }
       } catch {
         // file may not exist yet

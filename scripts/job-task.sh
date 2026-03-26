@@ -183,10 +183,8 @@ model_args=()
 
 CONV_FILE="$OUTPUT_DIR/${TASK_ID}-task-conversation.jsonl"
 
-# stream-json: claude → tee → 파일 저장 + stdout 실시간 파싱
-# stdbuf -oL로 라인 버퍼링 강제 → 실시간 출력
+# stream-json: claude → stdout 실시간 파싱 (JSONL 파일 저장하지 않음)
 echo "$prompt" | claude --output-format stream-json --verbose --dangerously-skip-permissions "${model_args[@]}" --system-prompt "$ROLE_PROMPT" \
-  | stdbuf -oL tee "$CONV_FILE" \
   | while IFS= read -r line; do
       type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
       case "$type" in

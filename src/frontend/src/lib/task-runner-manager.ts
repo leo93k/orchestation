@@ -1,6 +1,8 @@
 import { spawn, ChildProcess } from "child_process";
+import { EventEmitter } from "events";
 import path from "path";
 import { pipeProcessLogs, killProcessGracefully } from "./process-utils";
+import { getErrorMessage } from "./error-utils";
 
 export type TaskRunStatus = "idle" | "running" | "completed" | "failed";
 
@@ -17,6 +19,10 @@ class TaskRunnerManager {
   /** Currently running tasks keyed by task ID */
   private runs: Map<string, { state: TaskRunState; process: ChildProcess }> =
     new Map();
+
+  /** Event emitter for log streaming: emits "log:<taskId>" with line string, "done:<taskId>" on finish */
+  public events = new EventEmitter();
+
 
   private getProjectRoot(): string {
     return path.resolve(process.cwd(), "..", "..");
@@ -49,6 +55,7 @@ class TaskRunnerManager {
 
     const projectRoot = this.getProjectRoot();
     const scriptPath = path.join(projectRoot, "scripts", "job-task.sh");
+    const signalDir = path.join(projectRoot, ".orchestration", "signals");
 
     const state: TaskRunState = {
       taskId,
@@ -63,14 +70,14 @@ class TaskRunnerManager {
 
     let proc: ChildProcess;
     try {
-      proc = spawn("bash", [scriptPath, taskId], {
+      proc = spawn("bash", [scriptPath, taskId, signalDir], {
         cwd: projectRoot,
         env: { ...process.env },
         stdio: ["ignore", "pipe", "pipe"],
         detached: true,
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err, String(err));
       state.logs.push(`[task-runner] Failed to spawn: ${msg}`);
       state.status = "failed";
       state.finishedAt = new Date().toISOString();
@@ -80,21 +87,28 @@ class TaskRunnerManager {
 
     this.runs.set(taskId, { state, process: proc });
 
-    pipeProcessLogs(proc, (line) => state.logs.push(line));
+    pipeProcessLogs(proc, (line) => {
+      state.logs.push(line);
+      this.events.emit(`log:${taskId}`, line);
+    });
 
     proc.on("close", (code: number | null) => {
       state.exitCode = code ?? 1;
       state.status = code === 0 ? "completed" : "failed";
       state.finishedAt = new Date().toISOString();
-      state.logs.push(
-        `[task-runner] ${taskId} exited with code ${code} at ${state.finishedAt}`
-      );
+      const exitLine = `[task-runner] ${taskId} exited with code ${code} at ${state.finishedAt}`;
+      state.logs.push(exitLine);
+      this.events.emit(`log:${taskId}`, exitLine);
+      this.events.emit(`done:${taskId}`, state.status);
     });
 
     proc.on("error", (err: Error) => {
-      state.logs.push(`[task-runner] Process error: ${err.message}`);
+      const errLine = `[task-runner] Process error: ${err.message}`;
+      state.logs.push(errLine);
+      this.events.emit(`log:${taskId}`, errLine);
       state.status = "failed";
       state.finishedAt = new Date().toISOString();
+      this.events.emit(`done:${taskId}`, "failed");
     });
 
     return { success: true };
@@ -114,5 +128,9 @@ class TaskRunnerManager {
   }
 }
 
-const taskRunnerManager = new TaskRunnerManager();
+// Use globalThis to ensure single instance across server.ts and Next.js API routes
+const globalKey = "__taskRunnerManager__";
+const taskRunnerManager: TaskRunnerManager =
+  (globalThis as Record<string, unknown>)[globalKey] as TaskRunnerManager ??
+  ((globalThis as Record<string, unknown>)[globalKey] = new TaskRunnerManager());
 export default taskRunnerManager;
