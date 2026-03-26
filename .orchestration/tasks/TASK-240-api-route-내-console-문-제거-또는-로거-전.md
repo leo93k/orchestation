@@ -1,7 +1,9 @@
 ---
 id: TASK-240
 title: API route 내 console 문 제거 또는 로거 전환
-status: pending
+status: in_progress
+branch: task/task-240
+worktree: ../repo-wt-task-240
 priority: medium
 mode: night
 created: 2026-03-26
