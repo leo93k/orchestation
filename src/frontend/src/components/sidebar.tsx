@@ -437,6 +437,7 @@ export function TaskSidebar({
   const handleStopTask = onStopTask ?? storeStopTask;
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [docsExpanded, setDocsExpanded] = useState(false);
+  const [tasksExpanded, setTasksExpanded] = useState(true);
   const [newRootItemType, setNewRootItemType] = useState<"doc" | "folder" | null>(null);
   const [showNewMenu, setShowNewMenu] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -576,16 +577,31 @@ export function TaskSidebar({
         <div className="mb-2">
           <div className="sidebar-section-sep" />
           <div className="px-2 mb-1.5 flex items-center justify-between">
-            <Link
-              href="/tasks"
-              className={cn("sidebar-section-link", currentPath.startsWith("/tasks") && "active")}
+            <button
+              type="button"
+              className="flex items-center gap-1 sidebar-section-link bg-transparent border-none p-0 cursor-pointer"
+              onClick={() => setTasksExpanded((v) => !v)}
             >
-              Tasks
-            </Link>
+              <ChevronDown
+                className="h-3 w-3 transition-transform duration-200"
+                style={{ transform: tasksExpanded ? "rotate(0deg)" : "rotate(-90deg)" }}
+              />
+              <Link
+                href="/tasks"
+                className={cn("sidebar-section-link", currentPath.startsWith("/tasks") && "active")}
+                onClick={(e) => e.stopPropagation()}
+              >
+                Tasks
+              </Link>
+            </button>
             <span className={cn("text-[10px] font-medium tabular-nums px-1 rounded", currentPath.startsWith("/tasks") ? "text-primary" : "text-muted-foreground")}>
               {requestItems.length}
             </span>
           </div>
+
+          {/* Collapsible tasks content */}
+          <div className={cn("sidebar-collapsible", tasksExpanded && "sidebar-collapsible-open")}>
+          <div className="sidebar-collapsible-inner">
 
           {/* In Progress tasks */}
           {inProgressTasks.map((task) => {
@@ -834,6 +850,9 @@ export function TaskSidebar({
               No tasks yet
             </div>
           )}
+
+          </div>
+          </div>
         </div>
 
         {/* ── Notices ── */}
