@@ -1,7 +1,7 @@
 ---
 id: TASK-239
 title: DAGCanvas non-null assertion 타입 안전성 수정
-status: in_progress
+status: failed
 branch: task/task-239
 worktree: ../repo-wt-task-239
 priority: medium
@@ -18,7 +18,7 @@ Line 283에서 `layout.topGroups.map`으로 모든 그룹을 순회하면서 285
 ---
 id: TASK-239
 title: DAGCanvas non-null assertion 타입 안전성 수정
-status: in_progress
+status: failed
 branch: task/task-239
 worktree: ../repo-wt-task-239
 priority: medium
