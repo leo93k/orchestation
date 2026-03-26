@@ -138,14 +138,15 @@ load_role_prompt() {
 log_tokens() {
   local phase="$1"
   local input_tokens cache_create cache_read output_tokens cost duration num_turns model
-  input_tokens=$(echo "$JSON_OUTPUT" | jq '.usage.input_tokens // 0')
-  cache_create=$(echo "$JSON_OUTPUT" | jq '.usage.cache_creation_input_tokens // 0')
-  cache_read=$(echo "$JSON_OUTPUT" | jq '.usage.cache_read_input_tokens // 0')
-  output_tokens=$(echo "$JSON_OUTPUT" | jq '.usage.output_tokens // 0')
-  cost=$(echo "$JSON_OUTPUT" | jq '.total_cost_usd // 0')
-  duration=$(echo "$JSON_OUTPUT" | jq '.duration_ms // 0')
-  num_turns=$(echo "$JSON_OUTPUT" | jq '.num_turns // 0')
-  model=$(echo "$JSON_OUTPUT" | jq -r '(.modelUsage // {} | keys | first) // "unknown"')
+  # stream-json result 라인과 기존 json 모두 호환
+  input_tokens=$(echo "$JSON_OUTPUT" | jq '.usage.input_tokens // 0' 2>/dev/null)
+  cache_create=$(echo "$JSON_OUTPUT" | jq '.usage.cache_creation_input_tokens // .usage.cache_creation.ephemeral_1h_input_tokens // 0' 2>/dev/null)
+  cache_read=$(echo "$JSON_OUTPUT" | jq '.usage.cache_read_input_tokens // 0' 2>/dev/null)
+  output_tokens=$(echo "$JSON_OUTPUT" | jq '.usage.output_tokens // 0' 2>/dev/null)
+  cost=$(echo "$JSON_OUTPUT" | jq '.total_cost_usd // 0' 2>/dev/null)
+  duration=$(echo "$JSON_OUTPUT" | jq '.duration_ms // 0' 2>/dev/null)
+  num_turns=$(echo "$JSON_OUTPUT" | jq '.num_turns // 0' 2>/dev/null)
+  model=$(echo "$JSON_OUTPUT" | jq -r '(.modelUsage // {} | keys | first) // "unknown"' 2>/dev/null)
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${TASK_ID} | phase=${phase} | model=${model} | input=${input_tokens} cache_create=${cache_create} cache_read=${cache_read} output=${output_tokens} | turns=${num_turns} | duration=${duration}ms | cost=\$${cost}" >> "$TOKEN_LOG"
   echo "📊 토큰: in=${input_tokens} cache_create=${cache_create} cache_read=${cache_read} out=${output_tokens} | model=${model} | cost=\$${cost}"
 }
@@ -181,14 +182,50 @@ model_args=()
 [ -n "$selected_model" ] && model_args=(--model "$selected_model")
 
 CONV_FILE="$OUTPUT_DIR/${TASK_ID}-task-conversation.jsonl"
-if ! echo "$prompt" | claude --output-format json --dangerously-skip-permissions "${model_args[@]}" --system-prompt "$ROLE_PROMPT" > "$CONV_FILE"; then
-  echo "❌ Claude 호출 실패" >&2
+STREAM_LOG="$REPO_ROOT/output/logs/${TASK_ID}-stream.log"
+
+# stream-json + verbose로 실시간 로그 출력
+# tee로 파일 저장 + awk로 사람이 읽을 수 있는 이벤트만 stdout에 출력
+echo "$prompt" | claude --output-format stream-json --verbose --dangerously-skip-permissions "${model_args[@]}" --system-prompt "$ROLE_PROMPT" > "$CONV_FILE" &
+CLAUDE_PID=$!
+
+# 백그라운드로 stream 파싱: CONV_FILE을 tail -f로 읽어서 실시간 출력
+(
+  sleep 2  # claude가 파일 쓰기 시작할 때까지 대기
+  tail -f "$CONV_FILE" 2>/dev/null | while IFS= read -r line; do
+    type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
+    case "$type" in
+      assistant)
+        text=$(echo "$line" | jq -r '.message.content[]? | select(.type=="text") | .text // empty' 2>/dev/null)
+        [ -n "$text" ] && echo "🤖 $text"
+        ;;
+      result)
+        echo "━━━ Claude 작업 완료 ━━━"
+        break
+        ;;
+    esac
+  done
+) &
+PARSER_PID=$!
+
+# claude 프로세스 완료 대기
+wait "$CLAUDE_PID"
+CLAUDE_EXIT=$?
+kill "$PARSER_PID" 2>/dev/null
+
+if [ "$CLAUDE_EXIT" -ne 0 ]; then
+  echo "❌ Claude 호출 실패 (exit=$CLAUDE_EXIT)" >&2
   exit 1
 fi
 
-JSON_OUTPUT=$(cat "$CONV_FILE")
-RESULT=$(echo "$JSON_OUTPUT" | jq -r '.result // empty')
-echo "$JSON_OUTPUT" | jq . > "$OUTPUT_DIR/${TASK_ID}-task.json"
+# stream-json에서 최종 result 추출
+JSON_OUTPUT=$(grep '"type":"result"' "$CONV_FILE" | tail -1)
+if [ -z "$JSON_OUTPUT" ]; then
+  echo "❌ result를 찾을 수 없습니다" >&2
+  exit 1
+fi
+RESULT=$(echo "$JSON_OUTPUT" | jq -r '.result // empty' 2>/dev/null)
+echo "$JSON_OUTPUT" | jq . > "$OUTPUT_DIR/${TASK_ID}-task.json" 2>/dev/null
 log_tokens "task"
 
 # 거절 감지: 결과 첫 줄이 "거절:" 으로 시작하면 task-rejected signal
