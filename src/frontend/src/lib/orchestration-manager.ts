@@ -162,10 +162,17 @@ class OrchestrationManager {
     }
 
     // pgrep 이중 체크: process 객체 외에 실제 프로세스도 확인
+    // pgrep -x는 정확한 명령어 매칭, grep -v pgrep으로 자기 자신 제외
     try {
-      const existing = execSync('pgrep -f "orchestrate.sh" 2>/dev/null || true', { encoding: "utf-8" }).trim();
+      const existing = execSync('pgrep -f "bash.*scripts/orchestrate.sh" 2>/dev/null | head -1 || true', { encoding: "utf-8" }).trim();
       if (existing) {
-        return { success: false, error: "orchestrate.sh가 이미 실행 중입니다" };
+        // 실제로 살아있는지 한번 더 확인
+        try {
+          execSync(`kill -0 ${existing}`, { stdio: "ignore" });
+          return { success: false, error: "orchestrate.sh가 이미 실행 중입니다" };
+        } catch {
+          // 이미 죽은 프로세스 → 무시
+        }
       }
     } catch { /* ignore */ }
 
@@ -247,7 +254,7 @@ class OrchestrationManager {
       killProcessGracefully(this.process);
     }
     // pgrep으로 놓친 인스턴스도 kill
-    try { execSync('pkill -f "orchestrate.sh" 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
+    try { execSync('pkill -f "bash.*scripts/orchestrate.sh" 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
 
     // 2) 모든 워커 kill
     try { execSync('pkill -f "job-task.sh" 2>/dev/null || true', { stdio: "ignore" }); } catch { /* ignore */ }
