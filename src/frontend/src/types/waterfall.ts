@@ -1,3 +1,5 @@
+import type { TaskStatus, TaskPriority } from "../../lib/constants";
+
 export type WaterfallTaskStatus =
   | "pending"
   | "stopped"
@@ -10,8 +12,8 @@ export type WaterfallTaskStatus =
 export type WaterfallTask = {
   id: string;
   title: string;
-  status: WaterfallTaskStatus;
-  priority: string;
+  status: TaskStatus;
+  priority: TaskPriority;
   role: string;
   depends_on: string[];
   blocks: string[];

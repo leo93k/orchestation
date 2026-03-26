@@ -2,11 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { PriorityBadge } from "@/components/ui/badge";
-import {
-  STATUS_STYLES,
-  type TaskStatus,
-  type TaskPriority,
-} from "../../lib/constants";
+import { STATUS_STYLES } from "../../lib/constants";
 import type { WaterfallTask } from "@/types/waterfall";
 
 type TaskRowProps = {
@@ -16,7 +12,7 @@ type TaskRowProps = {
 };
 
 export function TaskRow({ task, isSelected, onClick }: TaskRowProps) {
-  const statusStyle = STATUS_STYLES[task.status as TaskStatus];
+  const statusStyle = STATUS_STYLES[task.status];
 
   return (
     <div
@@ -44,7 +40,7 @@ export function TaskRow({ task, isSelected, onClick }: TaskRowProps) {
 
       {/* Priority badge */}
       <PriorityBadge
-        priority={task.priority as TaskPriority}
+        priority={task.priority}
         className="shrink-0 leading-[18px]"
       />
 

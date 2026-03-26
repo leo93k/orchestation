@@ -22,8 +22,8 @@ import {
 type TaskData = {
   id: string;
   title: string;
-  status: string;
-  priority: string;
+  status: TaskStatus;
+  priority: TaskPriority;
   role: string;
   depends_on: string[];
   blocks: string[];
@@ -109,10 +109,10 @@ export function TaskEditSheet({
   };
 
   const statusStyle = task
-    ? STATUS_STYLES[task.status as TaskStatus]
+    ? STATUS_STYLES[task.status]
     : undefined;
   const priorityStyle = task
-    ? (PRIORITY_STYLES[task.priority as TaskPriority] ?? PRIORITY_STYLES.medium)
+    ? (PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium)
     : undefined;
 
   // Available tasks for dependency selection (excluding self)
@@ -134,10 +134,10 @@ export function TaskEditSheet({
               {/* Current badges */}
               <div className="flex flex-wrap gap-1.5">
                 {statusStyle && (
-                  <StatusBadge status={task.status as TaskStatus} />
+                  <StatusBadge status={task.status} />
                 )}
                 {priorityStyle && (
-                  <PriorityBadge priority={task.priority as TaskPriority} />
+                  <PriorityBadge priority={task.priority} />
                 )}
               </div>
 

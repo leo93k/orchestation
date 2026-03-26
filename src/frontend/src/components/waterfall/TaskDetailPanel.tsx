@@ -11,8 +11,6 @@ import { cn } from "@/lib/utils";
 import {
   STATUS_STYLES,
   PRIORITY_STYLES,
-  type TaskStatus,
-  type TaskPriority,
 } from "../../../lib/constants";
 import type { WaterfallTask } from "@/types/waterfall";
 
@@ -77,10 +75,10 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
   const open = task !== null;
 
   const statusStyle = task
-    ? STATUS_STYLES[task.status as TaskStatus]
+    ? STATUS_STYLES[task.status]
     : undefined;
   const priorityStyle = task
-    ? (PRIORITY_STYLES[task.priority as TaskPriority] ?? PRIORITY_STYLES.medium)
+    ? (PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium)
     : undefined;
 
   return (

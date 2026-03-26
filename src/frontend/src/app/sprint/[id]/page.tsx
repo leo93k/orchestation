@@ -11,7 +11,6 @@ import {
   STATUS_STYLES,
   PRIORITY_STYLES,
   type TaskStatus,
-  type TaskPriority,
 } from "../../../../lib/constants";
 import type { SprintDetail, SprintDetailTask } from "@/hooks/useSprintDetail";
 import { TaskCreateDialog } from "@/components/TaskCreateDialog";
@@ -76,9 +75,9 @@ function BoardView({
                 <p className="text-xs text-muted-foreground py-4 text-center">No tasks</p>
               ) : (
                 tasks.map((task) => {
-                  const statusStyle = STATUS_STYLES[task.status as TaskStatus];
+                  const statusStyle = STATUS_STYLES[task.status];
                   const priorityStyle =
-                    PRIORITY_STYLES[task.priority as TaskPriority] ?? PRIORITY_STYLES.medium;
+                    PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
                   return (
                     <button
                       key={task.id}
@@ -210,7 +209,7 @@ function TimelineView({
 
         {allTasks.map((task) => {
           const batchIdx = taskBatchIndex.get(task.id) ?? 0;
-          const statusStyle = STATUS_STYLES[task.status as TaskStatus];
+          const statusStyle = STATUS_STYLES[task.status];
           const barColor = statusStyle?.bg.replace("bg-", "") ?? "gray-400";
           const colorMap: Record<string, string> = {
             "gray-500": "#6b7280", "blue-500": "#3b82f6", "orange-500": "#f97316",
@@ -282,7 +281,7 @@ function ListView({
             </h2>
             <div className="flex flex-col">
               {batch.tasks.map((task) => {
-                const statusStyle = STATUS_STYLES[task.status as TaskStatus];
+                const statusStyle = STATUS_STYLES[task.status];
                 return (
                   <button
                     key={task.id}
