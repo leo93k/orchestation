@@ -1,7 +1,7 @@
 ---
 id: TASK-205
 title: Tasks 목록 UX 흐름 수정 및 E2E 테스트
-status: in_progress
+status: rejected
 branch: task/task-205
 worktree: ../repo-wt-task-205
 priority: high
@@ -11,7 +11,7 @@ scope:
   - src/frontend/e2e/**
   - scripts/lib/**
 created: 2026-03-26
-updated: 2026-03-26
+updated: 2026-03-26 08:55:27
 ---
 Tasks 목록 페이지의 UX 동선 전체를 검증하고 누락 동작을 수정한다.
 
