@@ -76,14 +76,21 @@ fi
 echo $$ > "$LOCK_DIR/pid"
 
 cleanup_lock() {
+  local exit_code=$?
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "🛑 Pipeline 종료"
-  # 실행 중인 워커 프로세스 종료
-  for _tid in "${RUNNING[@]+"${RUNNING[@]}"}"; do
-    [ -z "$_tid" ] && continue
-    _stop_worker "$_tid"
-  done
+  echo "🛑 Pipeline 종료 (exit=${exit_code})"
+
+  # 비정상 종료(SIGKILL 등)일 때만 워커 강제 종료
+  # 정상 Stop은 워커가 알아서 끝나도록 둠
+  if [ "$exit_code" -gt 128 ]; then
+    echo "  ⚠️ 비정상 종료 감지 → 워커 강제 종료"
+    for _tid in "${RUNNING[@]+"${RUNNING[@]}"}"; do
+      [ -z "$_tid" ] && continue
+      _stop_worker "$_tid"
+    done
+  fi
+
   # in_progress 태스크를 pending으로 원복
   for _tid in "${RUNNING[@]+"${RUNNING[@]}"}"; do
     [ -z "$_tid" ] && continue
