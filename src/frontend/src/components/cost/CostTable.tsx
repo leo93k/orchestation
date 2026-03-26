@@ -7,6 +7,7 @@ import { SortIcon } from "./SortIcon";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Select } from "@/components/ui/select";
+import Link from "next/link";
 
 interface CostTableProps {
   entries: CostEntry[];
@@ -89,7 +90,6 @@ export function CostTable({ entries }: CostTableProps) {
         <table className="w-full text-xs compact-table">
           <thead>
             <tr className="border-b border-border text-left text-[10px] text-muted-foreground uppercase tracking-wider">
-              {renderSortableHeader("timestamp", "시각")}
               <th className="font-medium">Task ID</th>
               <th className="font-medium">Phase</th>
               <th className="font-medium">Model</th>
@@ -97,6 +97,7 @@ export function CostTable({ entries }: CostTableProps) {
               {renderSortableHeader("time", "Time", "right")}
               <th className="font-medium text-right">Turns</th>
               {renderSortableHeader("tokens", "Tokens", "right")}
+              {renderSortableHeader("timestamp", "시각", "right")}
             </tr>
           </thead>
           <tbody>
@@ -115,14 +116,15 @@ export function CostTable({ entries }: CostTableProps) {
                   )}
                 >
                   <td>
-                    <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">
-                      {formatTimestamp(entry.timestamp)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={isHighest ? "text-amber-500" : "font-mono"}>
+                    <Link
+                      href={`/tasks/${entry.taskId}`}
+                      className={cn(
+                        "font-mono hover:underline",
+                        isHighest ? "text-amber-500" : "hover:text-foreground"
+                      )}
+                    >
                       {entry.taskId}
-                    </span>
+                    </Link>
                   </td>
                   <td>
                     <span
@@ -152,6 +154,11 @@ export function CostTable({ entries }: CostTableProps) {
                   </td>
                   <td className="text-right font-mono">
                     {totalTokens.toLocaleString()}
+                  </td>
+                  <td className="text-right">
+                    <span className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">
+                      {formatTimestamp(entry.timestamp)}
+                    </span>
                   </td>
                 </tr>
               );
