@@ -1,7 +1,7 @@
 ---
 id: TASK-234
 title: orchestration-manager console.log를 logger 유틸로 교체
-status: in_progress
+status: failed
 branch: task/task-234
 worktree: ../repo-wt-task-234
 priority: medium
