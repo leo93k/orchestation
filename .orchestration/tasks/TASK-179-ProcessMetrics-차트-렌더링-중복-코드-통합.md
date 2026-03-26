@@ -1,7 +1,9 @@
 ---
 id: TASK-179
 title: "ProcessMetrics 차트 렌더링 중복 코드 통합"
-status: pending
+status: in_progress
+branch: task/task-179
+worktree: ../repo-wt-task-179
 priority: medium
 mode: night
 created: 2026-03-25
