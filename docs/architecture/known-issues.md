@@ -246,6 +246,45 @@ getStatus() {
 
 ---
 
+## 10. 워커(claude)가 orchestrate.sh를 실행하는 문제
+
+**증상**: orchestrate.sh가 죽은 뒤 갑자기 다시 살아남. 4개까지 중복 실행됨.
+
+**원인**:
+- 워커(claude)가 태스크 수행 중 worktree 안에 있는 orchestrate.sh를 발견하고 실행
+- worktree 경로(`repo-wt-task-190/scripts/orchestrate.sh`)에서 실행되므로 main repo의 lock과 경로가 다름
+- 워커를 죽이지 않으면 계속 재실행
+
+**영향**:
+- orchestrate.sh 중복 실행 (lock 경로 불일치로 싱글톤 깨짐)
+- worktree 기준으로 실행되어 태스크 파일 경로 불일치 가능
+- 워커를 죽여야만 멈출 수 있음
+
+**수정 방향**:
+- job-task.sh 프롬프트에 "orchestrate.sh, run-pipeline.sh를 실행하지 마라" 제약 추가
+- 또는 worktree의 scripts/ 디렉토리를 .claudeignore에 추가
+- 또는 orchestrate.sh 첫 줄에서 실행 경로가 main repo인지 체크
+
+---
+
+## 11. 서버 재시작 없이 UI 상태(Running/에러) 리셋 안 됨
+
+**증상**: 비정상 종료 후 UI에 "Running... 4", "실행 실패 (exit code: 128)" 계속 표시. 새로고침해도 유지.
+
+**원인**:
+- orchestration-manager의 state가 서버 메모리에 있음
+- 외부에서 프로세스를 kill하면 `proc.on("close")` 콜백이 안 탈 수 있음
+- getStatus()의 보정 로직이 있지만, process 객체가 null이 아니면서 실제로는 죽은 경우를 놓침
+
+**현재 대응**: 서버 재시작 시 constructor에서 상태 리셋
+
+**수정 방향**:
+- getStatus()에서 process가 있으면 `kill -0`으로 실제 생존 확인
+- 죽어있으면 즉시 state 리셋 + process = null
+- 또는 status API에서 매 호출마다 실제 프로세스 생존 확인
+
+---
+
 ## 우선순위별 수정 순서
 
 | 순위 | 문제 | 상태 |
@@ -259,3 +298,5 @@ getStatus() {
 | 7 | 서버 재시작 시 워커 오판 | ❌ 미수정 — pgrep으로 실제 프로세스 확인 필요 |
 | 8 | dirty tree에서 git commit 실패 | ❌ 미수정 — commit에 || true 또는 사전 체크 필요 |
 | 9 | stale lock으로 Run 즉시 종료 | ⚠️ 부분 수정 — 서버 시작 시 정리는 됨 |
+| 10 | 워커가 orchestrate.sh 실행 | ❌ 미수정 — 프롬프트 제약 또는 .claudeignore 필요 |
+| 11 | 서버 재시작 없이 UI 상태 리셋 안 됨 | ❌ 미수정 — getStatus()에서 kill -0 체크 필요 |
