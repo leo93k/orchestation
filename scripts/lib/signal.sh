@@ -55,7 +55,7 @@ signal_check() {
   local task_id="$2"
 
   local suffix
-  for suffix in task-done task-failed review-approved review-rejected done failed stopped; do
+  for suffix in task-done task-failed task-rejected review-approved review-rejected done failed stopped; do
     if [ -f "${signal_dir}/${task_id}-${suffix}" ]; then
       SIGNAL_TYPE="$suffix"
       return 0
@@ -78,7 +78,7 @@ signal_consume() {
 
   local result="none"
   local suffix
-  for suffix in task-done task-failed review-approved review-rejected done failed stopped; do
+  for suffix in task-done task-failed task-rejected review-approved review-rejected done failed stopped; do
     if [ -f "${signal_dir}/${task_id}-${suffix}" ]; then
       rm -f "${signal_dir}/${task_id}-${suffix}"
       result="$suffix"

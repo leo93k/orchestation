@@ -173,9 +173,19 @@ if ! echo "$prompt" | claude --output-format json --dangerously-skip-permissions
 fi
 
 JSON_OUTPUT=$(cat "$CONV_FILE")
-echo "$JSON_OUTPUT" | jq -r '.result // empty'
+RESULT=$(echo "$JSON_OUTPUT" | jq -r '.result // empty')
+echo "$RESULT"
 echo "$JSON_OUTPUT" | jq . > "$OUTPUT_DIR/${TASK_ID}-task.json"
 log_tokens "task"
+
+# 거절 감지: 결과 첫 줄이 "거절:" 으로 시작하면 task-rejected signal
+if echo "$RESULT" | head -1 | grep -q "^거절:"; then
+  _signal_sent=true
+  echo "$RESULT" > "$OUTPUT_DIR/${TASK_ID}-rejection-reason.txt"
+  signal_create "$SIGNAL_DIR" "$TASK_ID" "task-rejected"
+  echo "🚫 [job-task] ${TASK_ID} 거절됨 → task-rejected signal"
+  exit 0
+fi
 
 # 성공 signal
 _signal_sent=true

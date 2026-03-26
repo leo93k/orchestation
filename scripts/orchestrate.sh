@@ -495,7 +495,26 @@ process_signals_for_task() {
     return 2  # 아직 진행 중 (review 대기)
   fi
 
-  # 3) task-failed → 즉시 실패
+  # 3) task-rejected → 거절 (의미없는 태스크)
+  if [ -f "${SIGNAL_DIR}/${task_id}-task-rejected" ]; then
+    rm -f "${SIGNAL_DIR}/${task_id}-task-rejected"
+    rm -f "/tmp/worker-${task_id}.pid"
+    local reject_reason=""
+    local output_dir
+    if [ -d "$REPO_ROOT/.orchestration/output" ]; then
+      output_dir="$REPO_ROOT/.orchestration/output"
+    else
+      output_dir="$REPO_ROOT/output"
+    fi
+    if [ -f "$output_dir/${task_id}-rejection-reason.txt" ]; then
+      reject_reason=$(head -1 "$output_dir/${task_id}-rejection-reason.txt")
+    fi
+    echo "  🚫 ${task_id} 거절됨: ${reject_reason}"
+    _mark_task_rejected "$task_id" "$reject_reason"
+    return 1
+  fi
+
+  # 4) task-failed → 즉시 실패
   if [ -f "${SIGNAL_DIR}/${task_id}-task-failed" ]; then
     echo "  ❌ ${task_id} task 실행 실패"
     rm -f "${SIGNAL_DIR}/${task_id}-task-failed"
@@ -630,6 +649,37 @@ _mark_task_failed() {
     "**${task_id}:** ${title}\n\n${reason}"
 
   stop_dependents "$task_id"
+}
+
+_mark_task_rejected() {
+  local task_id="$1"
+  local reason="$2"
+
+  local tf
+  tf=$(find_file "$task_id")
+  if [ -n "$tf" ]; then
+    sed_inplace "s/^status: .*/status: rejected/" "$tf"
+    git -C "$REPO_ROOT" add "$tf"
+    git -C "$REPO_ROOT" commit --only "$tf" -m "chore(${task_id}): status → rejected (${reason})" || true
+  fi
+
+  # worktree + 브랜치 정리
+  local wt_path
+  wt_path=$(get_worktree "$task_id")
+  if [ -d "$wt_path" ]; then
+    git -C "$REPO_ROOT" worktree remove "$wt_path" --force 2>/dev/null || true
+  fi
+  local branch
+  branch=$(get_branch "$task_id")
+  if [ -n "$branch" ]; then
+    git -C "$REPO_ROOT" branch -D "$branch" 2>/dev/null || true
+  fi
+
+  local title
+  title=$(get_field "$tf" "title")
+  post_notice "warning" \
+    "${task_id} 거절" \
+    "**${task_id}:** ${title}\n\n${reason}"
 }
 
 # ── 메인 파이프라인 (슬롯 기반) ──────────────────────
