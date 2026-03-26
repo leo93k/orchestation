@@ -1,7 +1,9 @@
 ---
 id: TASK-178
 title: Claude CLI spawn 보일러플레이트 공통 유틸 추출
-status: pending
+status: in_progress
+branch: task/task-178
+worktree: ../repo-wt-task-178
 priority: medium
 mode: night
 created: 2026-03-25
