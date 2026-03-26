@@ -1,7 +1,7 @@
 ---
 id: TASK-242
 title: 미사용-모니터-컴포넌트-CpuChart-SystemInfo-삭제
-status: in_progress
+status: failed
 branch: task/task-242
 worktree: ../repo-wt-task-242
 priority: medium
