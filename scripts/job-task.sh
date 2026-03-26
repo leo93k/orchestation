@@ -16,12 +16,26 @@ source "$REPO_ROOT/scripts/lib/signal.sh"
 source "$REPO_ROOT/scripts/lib/context-builder.sh"
 source "$REPO_ROOT/scripts/lib/model-selector.sh"
 
-# ─── 시작 시간 기록 (healthcheck 타임아웃용) ─────────────────
+# ─── 시작 시간 기록 + 타임아웃 (10분) ─────────────────────
+JOB_TIMEOUT="${JOB_TIMEOUT:-600}"  # 기본 10분
 date +%s > "${SIGNAL_DIR}/${TASK_ID}-start"
+
+# 백그라운드 타임아웃 워치독
+(
+  sleep "$JOB_TIMEOUT"
+  if kill -0 $$ 2>/dev/null; then
+    echo "⏰ [job-task] ${TASK_ID}: ${JOB_TIMEOUT}초 타임아웃 → 강제 종료" >&2
+    kill -TERM $$ 2>/dev/null
+    sleep 5
+    kill -9 $$ 2>/dev/null
+  fi
+) &
+WATCHDOG_PID=$!
 
 # ─── Signal 안전장치: 비정상 종료 시 failed signal ─────────────
 _signal_sent=false
 trap '_ec=$?
+  kill "$WATCHDOG_PID" 2>/dev/null
   if [ "$_signal_sent" = false ]; then
     if [ -f "${SIGNAL_DIR}/${TASK_ID}-stop-request" ]; then
       rm -f "${SIGNAL_DIR}/${TASK_ID}-stop-request"
