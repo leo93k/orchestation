@@ -1,7 +1,7 @@
 ---
 id: TASK-148
 title: orchestrate.sh 비정상 종료 시 lock 자동 정리
-status: in_progress
+status: done
 branch: task/task-148
 worktree: ../repo-wt-task-148
 priority: high
