@@ -27,12 +27,19 @@ export default function AutoImproveControl({
   const isRunning =
     orchestrationStatus === "running" || runningTaskCount > 0;
 
-  // isStarting 해제: running으로 바뀌면 starting 종료
+  // isStarting 해제: running으로 바뀌거나 failed면 starting 종료
   useEffect(() => {
-    if (isStarting && orchestrationStatus === "running") {
+    if (isStarting && (orchestrationStatus === "running" || orchestrationStatus === "failed")) {
       setIsStarting(false);
     }
   }, [isStarting, orchestrationStatus]);
+
+  // isStarting 타임아웃: 15초 안에 running 안 되면 자동 해제
+  useEffect(() => {
+    if (!isStarting) return;
+    const timer = setTimeout(() => setIsStarting(false), 15000);
+    return () => clearTimeout(timer);
+  }, [isStarting]);
 
   // isStopping 해제: orchestration이 실제로 멈추면 stopping 상태 해제
   useEffect(() => {
@@ -107,10 +114,10 @@ export default function AutoImproveControl({
           <button
             type="button"
             onClick={handleStop}
-            disabled={loading}
+            disabled={isStopping}
             className={cn(
               "filter-pill flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300",
-              loading && "opacity-50 cursor-not-allowed",
+              isStopping && "opacity-50 cursor-not-allowed",
             )}
           >
             <Square className="h-3 w-3" />

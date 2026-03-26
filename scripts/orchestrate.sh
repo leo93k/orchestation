@@ -352,7 +352,7 @@ stop_dependents() {
       sed_inplace "s/^status: .*/status: stopped/" "$tf"
       git -C "$REPO_ROOT" add "$tf"
       git -C "$REPO_ROOT" commit --only "$tf" \
-        -m "chore(${tid}): status → stopped (dependency ${failed_id} failed)"
+        -m "chore(${tid}): status → stopped (dependency ${failed_id} failed)" || true
       # 재귀: 이 태스크에 의존하는 것도 중단
       stop_dependents "$tid"
     fi
@@ -399,7 +399,7 @@ start_task() {
   if [ -n "$tf" ]; then
     sed_inplace_E "s/^status: (pending|stopped)/status: in_progress/" "$tf"
     git -C "$REPO_ROOT" add "$tf"
-    git -C "$REPO_ROOT" commit --only "$tf" -m "chore(${task_id}): status → in_progress"
+    git -C "$REPO_ROOT" commit --only "$tf" -m "chore(${task_id}): status → in_progress" || true
   fi
 
   mkdir -p "$REPO_ROOT/output/logs"
@@ -580,7 +580,7 @@ _merge_and_done() {
           sed_inplace "s/^status: .*/status: failed/" "$local_task_file"
           git -C "$REPO_ROOT" add "$local_task_file"
           git -C "$REPO_ROOT" commit --only "$local_task_file" \
-            -m "chore(${task_id}): status → failed (merge conflict)"
+            -m "chore(${task_id}): status → failed (merge conflict)" || true
           git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
           stop_dependents "$task_id"
           return 1
@@ -596,7 +596,7 @@ _merge_and_done() {
 
   if [ -n "$local_task_file" ]; then
     git -C "$REPO_ROOT" add "$local_task_file"
-    git -C "$REPO_ROOT" commit --only "$local_task_file" -m "chore(${task_id}): status → done"
+    git -C "$REPO_ROOT" commit --only "$local_task_file" -m "chore(${task_id}): status → done" || true
   fi
 
   local task_title

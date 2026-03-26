@@ -66,6 +66,7 @@ class OrchestrationManager {
         const taskId = idMatch[1];
         const pidFile = `/tmp/worker-${taskId}.pid`;
 
+        // 1) PID 파일로 체크
         let alive = false;
         if (fs.existsSync(pidFile)) {
           try {
@@ -75,9 +76,19 @@ class OrchestrationManager {
               alive = true;
             }
           } catch {
-            // 프로세스 죽음
             try { fs.unlinkSync(pidFile); } catch { /* ignore */ }
           }
+        }
+
+        // 2) PID 파일 없어도 pgrep으로 실제 프로세스 확인 (PID 파일만 정리된 경우)
+        if (!alive) {
+          try {
+            const result = execSync(`pgrep -f "job-task.sh ${taskId}|job-review.sh ${taskId}" 2>/dev/null || true`, { encoding: "utf-8" }).trim();
+            if (result) {
+              alive = true;
+              console.log(`[orchestrate] ${taskId}: PID 파일 없으나 프로세스 생존 확인 → in_progress 유지`);
+            }
+          } catch { /* ignore */ }
         }
 
         if (!alive) {
