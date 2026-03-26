@@ -1,7 +1,7 @@
 ---
 id: TASK-184
 title: Monitor에서 오케스트레이트 워커 Claude 프로세스만 표시
-status: in_progress
+status: done
 branch: task/task-184
 worktree: ../repo-wt-task-184
 priority: medium
