@@ -72,7 +72,7 @@ cleanup_lock() {
       _stop_worker "$_tid"
     done
   fi
-  rm -rf "$SIGNAL_DIR" "$LOCK_DIR"
+  rm -rf "$SIGNAL_DIR" "$LOCK_DIR" "$RETRY_DIR"
 }
 trap cleanup_lock EXIT
 
@@ -426,11 +426,19 @@ start_review() {
   echo "  🔄 ${task_id}: job-review 실행 중 (PID=${pid})"
 }
 
-# ── Retry 카운트 관리 ──────────────────────────────────
-declare -A RETRY_COUNT  # task_id → retry 횟수
+# ── Retry 카운트 관리 (파일 기반, bash 3.2 호환) ────────
+RETRY_DIR="/tmp/orchestrate-retry"
+mkdir -p "$RETRY_DIR"
 
-get_retry_count() { echo "${RETRY_COUNT[$1]:-0}"; }
-increment_retry() { RETRY_COUNT[$1]=$(( ${RETRY_COUNT[$1]:-0} + 1 )); }
+get_retry_count() {
+  local f="$RETRY_DIR/$1"
+  if [ -f "$f" ]; then cat "$f"; else echo 0; fi
+}
+increment_retry() {
+  local f="$RETRY_DIR/$1"
+  local c=$(get_retry_count "$1")
+  echo $((c + 1)) > "$f"
+}
 
 # ── Signal 처리 (새 구조: task-done/task-failed/review-approved/review-rejected/stopped) ──
 
