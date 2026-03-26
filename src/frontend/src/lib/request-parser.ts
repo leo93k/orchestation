@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { TASKS_DIR } from "./paths";
+import { parseFrontmatter, getString, getInt, getStringArray } from "./frontmatter-utils";
 
 export interface RequestData {
   id: string;
@@ -20,45 +21,29 @@ export interface RequestData {
 export function parseRequestFile(filePath: string): RequestData | null {
   try {
     const raw = fs.readFileSync(filePath, "utf-8");
+    const { data, content } = parseFrontmatter(raw);
 
-    const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
-    if (!fmMatch) return null;
+    if (Object.keys(data).length === 0) return null;
 
-    const fm = fmMatch[1];
-    const id = fm.match(/^id:\s*(.+)$/m)?.[1]?.trim() || path.basename(filePath, ".md");
-    const title = fm.match(/^title:\s*(.+)$/m)?.[1]?.trim() || "";
-    const status = (fm.match(/^status:\s*(.+)$/m)?.[1]?.trim() || "pending") as RequestData["status"];
-    const priority = (fm.match(/^priority:\s*(.+)$/m)?.[1]?.trim() || "medium") as RequestData["priority"];
+    const id = getString(data, "id") || path.basename(filePath, ".md");
+    const title = getString(data, "title");
+    const status = (getString(data, "status") || "pending") as RequestData["status"];
+    const priority = (getString(data, "priority") || "medium") as RequestData["priority"];
+    const sort_order = getInt(data, "sort_order", 0);
+    const branch = getString(data, "branch");
+
+    // mtime fallback for created/updated
     const mt = fs.statSync(filePath).mtime;
     const mtime = `${mt.getFullYear()}-${String(mt.getMonth()+1).padStart(2,"0")}-${String(mt.getDate()).padStart(2,"0")} ${String(mt.getHours()).padStart(2,"0")}:${String(mt.getMinutes()).padStart(2,"0")}`;
     const timeStr = `${String(mt.getHours()).padStart(2,"0")}:${String(mt.getMinutes()).padStart(2,"0")}`;
-    const rawCreated = fm.match(/^created:\s*(.+)$/m)?.[1]?.trim() || "";
-    const rawUpdated = fm.match(/^updated:\s*(.+)$/m)?.[1]?.trim() || "";
+    const rawCreated = getString(data, "created");
+    const rawUpdated = getString(data, "updated");
     const created = rawCreated ? (rawCreated.length <= 10 ? `${rawCreated} ${timeStr}` : rawCreated) : mtime;
     const updated = rawUpdated ? (rawUpdated.length <= 10 ? `${rawUpdated} ${timeStr}` : rawUpdated) : mtime;
-    const sort_order = parseInt(fm.match(/^sort_order:\s*(.+)$/m)?.[1]?.trim() || "0", 10) || 0;
-    const branch = fm.match(/^branch:\s*(.+)$/m)?.[1]?.trim() || "";
 
-    const content = raw.replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
-
-    // Parse depends_on: supports both inline [A, B] and multi-line YAML list
-    let depends_on: string[] = [];
-    const inlineMatch = fm.match(/^depends_on:\s*\[([^\]]*)\]/m);
-    if (inlineMatch) {
-      depends_on = inlineMatch[1].split(",").map((s) => s.trim()).filter(Boolean);
-    } else {
-      const mlMatch = fm.match(/^depends_on:\s*\n((?:\s+-\s+.+\n?)*)/m);
-      if (mlMatch) {
-        depends_on = mlMatch[1].match(/-\s*(.+)/g)?.map((s) => s.replace(/^- \s*/, "").trim()) || [];
-      }
-    }
-
-    // Parse scope: multi-line YAML list
-    let scope: string[] = [];
-    const scopeMatch = fm.match(/^scope:\s*\n((?:\s+-\s+.+\n?)*)/m);
-    if (scopeMatch) {
-      scope = scopeMatch[1].match(/-\s*(.+)/g)?.map((s) => s.replace(/^- \s*/, "").trim()) || [];
-    }
+    // gray-matter가 YAML 배열(inline/multiline 모두)을 자동으로 파싱
+    const depends_on = getStringArray(data, "depends_on");
+    const scope = getStringArray(data, "scope");
 
     return { id, title, status, priority, created, updated, content, depends_on, scope, sort_order, branch };
   } catch {

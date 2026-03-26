@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { PROJECT_ROOT } from "./paths";
+import { parseFrontmatter, getString, getBool } from "./frontmatter-utils";
 
 export type NoticeType = "info" | "warning" | "error" | "request";
 
@@ -21,19 +22,16 @@ const NOTICES_DIR = fs.existsSync(ORCH_NOTICES_DIR) ? ORCH_NOTICES_DIR : LEGACY_
 export function parseNoticeFile(filePath: string): NoticeData | null {
   try {
     const raw = fs.readFileSync(filePath, "utf-8");
+    const { data, content } = parseFrontmatter(raw);
 
-    const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
-    if (!fmMatch) return null;
+    if (Object.keys(data).length === 0) return null;
 
-    const fm = fmMatch[1];
-    const id = fm.match(/^id:\s*(.+)$/m)?.[1]?.trim() || path.basename(filePath, ".md");
-    const title = fm.match(/^title:\s*(.+)$/m)?.[1]?.trim() || "";
-    const type = (fm.match(/^type:\s*(.+)$/m)?.[1]?.trim() || "info") as NoticeType;
-    const read = fm.match(/^read:\s*(.+)$/m)?.[1]?.trim() === "true";
-    const created = fm.match(/^created:\s*(.+)$/m)?.[1]?.trim() || "";
-    const updated = fm.match(/^updated:\s*(.+)$/m)?.[1]?.trim() || created;
-
-    const content = raw.replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
+    const id = getString(data, "id") || path.basename(filePath, ".md");
+    const title = getString(data, "title");
+    const type = (getString(data, "type") || "info") as NoticeType;
+    const read = getBool(data, "read");
+    const created = getString(data, "created");
+    const updated = getString(data, "updated") || created;
 
     return { id, title, type, read, created, updated, content };
   } catch {
