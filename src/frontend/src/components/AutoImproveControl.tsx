@@ -16,8 +16,8 @@ export default function AutoImproveControl({
 }: {
   runningTaskCount?: number;
 } = {}) {
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
 
   // Orchestration 상태를 store에서 직접 구독 (별도 polling 제거)
@@ -27,6 +27,13 @@ export default function AutoImproveControl({
   const isRunning =
     orchestrationStatus === "running" || runningTaskCount > 0;
 
+  // isStarting 해제: running으로 바뀌면 starting 종료
+  useEffect(() => {
+    if (isStarting && orchestrationStatus === "running") {
+      setIsStarting(false);
+    }
+  }, [isStarting, orchestrationStatus]);
+
   // isStopping 해제: orchestration이 실제로 멈추면 stopping 상태 해제
   useEffect(() => {
     if (isStopping && orchestrationStatus !== "running") {
@@ -34,26 +41,26 @@ export default function AutoImproveControl({
     }
   }, [isStopping, orchestrationStatus]);
 
-  const status = isStopping ? "stopping" : orchestrationStatus;
+  const status = isStarting ? "starting" : isStopping ? "stopping" : orchestrationStatus;
 
   // failed 상태일 때 에러 메시지 표시
   const showError =
     orchestrationStatus === "failed" && exitCode != null && !isStopping;
 
   const handleRun = async () => {
-    setLoading(true);
+    setIsStarting(true);
     setError(null);
     try {
       const res = await fetch("/api/orchestrate/run", { method: "POST" });
       const data: OrchestrationActionResponse = await res.json();
       if (!res.ok) {
         setError(data.error || "Failed to start");
+        setIsStarting(false);
       }
-      // store의 polling이 상태를 자동으로 업데이트함
+      // store의 polling이 running 감지하면 isStarting 자동 해제
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setLoading(false);
+      setIsStarting(false);
     }
   };
 
@@ -76,7 +83,12 @@ export default function AutoImproveControl({
 
   return (
     <div className="flex items-center gap-3">
-      {status === "stopping" ? (
+      {status === "starting" ? (
+        <span className="filter-pill flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Starting...
+        </span>
+      ) : status === "stopping" ? (
         <span className="filter-pill flex items-center gap-1.5 text-xs text-muted-foreground">
           <Loader2 className="h-3 w-3 animate-spin" />
           Stopping...
@@ -109,10 +121,10 @@ export default function AutoImproveControl({
         <button
           type="button"
           onClick={handleRun}
-          disabled={loading}
+          disabled={isStarting}
           className={cn(
             "filter-pill active flex items-center gap-1.5 text-xs",
-            loading && "opacity-50 cursor-not-allowed",
+            isStarting && "opacity-50 cursor-not-allowed",
           )}
         >
           <Play className="h-3 w-3" />
