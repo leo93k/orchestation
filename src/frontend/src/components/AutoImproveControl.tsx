@@ -50,9 +50,9 @@ export default function AutoImproveControl({
 
   const status = isStarting ? "starting" : isStopping ? "stopping" : orchestrationStatus;
 
-  // failed 상태일 때 에러 메시지 표시
+  // failed 상태일 때 에러 메시지 표시 (Stop에 의한 종료(130)는 제외)
   const showError =
-    orchestrationStatus === "failed" && exitCode != null && !isStopping;
+    orchestrationStatus === "failed" && exitCode != null && exitCode !== 130 && !isStopping;
 
   const handleRun = async () => {
     setIsStarting(true);
