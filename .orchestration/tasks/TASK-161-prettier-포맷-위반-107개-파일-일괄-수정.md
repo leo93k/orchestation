@@ -1,7 +1,7 @@
 ---
 id: TASK-161
 title: Prettier 포맷 위반 107개 파일 일괄 수정
-status: in_progress
+status: failed
 branch: task/task-161
 worktree: ../repo-wt-task-161
 priority: medium
