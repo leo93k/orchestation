@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import type { TooltipValueType } from "recharts";
 import type { CostEntry } from "@/lib/cost-parser";
 
 interface CumulativeCostChartProps {
@@ -97,8 +98,7 @@ export function CumulativeCostChart({ entries }: CumulativeCostChartProps) {
                 borderRadius: "6px",
                 fontSize: "11px",
               }}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any, name: any) => [
+              formatter={(value: TooltipValueType | undefined, name: string | number | undefined) => [
                 `$${Number(value ?? 0).toFixed(4)}`,
                 name === "cumulative" ? "누적 비용" : "개별 비용",
               ]}

@@ -1,6 +1,7 @@
 "use client";
 
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import type { TooltipValueType } from "recharts";
 import type { MonitorSnapshot } from "@/hooks/useMonitor";
 
 interface CpuChartProps {
@@ -30,9 +31,8 @@ export function CpuChart({ history }: CpuChartProps) {
                 borderRadius: "6px",
                 fontSize: "11px",
               }}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any, name: any) => [
-                `${(value ?? 0).toFixed(2)}${name === "load" ? "" : "%"}`,
+                formatter={(value: TooltipValueType | undefined, name: string | number | undefined) => [
+                `${Number(value ?? 0).toFixed(2)}${name === "load" ? "" : "%"}`,
                 name === "system" ? "시스템" : name === "user" ? "사용자" : "로드",
               ]}
               labelFormatter={() => ""}

@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import type { TooltipValueType } from "recharts";
 
 interface MetricCardProps {
   title: string;
@@ -113,8 +114,7 @@ export function MetricCard({
                 }}
                 itemStyle={{ color: "#fff", padding: "2px 0" }}
                 labelStyle={{ color: "#aaa", marginBottom: "4px" }}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                formatter={(v: any, name: any) => {
+                formatter={(v: TooltipValueType | undefined, name: string | number | undefined) => {
                   const label = legend
                     ? name === "primary" ? legend[0] : legend[1]
                     : title;
@@ -132,8 +132,7 @@ export function MetricCard({
               />
               {legend && (
                 <Legend
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  formatter={(val: any) =>
+                  formatter={(val: string) =>
                     val === "primary" ? legend[0] : legend[1]
                   }
                   wrapperStyle={{ fontSize: "10px", paddingTop: "2px" }}
