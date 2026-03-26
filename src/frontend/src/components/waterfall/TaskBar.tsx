@@ -2,11 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { PriorityBadge } from "@/components/ui/badge";
-import {
-  STATUS_STYLES,
-  type TaskStatus,
-  type TaskPriority,
-} from "../../../lib/constants";
+import { STATUS_STYLES } from "../../../lib/constants";
 import type { WaterfallTask } from "@/types/waterfall";
 
 type TaskBarProps = {
@@ -15,7 +11,7 @@ type TaskBarProps = {
 };
 
 export function TaskBar({ task, onClick }: TaskBarProps) {
-  const statusStyle = STATUS_STYLES[task.status as TaskStatus];
+  const statusStyle = STATUS_STYLES[task.status];
 
   return (
     <button
@@ -36,7 +32,7 @@ export function TaskBar({ task, onClick }: TaskBarProps) {
 
       {/* Priority badge */}
       <PriorityBadge
-        priority={task.priority as TaskPriority}
+        priority={task.priority}
         className="ml-auto shrink-0"
       />
 

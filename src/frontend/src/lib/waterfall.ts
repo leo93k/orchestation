@@ -1,7 +1,6 @@
 import type {
   WaterfallGroup,
   WaterfallTask,
-  WaterfallTaskStatus,
 } from "@/types/waterfall";
 import type { TaskFrontmatter } from "@/lib/parser";
 
@@ -27,9 +26,7 @@ function toWaterfallTask(
   return {
     id: task.id,
     title: task.title,
-    status: VALID_STATUSES.has(task.status)
-      ? (task.status as WaterfallTaskStatus)
-      : "pending",
+    status: VALID_STATUSES.has(task.status) ? task.status : "pending",
     priority: task.priority,
     role: task.role,
     depends_on: task.depends_on,

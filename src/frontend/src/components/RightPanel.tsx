@@ -2,10 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge } from "@/components/ui/badge";
-import {
-  type TaskStatus,
-  type TaskPriority,
-} from "../../lib/constants";
 import type { WaterfallTask } from "@/types/waterfall";
 import { MousePointerClick, BookOpen } from "lucide-react";
 import type { Prd } from "@/hooks/usePrds";
@@ -96,12 +92,12 @@ export function RightPanel({ task, prd }: RightPanelProps) {
 
       {/* Status */}
       <Section label="Status">
-        <StatusBadge status={task.status as TaskStatus} size="md" />
+        <StatusBadge status={task.status} size="md" />
       </Section>
 
       {/* Priority */}
       <Section label="Priority">
-        <PriorityBadge priority={task.priority as TaskPriority} size="md" />
+        <PriorityBadge priority={task.priority} size="md" />
       </Section>
 
       {/* Role */}

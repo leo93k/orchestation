@@ -11,7 +11,6 @@ import {
   STATUS_STYLES,
   PRIORITY_STYLES,
   type TaskStatus,
-  type TaskPriority,
 } from "../../../lib/constants";
 
 const SPRINT_STATUS_DOT: Record<string, string> = {
@@ -71,8 +70,8 @@ function SprintInlineDetail({ sprintId }: { sprintId: string }) {
                 {batch.name}
               </div>
               {batch.tasks.map((task) => {
-                const statusStyle = STATUS_STYLES[task.status as TaskStatus];
-                const priorityStyle = PRIORITY_STYLES[task.priority as TaskPriority] ?? PRIORITY_STYLES.medium;
+                const statusStyle = STATUS_STYLES[task.status];
+                const priorityStyle = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
                 return (
                   <div
                     key={task.id}
@@ -114,7 +113,7 @@ function SprintInlineDetail({ sprintId }: { sprintId: string }) {
                       <div className="text-[10px] text-muted-foreground text-center py-3">No tasks</div>
                     ) : (
                       tasks.map((task) => {
-                        const ps = PRIORITY_STYLES[task.priority as TaskPriority] ?? PRIORITY_STYLES.medium;
+                        const ps = PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
                         return (
                           <div key={task.id} className="board-card">
                             <div className="flex items-center gap-1.5">

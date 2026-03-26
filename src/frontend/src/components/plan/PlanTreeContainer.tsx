@@ -7,8 +7,6 @@ import { cn } from "@/lib/utils";
 import {
   STATUS_STYLES,
   PRIORITY_STYLES,
-  type TaskStatus,
-  type TaskPriority,
 } from "../../../lib/constants";
 
 type PlanTreeContainerProps = {
@@ -23,9 +21,9 @@ function PlanTaskBar({
   task: PlanTaskNode;
   onClick: (taskId: string) => void;
 }) {
-  const statusStyle = STATUS_STYLES[task.status as TaskStatus];
+  const statusStyle = STATUS_STYLES[task.status];
   const priorityStyle =
-    PRIORITY_STYLES[task.priority as TaskPriority] ?? PRIORITY_STYLES.medium;
+    PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium;
 
   return (
     <button

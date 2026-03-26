@@ -15,8 +15,8 @@ import {
 type BatchTask = {
   id: string;
   title: string;
-  status: string;
-  priority: string;
+  status: TaskStatus;
+  priority: TaskPriority;
   role: string;
   depends_on: string[];
   batch: string;
@@ -171,7 +171,7 @@ export function BatchEditor({ batches, onSave, onClose }: BatchEditorProps) {
       {/* Task list with drag */}
       <div className="max-h-80 overflow-y-auto">
         {taskOrder.map((task) => {
-          const statusStyle = STATUS_STYLES[task.status as TaskStatus];
+          const statusStyle = STATUS_STYLES[task.status];
           const isDragging = draggedId === task.id;
 
           return (
@@ -204,7 +204,7 @@ export function BatchEditor({ batches, onSave, onClose }: BatchEditorProps) {
               </span>
               <span className="text-xs truncate flex-1">{task.title}</span>
               <PriorityBadge
-                priority={task.priority as TaskPriority}
+                priority={task.priority}
                 size="sm"
                 className="shrink-0"
               />

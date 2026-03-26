@@ -1,17 +1,43 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
+import type { TaskStatus, TaskPriority } from "../../lib/constants";
 
 export interface TaskFrontmatter {
   id: string;
   title: string;
-  status: string;
-  priority: string;
+  status: TaskStatus;
+  priority: TaskPriority;
   depends_on: string[];
   blocks: string[];
   parallel_with: string[];
   role: string;
   affected_files: string[];
+}
+
+const VALID_STATUSES: readonly TaskStatus[] = [
+  "pending",
+  "stopped",
+  "in_progress",
+  "reviewing",
+  "done",
+  "rejected",
+];
+
+const VALID_PRIORITIES: readonly TaskPriority[] = ["high", "medium", "low"];
+
+function toTaskStatus(value: unknown): TaskStatus {
+  if (typeof value === "string" && (VALID_STATUSES as readonly string[]).includes(value)) {
+    return value as TaskStatus;
+  }
+  return "pending";
+}
+
+function toTaskPriority(value: unknown): TaskPriority {
+  if (typeof value === "string" && (VALID_PRIORITIES as readonly string[]).includes(value)) {
+    return value as TaskPriority;
+  }
+  return "medium";
 }
 
 const PROJECT_ROOT = path.resolve(process.cwd(), "..", "..");
@@ -31,8 +57,8 @@ export function parseTaskFile(filePath: string): TaskFrontmatter | null {
     return {
       id: data.id,
       title: data.title,
-      status: data.status ?? "unknown",
-      priority: data.priority ?? "medium",
+      status: toTaskStatus(data.status),
+      priority: toTaskPriority(data.priority),
       depends_on: toStringArray(data.depends_on),
       blocks: toStringArray(data.blocks),
       parallel_with: toStringArray(data.parallel_with),
