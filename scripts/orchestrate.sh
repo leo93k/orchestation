@@ -18,8 +18,10 @@ fi
 REQ_DIR="$REPO_ROOT/docs/requests"
 MAX_REVIEW_RETRY="${MAX_REVIEW_RETRY:-2}"
 MAX_PARALLEL="${MAX_PARALLEL:-3}"
+MAX_CLAUDE_PROCS="${MAX_CLAUDE_PROCS:-2}"
 SIGNAL_DIR="$REPO_ROOT/.orchestration/signals"
 mkdir -p "$SIGNAL_DIR"
+LAST_DISPATCH_TIME=0
 # 이전 실행의 남은 시그널 정리하지 않음 — 재시작 시 이전 done/failed 시그널 처리 가능
 
 # ── workerMode 결정 (환경변수 > config.json > 기본값 background) ──
@@ -90,6 +92,72 @@ if [ "$WORKER_MODE" = "iterm" ]; then
   fi
 fi
 
+
+# ── Memory Guard + Dispatch 제어 ──────────────────────
+
+count_claude_procs() {
+  pgrep -f "claude.*--dangerously-skip-permissions" 2>/dev/null | wc -l | tr -d ' '
+}
+
+can_dispatch() {
+  # Gate 1: OS 레벨 claude 프로세스 hard limit
+  local current
+  current=$(count_claude_procs)
+  if [ "$current" -ge "$MAX_CLAUDE_PROCS" ]; then
+    echo "  🛑 claude hard limit (${current}/${MAX_CLAUDE_PROCS}) → 대기"
+    return 1
+  fi
+
+  # Gate 2: 시스템 메모리 체크 (macOS: memory_pressure / Linux: /proc/meminfo)
+  if [[ "$(uname)" == "Darwin" ]]; then
+    local level
+    level=$(memory_pressure 2>/dev/null | grep -o 'The system is under .*memory pressure' | awk '{print $6}' || echo "normal")
+    case "$level" in
+      critical|warn*) echo "  🚨 메모리 압박 (${level}) → 대기"; return 1 ;;
+    esac
+  else
+    local avail_mb
+    avail_mb=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 9999)
+    if [ "${avail_mb}" -lt 512 ]; then
+      echo "  🚨 가용 메모리 ${avail_mb}MB < 512MB → 대기"
+      return 1
+    fi
+  fi
+
+  # Gate 3: dispatch 간격 (burst 방지)
+  local running=${#RUNNING[@]}
+  local min_interval=0
+  if [ "$running" -eq 1 ]; then min_interval=3
+  elif [ "$running" -ge 2 ]; then min_interval=8
+  fi
+  local now
+  now=$(date +%s)
+  if (( now - LAST_DISPATCH_TIME < min_interval )); then return 1; fi
+
+  return 0
+}
+
+# ── Signal 대기 (fswatch 우선, fallback polling) ─────
+
+wait_for_signal() {
+  if command -v fswatch &>/dev/null; then
+    fswatch -1 --event Created "$SIGNAL_DIR" --latency 0.5 2>/dev/null &
+    local fspid=$!
+    # 최대 10초 대기, signal 오면 즉시 깨어남
+    local waited=0
+    while kill -0 "$fspid" 2>/dev/null && [ "$waited" -lt 10 ]; do
+      sleep 1
+      waited=$((waited + 1))
+      # signal 파일이 이미 있으면 즉시 리턴
+      for sf in "$SIGNAL_DIR"/*-task-done "$SIGNAL_DIR"/*-task-failed "$SIGNAL_DIR"/*-review-approved "$SIGNAL_DIR"/*-review-rejected "$SIGNAL_DIR"/*-stopped; do
+        [ -f "$sf" ] && kill "$fspid" 2>/dev/null && return 0
+      done
+    done
+    kill "$fspid" 2>/dev/null || true
+  else
+    sleep 2
+  fi
+}
 
 # ── 헬퍼 함수 ─────────────────────────────────────────
 
@@ -282,6 +350,7 @@ _stop_worker() {
 
 start_task() {
   local task_id="$1"
+  local feedback_file="${2:-}"
   echo "  🔧 ${task_id}: 시작..."
 
   # branch/worktree 필드가 없으면 자동 추가
@@ -315,156 +384,213 @@ start_task() {
     _api_key=$(awk -F'"' '/"claudeApiKey"/{print $4; exit}' "$CONFIG_FILE" 2>/dev/null || echo "")
   fi
 
-  if [ "$WORKER_MODE" = "iterm" ]; then
-    # iTerm 패널에서 실행 (기존 방식)
-    local api_key_export=""
-    if [ -n "$_api_key" ]; then
-      api_key_export="export ANTHROPIC_API_KEY='${_api_key}'; "
-    fi
-    local cmd="${api_key_export}bash '${REPO_ROOT}/scripts/run-worker.sh' '${task_id}' '${SIGNAL_DIR}' '${MAX_REVIEW_RETRY}' 2>&1 | tee '${log_file}'; bash '${REPO_ROOT}/scripts/lib/close-iterm-session.sh'"
-    osascript <<EOF
-tell application "iTerm"
-    if (count of windows) = 0 then
-        create window with default profile
-    end if
-    tell current session of current window
-        set newSession to (split vertically with same profile)
-        tell newSession
-            write text "${cmd}"
-        end tell
-    end tell
-end tell
-EOF
+  # job-task.sh 실행 (단발성 — 1회 실행 후 종료)
+  local feedback_arg=""
+  [ -n "$feedback_file" ] && [ -f "$feedback_file" ] && feedback_arg="$feedback_file"
+
+  if [ -n "$_api_key" ]; then
+    ANTHROPIC_API_KEY="${_api_key}" nohup bash "${REPO_ROOT}/scripts/job-task.sh" "${task_id}" "${SIGNAL_DIR}" "${feedback_arg}" \
+      > "${log_file}" 2>&1 &
   else
-    # 백그라운드 실행
-    if [ -n "$_api_key" ]; then
-      ANTHROPIC_API_KEY="${_api_key}" nohup bash "${REPO_ROOT}/scripts/run-worker.sh" "${task_id}" "${SIGNAL_DIR}" "${MAX_REVIEW_RETRY}" \
-        > "${log_file}" 2>&1 &
-    else
-      nohup bash "${REPO_ROOT}/scripts/run-worker.sh" "${task_id}" "${SIGNAL_DIR}" "${MAX_REVIEW_RETRY}" \
-        > "${log_file}" 2>&1 &
-    fi
-    local pid=$!
-    echo "$pid" > "/tmp/worker-${task_id}.pid"
-    echo "  🔄 ${task_id}: 백그라운드 실행 중 (PID=${pid}, 로그: output/logs/${task_id}.log)"
+    nohup bash "${REPO_ROOT}/scripts/job-task.sh" "${task_id}" "${SIGNAL_DIR}" "${feedback_arg}" \
+      > "${log_file}" 2>&1 &
   fi
+  local pid=$!
+  echo "$pid" > "/tmp/worker-${task_id}.pid"
+  echo "  🔄 ${task_id}: job-task 실행 중 (PID=${pid}, 로그: output/logs/${task_id}.log)"
 }
 
-# 완료된 태스크 처리 (머지 + 상태 업데이트)
-process_done_task() {
+# review job 시작 헬퍼
+start_review() {
+  local task_id="$1"
+  echo "  🔍 ${task_id}: review 시작..."
+
+  local log_file="$REPO_ROOT/output/logs/${task_id}-review.log"
+
+  local _api_key=""
+  if [ -f "$CONFIG_FILE" ] && command -v jq &>/dev/null; then
+    _api_key=$(jq -r '.claudeApiKey // ""' "$CONFIG_FILE" 2>/dev/null || echo "")
+  elif [ -f "$CONFIG_FILE" ]; then
+    _api_key=$(awk -F'"' '/"claudeApiKey"/{print $4; exit}' "$CONFIG_FILE" 2>/dev/null || echo "")
+  fi
+
+  if [ -n "$_api_key" ]; then
+    ANTHROPIC_API_KEY="${_api_key}" nohup bash "${REPO_ROOT}/scripts/job-review.sh" "${task_id}" "${SIGNAL_DIR}" \
+      > "${log_file}" 2>&1 &
+  else
+    nohup bash "${REPO_ROOT}/scripts/job-review.sh" "${task_id}" "${SIGNAL_DIR}" \
+      > "${log_file}" 2>&1 &
+  fi
+  local pid=$!
+  echo "$pid" > "/tmp/worker-${task_id}.pid"
+  echo "  🔄 ${task_id}: job-review 실행 중 (PID=${pid})"
+}
+
+# ── Retry 카운트 관리 ──────────────────────────────────
+declare -A RETRY_COUNT  # task_id → retry 횟수
+
+get_retry_count() { echo "${RETRY_COUNT[$1]:-0}"; }
+increment_retry() { RETRY_COUNT[$1]=$(( ${RETRY_COUNT[$1]:-0} + 1 )); }
+
+# ── Signal 처리 (새 구조: task-done/task-failed/review-approved/review-rejected/stopped) ──
+
+process_signals_for_task() {
   local task_id="$1"
 
-  # 사용자 요청에 의한 중지 감지 (stop-request → stopped 시그널)
+  # 1) 사용자 요청에 의한 중지
   if [ -f "${SIGNAL_DIR}/${task_id}-stopped" ]; then
     echo "  🛑 ${task_id} 중지됨 (사용자 요청)"
     rm -f "${SIGNAL_DIR}/${task_id}-stopped"
     rm -f "/tmp/worker-${task_id}.pid"
-
-    local stopped_task_file
-    stopped_task_file=$(find_file "$task_id")
-    if [ -n "$stopped_task_file" ]; then
-      sed_inplace "s/^status: .*/status: stopped/" "$stopped_task_file"
-      git -C "$REPO_ROOT" add "$stopped_task_file"
-      git -C "$REPO_ROOT" commit --only "$stopped_task_file" \
+    local stopped_tf
+    stopped_tf=$(find_file "$task_id")
+    if [ -n "$stopped_tf" ]; then
+      sed_inplace "s/^status: .*/status: stopped/" "$stopped_tf"
+      git -C "$REPO_ROOT" add "$stopped_tf"
+      git -C "$REPO_ROOT" commit --only "$stopped_tf" \
         -m "chore(${task_id}): status → stopped (사용자 요청)" || true
     fi
-    return 3  # RUNNING에서 제거 (실패 카운트는 안 늘림 - stopped는 실패 아님)
+    return 3  # RUNNING에서 제거
   fi
 
-  if [ -f "${SIGNAL_DIR}/${task_id}-done" ]; then
-    echo "  ✅ ${task_id} 완료"
-
-    local local_task_file
-    local_task_file=$(find_file "$task_id")
-    if [ -n "$local_task_file" ]; then
-      sed_inplace "s/^status: .*/status: done/" "$local_task_file"
-    fi
-
-    local wt_path
-    wt_path=$(get_worktree "$task_id")
-    if [ -d "$wt_path" ]; then
-      git -C "$REPO_ROOT" worktree remove "$wt_path" --force 2>/dev/null || true
-    fi
-
-    local branch
-    branch=$(get_branch "$task_id")
-    if [ -n "$branch" ]; then
-      if git -C "$REPO_ROOT" log --oneline "${BASE_BRANCH}..$branch" 2>/dev/null | grep -q .; then
-        echo "  🔀 ${task_id}: $branch → ${BASE_BRANCH} 머지"
-        if ! git -C "$REPO_ROOT" merge "$branch" --no-ff --no-edit; then
-          # 머지 충돌 → Claude로 자동 해결 시도
-          if ! resolve_merge_conflict "$REPO_ROOT" "$task_id" "$branch" "$BASE_BRANCH"; then
-            # 해결 실패 → failed 처리 + 의존 태스크 연쇄 중단
-            sed_inplace "s/^status: .*/status: failed/" "$local_task_file"
-            git -C "$REPO_ROOT" add "$local_task_file"
-            git -C "$REPO_ROOT" commit --only "$local_task_file" \
-              -m "chore(${task_id}): status → failed (merge conflict)"
-            git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
-            rm -f "${SIGNAL_DIR}/${task_id}-done"
-            stop_dependents "$task_id"
-            return 1
-          fi
-        fi
-      fi
-      git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
-    fi
-
-    if [ -n "$local_task_file" ]; then
-      git -C "$REPO_ROOT" add "$local_task_file"
-      git -C "$REPO_ROOT" commit --only "$local_task_file" -m "chore(${task_id}): status → done"
-    fi
-
-    # 완료 Notice
-    local task_title
-    task_title=$(get_field "$local_task_file" "title")
-    post_notice "info" \
-      "${task_id} 완료" \
-      "**${task_id}:** ${task_title}
-
-태스크가 성공적으로 완료되어 ${BASE_BRANCH}에 머지되었습니다."
-
-    rm -f "${SIGNAL_DIR}/${task_id}-done"
+  # 2) task-done → review 시작
+  if [ -f "${SIGNAL_DIR}/${task_id}-task-done" ]; then
+    echo "  ✅ ${task_id} task 완료 → review 시작"
+    rm -f "${SIGNAL_DIR}/${task_id}-task-done"
     rm -f "/tmp/worker-${task_id}.pid"
-    return 0
-  elif [ -f "${SIGNAL_DIR}/${task_id}-failed" ]; then
-    echo "  ❌ ${task_id} 실패 (review retry 상한 초과)"
+    start_review "$task_id"
+    return 2  # 아직 진행 중 (review 대기)
+  fi
 
-    # 태스크를 failed 상태로 마킹 + 마지막 리뷰 피드백 기록
-    local failed_task_file
-    failed_task_file=$(find_file "$task_id")
-    if [ -n "$failed_task_file" ]; then
-      sed_inplace "s/^status: .*/status: failed/" "$failed_task_file"
-
-      git -C "$REPO_ROOT" add "$failed_task_file"
-      git -C "$REPO_ROOT" commit --only "$failed_task_file" -m "chore(${task_id}): status → failed (review retry 상한 초과)" || true
-    fi
-
-    # worktree + 브랜치 정리
-    local failed_wt_path
-    failed_wt_path=$(get_worktree "$task_id")
-    if [ -d "$failed_wt_path" ]; then
-      git -C "$REPO_ROOT" worktree remove "$failed_wt_path" --force 2>/dev/null || true
-    fi
-    local failed_branch
-    failed_branch=$(get_branch "$task_id")
-    if [ -n "$failed_branch" ]; then
-      git -C "$REPO_ROOT" branch -D "$failed_branch" 2>/dev/null || true
-    fi
-
-    # 실패 Notice
-    local failed_title
-    failed_title=$(get_field "$failed_task_file" "title")
-    post_notice "error" \
-      "${task_id} 실패" \
-      "**${task_id}:** ${failed_title}\n\n리뷰 retry 상한 초과로 실패했습니다. 리뷰 피드백을 확인해주세요."
-
-    rm -f "${SIGNAL_DIR}/${task_id}-failed"
+  # 3) task-failed → 즉시 실패
+  if [ -f "${SIGNAL_DIR}/${task_id}-task-failed" ]; then
+    echo "  ❌ ${task_id} task 실행 실패"
+    rm -f "${SIGNAL_DIR}/${task_id}-task-failed"
     rm -f "/tmp/worker-${task_id}.pid"
-    # 의존 태스크 연쇄 중단
-    stop_dependents "$task_id"
+    _mark_task_failed "$task_id" "task 실행 실패"
     return 1
   fi
+
+  # 4) review-approved → 머지 + done
+  if [ -f "${SIGNAL_DIR}/${task_id}-review-approved" ]; then
+    echo "  ✅ ${task_id} review 승인 → 머지"
+    rm -f "${SIGNAL_DIR}/${task_id}-review-approved"
+    rm -f "/tmp/worker-${task_id}.pid"
+    _merge_and_done "$task_id"
+    return $?
+  fi
+
+  # 5) review-rejected → retry 또는 failed
+  if [ -f "${SIGNAL_DIR}/${task_id}-review-rejected" ]; then
+    rm -f "${SIGNAL_DIR}/${task_id}-review-rejected"
+    rm -f "/tmp/worker-${task_id}.pid"
+    local rc
+    rc=$(get_retry_count "$task_id")
+    if [ "$rc" -lt "$MAX_REVIEW_RETRY" ]; then
+      increment_retry "$task_id"
+      echo "  🔄 ${task_id} review 수정요청 → retry ($((rc + 1))/${MAX_REVIEW_RETRY})"
+      local output_dir
+      if [ -d "$REPO_ROOT/.orchestration/output" ]; then
+        output_dir="$REPO_ROOT/.orchestration/output"
+      else
+        output_dir="$REPO_ROOT/output"
+      fi
+      local feedback_file="$output_dir/${task_id}-review-feedback.txt"
+      start_task "$task_id" "$feedback_file"
+      return 2  # 아직 진행 중 (retry)
+    else
+      echo "  ❌ ${task_id} retry 상한 초과 (${MAX_REVIEW_RETRY})"
+      _mark_task_failed "$task_id" "review retry 상한 초과"
+      return 1
+    fi
+  fi
+
   return 2  # 아직 진행 중
+}
+
+# ── 머지 + done 처리 ─────────────────────────────────────
+_merge_and_done() {
+  local task_id="$1"
+  local local_task_file
+  local_task_file=$(find_file "$task_id")
+
+  if [ -n "$local_task_file" ]; then
+    sed_inplace "s/^status: .*/status: done/" "$local_task_file"
+  fi
+
+  local wt_path
+  wt_path=$(get_worktree "$task_id")
+  local branch
+  branch=$(get_branch "$task_id")
+
+  if [ -n "$branch" ]; then
+    if git -C "$REPO_ROOT" log --oneline "${BASE_BRANCH}..$branch" 2>/dev/null | grep -q .; then
+      echo "  🔀 ${task_id}: $branch → ${BASE_BRANCH} 머지"
+      if ! git -C "$REPO_ROOT" merge "$branch" --no-ff --no-edit; then
+        if ! resolve_merge_conflict "$REPO_ROOT" "$task_id" "$branch" "$BASE_BRANCH"; then
+          sed_inplace "s/^status: .*/status: failed/" "$local_task_file"
+          git -C "$REPO_ROOT" add "$local_task_file"
+          git -C "$REPO_ROOT" commit --only "$local_task_file" \
+            -m "chore(${task_id}): status → failed (merge conflict)"
+          git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
+          stop_dependents "$task_id"
+          return 1
+        fi
+      fi
+    fi
+    git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null || true
+  fi
+
+  if [ -d "$wt_path" ]; then
+    git -C "$REPO_ROOT" worktree remove "$wt_path" --force 2>/dev/null || true
+  fi
+
+  if [ -n "$local_task_file" ]; then
+    git -C "$REPO_ROOT" add "$local_task_file"
+    git -C "$REPO_ROOT" commit --only "$local_task_file" -m "chore(${task_id}): status → done"
+  fi
+
+  local task_title
+  task_title=$(get_field "$local_task_file" "title")
+  post_notice "info" \
+    "${task_id} 완료" \
+    "**${task_id}:** ${task_title}
+
+태스크가 성공적으로 완료되어 ${BASE_BRANCH}에 머지되었습니다."
+  return 0
+}
+
+# ── 실패 처리 ─────────────────────────────────────────────
+_mark_task_failed() {
+  local task_id="$1"
+  local reason="$2"
+
+  local tf
+  tf=$(find_file "$task_id")
+  if [ -n "$tf" ]; then
+    sed_inplace "s/^status: .*/status: failed/" "$tf"
+    git -C "$REPO_ROOT" add "$tf"
+    git -C "$REPO_ROOT" commit --only "$tf" -m "chore(${task_id}): status → failed (${reason})" || true
+  fi
+
+  local wt_path
+  wt_path=$(get_worktree "$task_id")
+  if [ -d "$wt_path" ]; then
+    git -C "$REPO_ROOT" worktree remove "$wt_path" --force 2>/dev/null || true
+  fi
+  local branch
+  branch=$(get_branch "$task_id")
+  if [ -n "$branch" ]; then
+    git -C "$REPO_ROOT" branch -D "$branch" 2>/dev/null || true
+  fi
+
+  local title
+  title=$(get_field "$tf" "title")
+  post_notice "error" \
+    "${task_id} 실패" \
+    "**${task_id}:** ${title}\n\n${reason}"
+
+  stop_dependents "$task_id"
 }
 
 # ── 메인 파이프라인 (슬롯 기반) ──────────────────────
@@ -482,7 +608,7 @@ while true; do
     for task_id in "${RUNNING[@]}"; do
       [ -z "$task_id" ] && continue
       rc=0
-      process_done_task "$task_id" || rc=$?
+      process_signals_for_task "$task_id" || rc=$?
       if [ "$rc" -eq 2 ]; then
         # 아직 진행 중
         NEW_RUNNING+=("$task_id")
@@ -547,10 +673,17 @@ while true; do
       continue
     fi
 
+    # memory guard + dispatch 간격 체크
+    if ! can_dispatch; then
+      break  # 리소스 부족 → 이번 루프에서 더 이상 투입 안 함
+    fi
+
     start_task "$next_task"
     RUNNING+=("$next_task")
+    LAST_DISPATCH_TIME=$(date +%s)
     echo "  📊 슬롯: ${#RUNNING[@]}/${MAX_PARALLEL} (대기: $((${#QUEUE[@]} - qi)))"
   done
 
-  sleep 2
+  # fswatch 기반 이벤트 대기 (또는 fallback polling 2초)
+  wait_for_signal
 done

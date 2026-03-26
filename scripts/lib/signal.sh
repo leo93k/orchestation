@@ -46,20 +46,21 @@ signal_create() {
   mv -f "$tmp" "$target"
 }
 
-# Check if a signal file exists (done or failed) for a task
+# Check if a signal file exists for a task
 # Returns 0 if any signal exists, 1 otherwise
-# Sets SIGNAL_TYPE to "done" or "failed"
+# Sets SIGNAL_TYPE to the signal suffix found
+# Supports: done, failed, task-done, task-failed, review-approved, review-rejected, stopped
 signal_check() {
   local signal_dir="$1"
   local task_id="$2"
 
-  if [ -f "${signal_dir}/${task_id}-done" ]; then
-    SIGNAL_TYPE="done"
-    return 0
-  elif [ -f "${signal_dir}/${task_id}-failed" ]; then
-    SIGNAL_TYPE="failed"
-    return 0
-  fi
+  local suffix
+  for suffix in task-done task-failed review-approved review-rejected done failed stopped; do
+    if [ -f "${signal_dir}/${task_id}-${suffix}" ]; then
+      SIGNAL_TYPE="$suffix"
+      return 0
+    fi
+  done
   return 1
 }
 
@@ -76,17 +77,18 @@ signal_consume() {
   _signal_lock "$lockdir" || return 1
 
   local result="none"
-  if [ -f "${signal_dir}/${task_id}-done" ]; then
-    rm -f "${signal_dir}/${task_id}-done"
-    result="done"
-  elif [ -f "${signal_dir}/${task_id}-failed" ]; then
-    rm -f "${signal_dir}/${task_id}-failed"
-    result="failed"
-  fi
+  local suffix
+  for suffix in task-done task-failed review-approved review-rejected done failed stopped; do
+    if [ -f "${signal_dir}/${task_id}-${suffix}" ]; then
+      rm -f "${signal_dir}/${task_id}-${suffix}"
+      result="$suffix"
+      break
+    fi
+  done
 
   _signal_unlock "$lockdir"
 
-  if [ "$result" = "done" ] || [ "$result" = "failed" ]; then
+  if [ "$result" != "none" ]; then
     SIGNAL_TYPE="$result"
     return 0
   fi

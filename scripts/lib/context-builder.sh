@@ -86,7 +86,7 @@ build_task_prompt() {
   local task_content
   task_content=$(embed_task_content "$task_file")
 
-  # scope 섹션 빌드
+  # scope 섹션 빌드 (계층형 context)
   local scope_section=""
   if [ -n "$scope" ]; then
     local scope_list=""
@@ -94,12 +94,16 @@ build_task_prompt() {
       [ -n "$f" ] && scope_list="${scope_list}
 - ${f}"
     done <<< "$scope"
+    local layered_content
+    layered_content=$(build_layered_context "$scope")
     scope_section="
 ## 작업 범위 가이드
 아래 파일들을 우선적으로 확인하고 이 범위 안에서 작업을 완료해라:${scope_list}
 
-이 범위만으로 완료 조건을 충족할 수 없다고 판단되면, 범위 밖 파일도 자유롭게 수정해도 된다.
-단, 범위 밖 작업은 최소한으로 하고 완료 조건 충족에 필요한 경우에만 해라.
+scope 외 파일은 수정하지 마라. 읽기는 허용하되 수정은 scope 내에서만 해라.
+
+## 작업 대상 파일 내용
+${layered_content}
 "
   fi
 
@@ -130,6 +134,73 @@ ${task_content}
 \`\`\`
 ${feedback_section}
 PROMPT
+}
+
+# ── 계층형 context 빌드 (scope 파일 크기별 분류) ─────────
+# 작은 파일(≤300줄): 전체 임베드
+# 중간 파일(301-800줄): 전체 임베드 + 경고
+# 큰 파일(>800줄): signature + type 정의만, Claude가 직접 읽기
+build_layered_context() {
+  local scope="$1"
+  local worktree_path="${2:-}"
+  local result=""
+
+  [ -z "$scope" ] && return
+
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+
+    # worktree 경로 기반으로 실제 파일 경로 결정
+    local real_path=""
+    if [ -n "$worktree_path" ] && [ -f "$worktree_path/$f" ]; then
+      real_path="$worktree_path/$f"
+    elif [ -f "$f" ]; then
+      real_path="$f"
+    fi
+
+    if [ -z "$real_path" ]; then
+      result="${result}
+### ${f}
+⚠️ 파일 없음 — 새로 생성이 필요할 수 있다.
+
+"
+      continue
+    fi
+
+    local lines
+    lines=$(wc -l < "$real_path" | tr -d ' ')
+
+    if [ "$lines" -le 300 ]; then
+      # Layer 2: 전체 임베드
+      result="${result}
+### ${f} (${lines}줄)
+\`\`\`
+$(cat "$real_path")
+\`\`\`
+
+"
+    elif [ "$lines" -le 800 ]; then
+      # Layer 2+: 전체 임베드 + 경고
+      result="${result}
+### ${f} (${lines}줄 — 변경 최소화)
+\`\`\`
+$(cat "$real_path")
+\`\`\`
+
+"
+    else
+      # Layer 1: signature + type 정의만
+      result="${result}
+### ${f} (${lines}줄 — 시그니처만, 필요 시 직접 읽어라)
+\`\`\`
+$(grep -n -E '^(export |import |function |class |interface |type |const |async |def )' "$real_path" 2>/dev/null | head -60)
+\`\`\`
+
+"
+    fi
+  done <<< "$scope"
+
+  echo "$result"
 }
 
 # ── 리뷰 프롬프트 빌드 ──────────────────────────────────

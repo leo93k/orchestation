@@ -1,0 +1,184 @@
+#!/bin/bash
+set -euo pipefail
+
+# Usage: ./scripts/job-task.sh TASK-XXX SIGNAL_DIR [FEEDBACK_FILE]
+#   단일 태스크 1회 실행 후 signal 생성 + 종료
+#   Exit: 0=성공(task-done), 1=실패(task-failed)
+
+TASK_ID="${1:?Usage: ./scripts/job-task.sh TASK-XXX SIGNAL_DIR [FEEDBACK_FILE]}"
+SIGNAL_DIR="${2:?SIGNAL_DIR is required}"
+FEEDBACK_FILE="${3:-}"
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$HOME/.local/bin:$PATH"
+
+source "$REPO_ROOT/scripts/lib/signal.sh"
+source "$REPO_ROOT/scripts/lib/context-builder.sh"
+source "$REPO_ROOT/scripts/lib/model-selector.sh"
+
+# ─── 시작 시간 기록 (healthcheck 타임아웃용) ─────────────────
+date +%s > "${SIGNAL_DIR}/${TASK_ID}-start"
+
+# ─── Signal 안전장치: 비정상 종료 시 failed signal ─────────────
+_signal_sent=false
+trap '_ec=$?
+  if [ "$_signal_sent" = false ]; then
+    if [ -f "${SIGNAL_DIR}/${TASK_ID}-stop-request" ]; then
+      rm -f "${SIGNAL_DIR}/${TASK_ID}-stop-request"
+      signal_create "$SIGNAL_DIR" "$TASK_ID" "stopped"
+    elif [ "$_ec" -ne 0 ]; then
+      signal_create "$SIGNAL_DIR" "$TASK_ID" "task-failed"
+    fi
+  fi
+  rm -f "${SIGNAL_DIR}/${TASK_ID}-start"' EXIT
+
+# ─── 디렉토리 설정 ────────────────────────────────────────────
+if [ -d "$REPO_ROOT/.orchestration/tasks" ]; then
+  TASK_DIR="$REPO_ROOT/.orchestration/tasks"
+else
+  TASK_DIR="$REPO_ROOT/docs/task"
+fi
+REQ_DIR="$REPO_ROOT/docs/requests"
+if [ -d "$REPO_ROOT/.orchestration/output" ]; then
+  OUTPUT_DIR="$REPO_ROOT/.orchestration/output"
+else
+  OUTPUT_DIR="$REPO_ROOT/output"
+fi
+TOKEN_LOG="$OUTPUT_DIR/token-usage.log"
+mkdir -p "$OUTPUT_DIR" "$OUTPUT_DIR/logs"
+
+# ─── 공통 함수 (run-worker.sh에서 추출) ───────────────────────
+
+find_task_file() {
+  TASK_FILE=$(find "$TASK_DIR" -name "${TASK_ID}-*.md" 2>/dev/null | head -1)
+  if [ -z "$TASK_FILE" ]; then
+    TASK_FILE=$(find "$REQ_DIR" -name "${TASK_ID}-*.md" 2>/dev/null | head -1)
+  fi
+  if [ -z "$TASK_FILE" ]; then
+    echo "❌ Task 파일을 찾을 수 없습니다: ${TASK_ID}" >&2
+    exit 1
+  fi
+  TASK_FILENAME=$(basename "$TASK_FILE")
+  echo "📋 Task 파일: $TASK_FILENAME"
+}
+
+parse_frontmatter() {
+  BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/branch: *//')
+  WORKTREE_REL=$(grep '^worktree:' "$TASK_FILE" | sed 's/worktree: *//')
+  WORKTREE_PATH="$REPO_ROOT/$WORKTREE_REL"
+  ROLE=$(grep '^role:' "$TASK_FILE" | sed 's/role: *//' || true)
+  SCOPE=""
+  local in_frontmatter=false in_scope=false
+  while IFS= read -r line; do
+    if [[ "$line" == "---" ]]; then
+      if $in_frontmatter; then break; fi
+      in_frontmatter=true; continue
+    fi
+    if ! $in_frontmatter; then continue; fi
+    if [[ "$line" == "scope:" ]]; then in_scope=true; continue; fi
+    if $in_scope; then
+      if echo "$line" | grep -qE '^[[:space:]]*-[[:space:]]'; then
+        SCOPE="${SCOPE}$(echo "$line" | sed 's/^[[:space:]]*-[[:space:]]*//')"$'\n'
+      else
+        break
+      fi
+    fi
+  done < "$TASK_FILE"
+  SCOPE=$(echo "$SCOPE" | sed '/^$/d')
+
+  if [ -z "$BRANCH" ] || [ -z "$WORKTREE_REL" ]; then
+    echo "❌ Task 파일에 branch 또는 worktree가 정의되지 않았습니다" >&2
+    exit 1
+  fi
+  echo "🌿 Branch: $BRANCH"
+  echo "📂 Worktree: $WORKTREE_PATH"
+}
+
+ensure_worktree() {
+  if [ ! -d "$WORKTREE_PATH" ]; then
+    echo "🔨 Worktree 생성 중..."
+    git -C "$REPO_ROOT" worktree add "$WORKTREE_PATH" -b "$BRANCH" 2>/dev/null || \
+    git -C "$REPO_ROOT" worktree add "$WORKTREE_PATH" "$BRANCH"
+    echo "✅ Worktree 생성 완료"
+  else
+    echo "✅ Worktree 이미 존재"
+  fi
+}
+
+load_role_prompt() {
+  local role_name="$1" default_name="$2"
+  local role_dir="$REPO_ROOT/docs/roles"
+  ROLE_PROMPT=""
+  if [ -n "$role_name" ] && [ -f "$role_dir/${role_name}.md" ]; then
+    ROLE_PROMPT=$(cat "$role_dir/${role_name}.md")
+    echo "🎭 Role: $role_name"
+  elif [ -n "$role_name" ] && [ ! -f "$role_dir/${role_name}.md" ]; then
+    echo "⚠️  Role '${role_name}' 파일 없음 → ${default_name} 사용"
+    ROLE_PROMPT=$(cat "$role_dir/${default_name}.md")
+  else
+    ROLE_PROMPT=$(cat "$role_dir/${default_name}.md")
+    echo "🎭 Role: ${default_name} (기본)"
+  fi
+}
+
+log_tokens() {
+  local phase="$1"
+  local input_tokens cache_create cache_read output_tokens cost duration num_turns model
+  input_tokens=$(echo "$JSON_OUTPUT" | jq '.usage.input_tokens // 0')
+  cache_create=$(echo "$JSON_OUTPUT" | jq '.usage.cache_creation_input_tokens // 0')
+  cache_read=$(echo "$JSON_OUTPUT" | jq '.usage.cache_read_input_tokens // 0')
+  output_tokens=$(echo "$JSON_OUTPUT" | jq '.usage.output_tokens // 0')
+  cost=$(echo "$JSON_OUTPUT" | jq '.total_cost_usd // 0')
+  duration=$(echo "$JSON_OUTPUT" | jq '.duration_ms // 0')
+  num_turns=$(echo "$JSON_OUTPUT" | jq '.num_turns // 0')
+  model=$(echo "$JSON_OUTPUT" | jq -r '(.modelUsage // {} | keys | first) // "unknown"')
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${TASK_ID} | phase=${phase} | model=${model} | input=${input_tokens} cache_create=${cache_create} cache_read=${cache_read} output=${output_tokens} | turns=${num_turns} | duration=${duration}ms | cost=\$${cost}" >> "$TOKEN_LOG"
+  echo "📊 토큰: in=${input_tokens} cache_create=${cache_create} cache_read=${cache_read} out=${output_tokens} | model=${model} | cost=\$${cost}"
+}
+
+# ─── 실행 ──────────────────────────────────────────────────────
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🚀 [job-task] ${TASK_ID} 실행"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+find_task_file
+parse_frontmatter
+ensure_worktree
+load_role_prompt "$ROLE" "general"
+
+# 컨텍스트 필터
+setup_context_filter "$WORKTREE_PATH" "$REPO_ROOT"
+
+# 프롬프트 생성
+prompt=$(build_task_prompt "$TASK_FILE" "$TASK_FILENAME" "$SCOPE" "$FEEDBACK_FILE")
+if [ -n "$FEEDBACK_FILE" ] && [ -f "$FEEDBACK_FILE" ]; then
+  echo "📝 이전 리뷰 피드백 포함"
+fi
+
+# 모델 선택
+selected_model=$(select_model "$TASK_FILE")
+log_model_selection "$TASK_FILE" "$TASK_ID" "$TOKEN_LOG"
+
+# Claude 1회 호출
+cd "$WORKTREE_PATH"
+model_args=()
+[ -n "$selected_model" ] && model_args=(--model "$selected_model")
+
+CONV_FILE="$OUTPUT_DIR/${TASK_ID}-task-conversation.jsonl"
+if ! echo "$prompt" | claude --output-format json --dangerously-skip-permissions "${model_args[@]}" --system-prompt "$ROLE_PROMPT" > "$CONV_FILE"; then
+  echo "❌ Claude 호출 실패" >&2
+  exit 1
+fi
+
+JSON_OUTPUT=$(cat "$CONV_FILE")
+echo "$JSON_OUTPUT" | jq -r '.result // empty'
+echo "$JSON_OUTPUT" | jq . > "$OUTPUT_DIR/${TASK_ID}-task.json"
+log_tokens "task"
+
+# 성공 signal
+_signal_sent=true
+signal_create "$SIGNAL_DIR" "$TASK_ID" "task-done"
+echo "✅ [job-task] ${TASK_ID} 완료 → task-done signal"
+exit 0
