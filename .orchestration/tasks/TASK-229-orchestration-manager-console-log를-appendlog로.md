@@ -1,7 +1,7 @@
 ---
 id: TASK-229
 title: orchestration-manager console.log를 appendLog로 교체
-status: in_progress
+status: failed
 branch: task/task-229
 worktree: ../repo-wt-task-229
 priority: medium
