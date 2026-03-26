@@ -153,16 +153,6 @@ can_dispatch() {
     fi
   fi
 
-  # Gate 3: dispatch 간격 (burst 방지)
-  local running=${#RUNNING[@]}
-  local min_interval=0
-  if [ "$running" -eq 1 ]; then min_interval=3
-  elif [ "$running" -ge 2 ]; then min_interval=8
-  fi
-  local now
-  now=$(date +%s)
-  if (( now - LAST_DISPATCH_TIME < min_interval )); then return 1; fi
-
   return 0
 }
 
@@ -739,7 +729,6 @@ while true; do
 
     start_task "$next_task"
     RUNNING+=("$next_task")
-    LAST_DISPATCH_TIME=$(date +%s)
     echo "  📊 슬롯: ${#RUNNING[@]}/${MAX_PARALLEL} (대기: $((${#QUEUE[@]} - qi)))"
   done
 
