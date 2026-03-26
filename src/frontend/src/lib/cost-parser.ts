@@ -42,7 +42,8 @@ const LOG_LINE_REGEX_WITH_MODEL =
 const LOG_LINE_REGEX_LEGACY =
   /^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+([\w-]+)\s+\|\s+phase=(\w+)\s+\|\s+input=(\d+)\s+cache_create=(\d+)\s+cache_read=(\d+)\s+output=(\d+)\s+\|\s+turns=(\d+)\s+\|\s+duration=(\d+)ms\s+\|\s+cost=\$([\d.]+)/;
 
-const LOG_FILE = path.join(process.cwd(), "../../output/token-usage.log");
+const PROJECT_ROOT = path.join(process.cwd(), "../..");
+const LOG_FILE = path.join(PROJECT_ROOT, ".orchestration/output/token-usage.log");
 
 export function parseCostLogLine(line: string): CostEntry | null {
   const trimmed = line.trim();
@@ -91,15 +92,17 @@ export function parseCostLog(): CostData {
   }
 
   const content = fs.readFileSync(LOG_FILE, "utf-8");
-  const lines = content.split("\n");
   const entries: CostEntry[] = [];
 
-  for (const line of lines) {
+  for (const line of content.split("\n")) {
     const entry = parseCostLogLine(line);
     if (entry) {
       entries.push(entry);
     }
   }
+
+  // 최신순 정렬
+  entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
   const summaryByTask = aggregateByTask(entries);
 
