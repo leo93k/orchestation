@@ -1,7 +1,7 @@
 ---
 id: TASK-245
 title: "cost-parser.ts non-null assertion 제거 — strict 타입 안전성"
-status: in_progress
+status: failed
 branch: task/task-245
 worktree: ../repo-wt-task-245
 priority: medium
