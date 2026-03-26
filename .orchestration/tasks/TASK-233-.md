@@ -1,7 +1,9 @@
 ---
 id: TASK-233
 title: API-route-validStatuses-상수-불일치-분석-보고서
-status: pending
+status: in_progress
+branch: task/task-233
+worktree: ../repo-wt-task-233
 priority: medium
 mode: night
 created: 2026-03-26
