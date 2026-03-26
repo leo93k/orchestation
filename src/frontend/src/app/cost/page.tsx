@@ -2,18 +2,12 @@
 
 import { AlertCircle } from "lucide-react";
 import { useCosts } from "@/hooks/useCosts";
-import { useRunHistory } from "@/hooks/useRunHistory";
 import { useOrchestrationStatus } from "@/hooks/useOrchestrationStatus";
 import { SummaryCards } from "@/components/cost/SummaryCards";
 import { CostTable } from "@/components/cost/CostTable";
 import { CumulativeCostChart } from "@/components/cost/CumulativeCostChart";
-import { RunHistory } from "@/components/cost/RunHistory";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
-
-type CostTab = "cost" | "history";
 
 function LoadingSkeleton() {
   return (
@@ -49,98 +43,37 @@ function ErrorState({ message }: { message: string }) {
 function EmptyState() {
   return (
     <div className="py-8 text-center">
-      <p className="text-xs text-muted-foreground">No execution history.</p>
+      <p className="text-xs text-muted-foreground">No cost data.</p>
     </div>
   );
 }
 
 export default function CostPage() {
   const { data, isLoading, error, refetch: refetchCosts } = useCosts();
-  const {
-    runs,
-    isLoading: historyLoading,
-    refetch: refetchHistory,
-  } = useRunHistory();
   const { justFinished, clearFinished } = useOrchestrationStatus();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const activeTab = (searchParams.get("tab") as CostTab) || "cost";
-  const setActiveTab = (tab: CostTab) => router.replace(`/cost?tab=${tab}`);
 
   // Auto-refresh when orchestration finishes
   useEffect(() => {
     if (justFinished) {
       refetchCosts();
-      refetchHistory();
       clearFinished();
     }
-  }, [justFinished, refetchCosts, refetchHistory, clearFinished]);
+  }, [justFinished, refetchCosts, clearFinished]);
 
-  if (isLoading || historyLoading) return <LoadingSkeleton />;
+  if (isLoading) return <LoadingSkeleton />;
   if (error) return <ErrorState message={error} />;
 
   const hasCostData = data && data.entries.length > 0;
-  const hasRunHistory = runs.length > 0;
-
-  if (!hasCostData && !hasRunHistory) return <EmptyState />;
-
-  const TABS: { key: CostTab; label: string; count: number }[] = [
-    { key: "cost", label: "비용", count: data?.entries.length ?? 0 },
-    { key: "history", label: "실행 이력", count: runs.length },
-  ];
+  if (!hasCostData) return <EmptyState />;
 
   return (
     <div className="space-y-6">
-      {hasCostData && (
-        <>
-          <SummaryCards
-            entries={data.entries}
-            summaryByTask={data.summaryByTask}
-          />
-          <CumulativeCostChart entries={data.entries} />
-        </>
-      )}
-
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-border">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              "flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium border-b-2 transition-colors -mb-px whitespace-nowrap",
-              activeTab === tab.key
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {tab.label}
-            <span className="text-[10px] text-muted-foreground">({tab.count})</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === "cost" && (
-        hasCostData ? (
-          <CostTable entries={data.entries} />
-        ) : (
-          <div className="py-8 text-center">
-            <p className="text-xs text-muted-foreground">비용 데이터가 없습니다.</p>
-          </div>
-        )
-      )}
-
-      {activeTab === "history" && (
-        hasRunHistory ? (
-          <RunHistory runs={runs} />
-        ) : (
-          <div className="py-8 text-center">
-            <p className="text-xs text-muted-foreground">실행 이력이 없습니다.</p>
-          </div>
-        )
-      )}
+      <SummaryCards
+        entries={data.entries}
+        summaryByTask={data.summaryByTask}
+      />
+      <CumulativeCostChart entries={data.entries} />
+      <CostTable entries={data.entries} />
     </div>
   );
 }
