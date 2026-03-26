@@ -1,7 +1,7 @@
 ---
 id: TASK-225
 title: AppShell-empty-catch-블록-주석-추가
-status: in_progress
+status: failed
 branch: task/task-225
 worktree: ../repo-wt-task-225
 priority: medium
