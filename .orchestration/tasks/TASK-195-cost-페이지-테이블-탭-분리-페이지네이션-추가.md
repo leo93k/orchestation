@@ -1,7 +1,7 @@
 ---
 id: TASK-195
 title: Cost 페이지 테이블 탭 분리 + 페이지네이션 추가
-status: in_progress
+status: done
 branch: task/task-195
 worktree: ../repo-wt-task-195
 priority: medium
