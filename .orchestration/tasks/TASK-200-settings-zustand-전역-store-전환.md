@@ -1,7 +1,7 @@
 ---
 id: TASK-200
 title: Settings zustand 전역 store 전환
-status: in_progress
+status: done
 branch: task/task-200
 worktree: ../repo-wt-task-200
 priority: medium
