@@ -111,35 +111,22 @@ function getClaudeProcesses(): ClaudeProcess[] {
         const command = parts.slice(10).join(" ");
         const memMB = +((mem / 100) * totalMem / 1024 / 1024).toFixed(1);
 
-        // 워커 판별: PID 트리 우선, 커맨드 패턴 보조
+        // 워커 판별: PID 트리에서 task ID가 매핑된 프로세스만 워커
         const taskIdFromTree = pidToTaskId.get(pid);
-        const isWorkerByCommand =
-          command.includes("--dangerously-skip-permissions") ||
-          command.includes("--output-format json");
-
-        const isWorker = taskIdFromTree !== undefined || isWorkerByCommand;
+        const isWorker = taskIdFromTree !== undefined;
         const taskId = taskIdFromTree;
 
         return { pid, cpu, mem, memMB, command, label: "", isWorker, taskId };
       })
       .filter((p): p is NonNullable<typeof p> => p !== null)
-      .filter((p) => p.mem > 0.05) // 의미있는 프로세스만
-      .sort((a, b) => {
-        // 워커 우선, 그 다음 메모리 내림차순
-        if (a.isWorker !== b.isWorker) return a.isWorker ? -1 : 1;
-        return b.mem - a.mem;
-      })
+      .filter((p) => p.isWorker && p.mem > 0.05) // 워커만 표시
+      .sort((a, b) => b.mem - a.mem)
       .map((p) => {
-        if (p.isWorker) {
-          workerIdx++;
-          const label = p.taskId
-            ? `Worker ${p.taskId} (PID ${p.pid})`
-            : `Worker ${workerIdx} (PID ${p.pid})`;
-          return { ...p, label };
-        } else {
-          userIdx++;
-          return { ...p, label: `User ${userIdx} (PID ${p.pid})` };
-        }
+        workerIdx++;
+        const label = p.taskId
+          ? `${p.taskId} (PID ${p.pid})`
+          : `Worker ${workerIdx} (PID ${p.pid})`;
+        return { ...p, label };
       });
 
     return processes;
