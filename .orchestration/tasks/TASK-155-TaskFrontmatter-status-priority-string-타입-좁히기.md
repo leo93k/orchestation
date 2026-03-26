@@ -1,7 +1,9 @@
 ---
 id: TASK-155
 title: "TaskFrontmatter status·priority를 string에서 union 타입으로 좁히기"
-status: pending
+status: in_progress
+branch: task/task-155
+worktree: ../repo-wt-task-155
 priority: medium
 mode: night
 created: 2026-03-25
