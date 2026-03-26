@@ -1,7 +1,9 @@
 ---
 id: TASK-248
 title: cost-parser.ts 불필요 export 제거 (parseCostLogLine)
-status: pending
+status: in_progress
+branch: task/task-248
+worktree: ../repo-wt-task-248
 priority: medium
 mode: night
 created: 2026-03-26
@@ -14,7 +16,9 @@ TASK-248은 이미 reserved 상태입니다. 다음 ID를 사용하겠습니다.
 ---
 id: TASK-249
 title: cost-parser.ts 불필요 export 제거 (parseCostLogLine)
-status: pending
+status: in_progress
+branch: task/task-248
+worktree: ../repo-wt-task-248
 priority: medium
 mode: night
 created: 2026-03-26
