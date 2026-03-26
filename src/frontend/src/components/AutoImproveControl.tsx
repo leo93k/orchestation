@@ -12,9 +12,9 @@ interface OrchestrationActionResponse {
 }
 
 export default function AutoImproveControl({
-  hasRunningTasks = false,
+  runningTaskCount = 0,
 }: {
-  hasRunningTasks?: boolean;
+  runningTaskCount?: number;
 } = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export default function AutoImproveControl({
   const exitCode = useOrchestrationStore((s) => s.data.exitCode);
 
   const isRunning =
-    orchestrationStatus === "running" || hasRunningTasks;
+    orchestrationStatus === "running" || runningTaskCount > 0;
 
   // isStopping 해제: orchestration이 실제로 멈추면 stopping 상태 해제
   useEffect(() => {
@@ -83,7 +83,15 @@ export default function AutoImproveControl({
         </span>
       ) : status === "running" ? (
         <>
-          <HorseRunningIndicator />
+          <div className="running-indicator">
+            <span className="running-indicator-spinner" />
+            <span className="running-indicator-text">
+              Running<span className="running-indicator-dots" />
+            </span>
+            {runningTaskCount > 0 && (
+              <span className="running-indicator-count">{runningTaskCount}</span>
+            )}
+          </div>
           <button
             type="button"
             onClick={handleStop}

@@ -287,8 +287,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Global header */}
         <div className="global-header">
-          <RunningIndicator requestItems={requestItems} />
-          <AutoImproveControl />
+          <AutoImproveControl runningTaskCount={requestItems.filter((t) => t.status === "in_progress").length} />
           <GlobalSearch requestItems={requestItems} docTree={docTree} />
         </div>
 
