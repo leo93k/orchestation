@@ -205,7 +205,6 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
       <TaskMetadata
         task={task}
-        id={id}
         runStatus={runStatus}
         isPipelineRunning={isPipelineRunning}
         onStatusChange={handleStatusChange}

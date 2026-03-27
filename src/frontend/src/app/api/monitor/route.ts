@@ -94,7 +94,6 @@ function getClaudeProcesses(): ClaudeProcess[] {
     }
 
     let workerIdx = 0;
-    let userIdx = 0;
 
     const processes = lines
       .map((line) => {

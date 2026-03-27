@@ -14,7 +14,6 @@ import { useToast } from "@/components/ui/toast";
 import { ChatBot } from "@/components/ChatBot";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { useNotices } from "@/hooks/useNotices";
-import { RunningIndicator } from "@/components/RunningIndicator";
 import AutoImproveControl from "@/components/AutoImproveControl";
 import type { WaterfallTask } from "@/types/waterfall";
 import type { RequestItem } from "@/store/tasksStore";
@@ -131,7 +130,7 @@ function HomeDashboard({ requestItems }: { requestItems: RequestItem[] }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { groups, isLoading, error } = useTasks();
+  const { groups, isLoading } = useTasks();
   const { prds } = usePrds();
   const {
     tree: docTree,
