@@ -48,8 +48,8 @@ export function CompletedLogPanel({ taskId }: { taskId: string }) {
         <span className="text-[11px] text-zinc-400 font-mono">LOG — {taskId}</span>
         <span className="text-[10px] text-zinc-600 ml-auto font-mono">{lines.length} lines</span>
       </div>
-      <div className="overflow-y-auto max-h-[500px] p-0 font-mono text-[11px] leading-[1.7]">
-        {lines.map((line, i) => (
+      <div className="overflow-y-auto max-h-[500px] p-0 font-mono text-[11px] leading-[1.7] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {[...lines].reverse().map((line, i) => (
           <div
             key={i}
             className={cn(
@@ -57,7 +57,7 @@ export function CompletedLogPanel({ taskId }: { taskId: string }) {
               lineColor(line),
             )}
           >
-            <span className="text-zinc-600 select-none mr-3 inline-block w-5 text-right">{i + 1}</span>
+            <span className="text-zinc-600 select-none mr-3 inline-block w-5 text-right">{lines.length - i}</span>
             {line}
           </div>
         ))}

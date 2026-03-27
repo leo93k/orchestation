@@ -74,13 +74,7 @@ export function TaskLogTab({ taskId, taskStatus }: TaskLogTabProps) {
     }
   }, [fetchLogs, taskStatus]);
 
-  // Auto-scroll
-  useEffect(() => {
-    if (autoScroll && containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
-    }
-  }, [logs, autoScroll]);
-
+  // Auto-scroll: 역순 표시이므로 최신 로그가 이미 상단에 위치 — 자동 스크롤 불필요
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
     const el = containerRef.current;
@@ -120,9 +114,9 @@ export function TaskLogTab({ taskId, taskStatus }: TaskLogTabProps) {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="overflow-y-auto max-h-[500px] divide-y divide-border/50"
+        className="overflow-y-auto max-h-[500px] divide-y divide-border/50 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {logs.map((entry, i) => (
+        {[...logs].reverse().map((entry, i) => (
           <div
             key={i}
             className={cn(
