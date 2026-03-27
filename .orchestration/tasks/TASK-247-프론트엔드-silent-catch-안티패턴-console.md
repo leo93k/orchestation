@@ -1,13 +1,13 @@
 ---
 id: TASK-247
 title: 프론트엔드 silent catch 안티패턴 console.error 추가
-status: failed
+status: in_progress
 branch: task/task-247
 worktree: ../repo-wt-task-247
 priority: medium
 mode: night
 created: 2026-03-26
-updated: 2026-03-26
+updated: 2026-03-27 06:22:12
 depends_on: []
 scope:
   - src/frontend/src/components/RequestCard.tsx
