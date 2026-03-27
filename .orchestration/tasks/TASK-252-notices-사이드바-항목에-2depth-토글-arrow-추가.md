@@ -1,7 +1,7 @@
 ---
 id: TASK-252
 title: Notices 사이드바 항목에 2depth 토글 arrow 추가
-status: in_progress
+status: done
 branch: task/task-252
 worktree: ../repo-wt-task-252
 priority: medium
