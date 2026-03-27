@@ -6,6 +6,7 @@ export const STATUS_DOT: Record<string, string> = {
   in_progress: "bg-blue-500",
   reviewing: "bg-orange-500",
   done: "bg-emerald-500",
+  failed: "bg-red-500",
   rejected: "bg-red-500",
 };
 
@@ -15,10 +16,11 @@ export const STATUS_LABEL: Record<string, string> = {
   in_progress: "In Progress",
   reviewing: "Reviewing",
   done: "Done",
+  failed: "Failed",
   rejected: "Rejected",
 };
 
-export const STATUS_ORDER = ["in_progress", "reviewing", "stopped", "pending", "done", "rejected"];
+export const STATUS_ORDER = ["in_progress", "reviewing", "stopped", "pending", "done", "failed", "rejected"];
 
 // ── Priority ─────────────────────────────────────────
 

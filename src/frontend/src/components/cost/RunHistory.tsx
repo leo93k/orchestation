@@ -91,7 +91,7 @@ export function RunHistory({ runs }: RunHistoryProps) {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto min-h-[50vh]">
         <table className="w-full text-xs compact-table">
           <thead>
             <tr className="border-b border-border text-left text-[10px] text-muted-foreground uppercase tracking-wider">

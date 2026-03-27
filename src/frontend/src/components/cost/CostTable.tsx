@@ -90,7 +90,7 @@ export function CostTable({ entries }: CostTableProps) {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto min-h-[50vh]">
         <table className="w-full text-xs compact-table table-fixed">
           <colgroup>
             <col className="w-[100px]" />

@@ -127,6 +127,7 @@ function TasksPageInner() {
       pending: byStatus("pending"),
       reviewing: byStatus("reviewing"),
       in_progress: byStatus("in_progress"),
+      failed: byStatus("failed"),
       rejected: byStatus("rejected"),
       done: byStatus("done"),
     } as Record<string, RequestItem[]>;
@@ -360,7 +361,7 @@ function TasksPageInner() {
 
       {/* List View */}
       {activeTab !== TAB_STACK && (
-        <div className="space-y-1">
+        <div className="space-y-1 min-h-[50vh]">
           {depChainGroups.map((group, gi) =>
             group.isChain ? (
               <ChainGroup key={group.items[0].id} items={group.items} onUpdate={updateRequest} onDelete={deleteRequest} onReorder={group.items[0].status === "pending" ? reorderRequest : undefined} isFirst={gi === 0} isLast={gi === depChainGroups.length - 1} />
