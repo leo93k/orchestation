@@ -168,17 +168,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const allTasks = groups.flatMap((g) => g.tasks);
     const prevMap = prevTaskStatusRef.current;
 
+    // 초기 로드가 아닌 경우에만 토스트 (prevMap이 비어있으면 초기 로드)
     if (prevMap.size > 0) {
-      for (const task of allTasks) {
-        const prevStatus = prevMap.get(task.id);
-        if (prevStatus && prevStatus !== task.status) {
-          if (task.status === "done") {
-            addToast(`${task.id}: "${task.title}" 완료됨`, "success");
-          } else if (task.status === "in_progress" && prevStatus === "pending") {
-            addToast(`${task.id}: "${task.title}" 시작됨`, "info");
-          } else if (task.status === "reviewing") {
-            addToast(`${task.id}: "${task.title}" 리뷰 중`, "info");
-          }
+      // status가 실제로 변경된 태스크만 필터
+      const changed = allTasks.filter((task) => {
+        const prev = prevMap.get(task.id);
+        return prev !== undefined && prev !== task.status;
+      });
+
+      for (const task of changed) {
+        const prevStatus = prevMap.get(task.id)!;
+        if (task.status === "done") {
+          addToast(`${task.id}: "${task.title}" 완료됨`, "success");
+        } else if (task.status === "in_progress" && prevStatus === "pending") {
+          addToast(`${task.id}: "${task.title}" 시작됨`, "info");
+        } else if (task.status === "reviewing") {
+          addToast(`${task.id}: "${task.title}" 리뷰 중`, "info");
         }
       }
     }

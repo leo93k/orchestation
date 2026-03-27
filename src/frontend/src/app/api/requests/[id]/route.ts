@@ -49,7 +49,7 @@ export async function GET(
   if (fs.existsSync(tokenLogPath)) {
     try {
       const logContent = fs.readFileSync(tokenLogPath, "utf-8");
-      const lines = logContent.split("\n").filter((l) => l.includes(taskId));
+      const lines = logContent.split("\n").filter((l) => l.includes(taskId) && !l.includes("model_selection"));
       costEntries = lines.map((line) => {
         const phase = line.match(/phase=(\w+)/)?.[1] || "unknown";
         const cost = line.match(/cost=\$([0-9.]+)/)?.[1] || "0";
