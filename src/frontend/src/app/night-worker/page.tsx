@@ -127,7 +127,7 @@ export default function NightWorkerPage() {
       <div className="space-y-4">
 
         {/* Card 1: Name + Instructions + Until */}
-        <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <div className="space-y-4">
           {/* Name */}
           <div className="space-y-1.5">
             <Label>Name</Label>
@@ -184,7 +184,7 @@ export default function NightWorkerPage() {
         </div>
 
         {/* Card 2: Task Types */}
-        <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <div className="space-y-4">
           <Label size="section">Task Types</Label>
 
           {TASK_TYPES.map((t) => (
@@ -200,7 +200,7 @@ export default function NightWorkerPage() {
         </div>
 
         {/* Card 3: Configuration (Budget + Max Tasks) */}
-        <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <div className="space-y-4">
           <Label size="section">Configuration</Label>
 
           {/* Budget */}

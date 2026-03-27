@@ -105,7 +105,7 @@ export default function SettingsPage() {
         <div className="space-y-4">
 
           {/* API Section */}
-          <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+          <div className="space-y-4">
             {/* Name */}
             <div className="space-y-1.5">
               <Label>Name</Label>
@@ -146,7 +146,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Source Paths */}
-          <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+          <div className="space-y-4">
             <Label size="section">Source Paths</Label>
 
             <div className="space-y-2">
@@ -187,7 +187,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Configuration */}
-          <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+          <div className="space-y-4">
             <Label size="section">Configuration</Label>
 
             {/* Worker Mode */}

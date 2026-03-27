@@ -55,8 +55,9 @@
 ### 레이아웃 규칙
 - **모든 페이지**: `<PageLayout>` + `<PageHeader title="...">` 사용 (max-w-3xl, space-y-4, pb-16)
 - **페이지 헤더**: 좌측 `text-lg font-semibold` 제목 + 우측 액션 버튼 (`filter-pill active`)
-- **섹션 그룹핑**: `<div className="rounded-lg border border-border bg-card p-4 space-y-4">` (카드)
-- **구분**: 카드 사이 간격(space-y-4)으로 분리, 디바이더 사용 지양
+- **섹션 그룹핑**: 간격(space-y-4)으로 분리. 카드(border) 래퍼 사용 금지
+- **이중 보더 금지**: 폼 요소(Input/Select 등)가 이미 보더를 가지므로, 바깥을 카드(border)로 감싸면 이중 테두리가 됨. 절대 금지
+- **구분**: 섹션 라벨(`<Label size="section">`)과 간격으로 구분. 디바이더나 카드 래퍼 불필요
 
 ### 스타일 규칙
 - **입력 필드**: `bg-muted`, `border border-border`, `rounded-md`, `focus:border-primary`
