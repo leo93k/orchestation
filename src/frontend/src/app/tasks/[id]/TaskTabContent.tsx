@@ -53,7 +53,7 @@ export function ScopeTab({ scope }: ScopeTabProps) {
 /* ── AI Result Tab ── */
 
 interface AiResultTabProps {
-  aiResult: { status: string; result: string } | null;
+  aiResult: { status: string; result: string; reviewFeedback?: string | null } | null;
   aiResultLoading: boolean;
   taskStatus: string;
 }
@@ -80,8 +80,9 @@ export function AiResultTab({ aiResult, aiResultLoading, taskStatus }: AiResultT
     return <p className="text-sm text-muted-foreground">아직 AI 결과가 없습니다.</p>;
   }
 
-  const statusLabel = aiResult.status === "rejected" ? "REJECTED" : "DONE";
-  const statusColor = aiResult.status === "rejected" ? "text-red-500" : "text-emerald-500";
+  const isReviewFailed = taskStatus === "failed" && aiResult.status !== "rejected";
+  const statusLabel = aiResult.status === "rejected" ? "REJECTED" : isReviewFailed ? "REVIEW FAILED" : "DONE";
+  const statusColor = aiResult.status === "rejected" || isReviewFailed ? "text-red-500" : "text-emerald-500";
 
   return (
     <div className="space-y-3">
@@ -89,8 +90,24 @@ export function AiResultTab({ aiResult, aiResultLoading, taskStatus }: AiResultT
         <span className="text-xs text-muted-foreground">Status:</span>
         <span className={cn("text-xs font-semibold", statusColor)}>{statusLabel}</span>
       </div>
+
+      {isReviewFailed && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 space-y-2">
+          <p className="text-xs font-medium text-red-400">리뷰 단계에서 실패했습니다. 워커 작업은 완료되었으나 리뷰를 통과하지 못했습니다.</p>
+          {aiResult.reviewFeedback && (
+            <div className="text-xs text-muted-foreground border-t border-red-500/20 pt-2 mt-2">
+              <p className="text-[10px] font-medium text-red-400/70 mb-1">리뷰 피드백:</p>
+              <MarkdownContent>{aiResult.reviewFeedback}</MarkdownContent>
+            </div>
+          )}
+        </div>
+      )}
+
       {aiResult.result && (
-        <MarkdownContent>{aiResult.result}</MarkdownContent>
+        <div>
+          {isReviewFailed && <p className="text-[10px] text-muted-foreground mb-1">워커 작업 결과:</p>}
+          <MarkdownContent>{aiResult.result}</MarkdownContent>
+        </div>
       )}
     </div>
   );

@@ -39,7 +39,16 @@ export async function GET(
       status = "rejected";
     }
 
-    return NextResponse.json({ status, result });
+    // review 피드백 (실패 시 사유 표시용)
+    let reviewFeedback: string | null = null;
+    const feedbackPath = path.join(OUTPUT_DIR, `${taskId}-review-feedback.txt`);
+    if (fs.existsSync(feedbackPath)) {
+      try {
+        reviewFeedback = fs.readFileSync(feedbackPath, "utf-8").trim();
+      } catch { /* ignore */ }
+    }
+
+    return NextResponse.json({ status, result, reviewFeedback });
   } catch {
     return NextResponse.json({ status: null, result: null });
   }
