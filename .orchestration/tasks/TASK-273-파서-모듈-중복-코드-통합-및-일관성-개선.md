@@ -1,7 +1,9 @@
 ---
 id: TASK-273
 title: 파서 모듈 중복 코드 통합 및 일관성 개선
-status: pending
+status: in_progress
+branch: task/task-273
+worktree: ../repo-wt-task-273
 priority: medium
 mode: night
 created: 2026-03-27
@@ -15,7 +17,9 @@ scope:  []
 ---
 id: TASK-273
 title: 파서 모듈 중복 코드 통합 및 일관성 개선
-status: pending
+status: in_progress
+branch: task/task-273
+worktree: ../repo-wt-task-273
 priority: medium
 mode: night
 created: 2026-03-27
