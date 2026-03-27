@@ -244,7 +244,7 @@ if [ "$TASK_STATUS" = "rejected" ] || echo "$RESULT_RAW" | head -1 | grep -q "^�
       -m "chore(${TASK_ID}): status → rejected" 2>/dev/null || true
   fi
   echo "🚫 [job-task] ${TASK_ID} 거절됨 → task-rejected signal"
-  exit 0
+  exit 2  # 거절: exit 2 (성공 0, 실패 1과 구분)
 fi
 
 # 성공 signal

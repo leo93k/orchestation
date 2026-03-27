@@ -95,7 +95,17 @@ class TaskRunnerManager {
         state.logs.push(exitLine);
         this.events.emit(`log:${taskId}`, exitLine);
 
-        if (code === 0) {
+        if (code === 2) {
+          // exit 2 = 거절 (rejected) — review 스킵, completed로 처리
+          state.status = "completed";
+          state.phase = "done";
+          state.finishedAt = new Date().toISOString();
+          cleanupSignals(taskId);
+          const rejectLine = `[task-runner] ${taskId} 거절됨 → 완료 처리 (review 스킵)`;
+          state.logs.push(rejectLine);
+          this.events.emit(`log:${taskId}`, rejectLine);
+          this.events.emit(`done:${taskId}`, "completed");
+        } else if (code === 0) {
           this.startReview(taskId, state);
         } else {
           state.status = "failed";
