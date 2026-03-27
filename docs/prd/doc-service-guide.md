@@ -35,7 +35,8 @@ Home
 ├── ↗ Monitor                   ← 시스템 모니터
 ├── > Terminal                  ← 웹 터미널
 ├── ☽ Night Worker              ← 야간 자동 작업
-└── ⚙ Settings                  ← 설정
+├── ⚙ Settings                  ← 설정
+└── Requests                    ← 태스크 목록 (/api/requests → TASK-*.md 읽기)
 ```
 
 ---
@@ -117,6 +118,18 @@ Home
 - Scope (작업 범위 파일)
 - 의존성 (depends_on)
 - Role (worker/reviewer 역할 지정)
+
+#### API 흐름
+
+```
+[Direct Write] 분석 → POST /api/tasks/analyze → 미리보기 → POST /api/requests (태스크 생성)
+[Suggest]      POST /api/tasks/suggest → 선택 → POST /api/requests (태스크 생성)
+```
+
+> **구현 노트**: 태스크 생성 시 내부적으로 `POST /api/requests`를 호출하며,
+> 이 엔드포인트는 `.orchestration/tasks/TASK-*.md` 파일을 생성한다.
+> API 경로명의 "requests"는 레거시 명칭이며, 실제로는 Task를 생성한다.
+> 태스크 상세 페이지(`/tasks/[id]`)도 `GET /api/requests/[id]`를 통해 데이터를 조회한다.
 
 ---
 
@@ -271,10 +284,12 @@ Task ID (클릭 → 상세), Phase (task/review), Model, Cost, Time, Turns, Toke
 
 ### 12. Plan (`/plan`)
 
-**스프린트 계획 뷰.**
+**태스크 목록 (TASK-*.md 기반). `/api/requests` 엔드포인트를 통해 조회.**
 
-- 트리 구조로 스프린트 → 태스크 계층 표시
-- 태스크 상세 패널 (의존성, scope, 스프린트 할당)
+> **현재 구현 상태**: `/api/requests` 경로명은 레거시 명칭이나, 실제로는 `.orchestration/tasks/TASK-*.md` 파일을 읽고 쓴다.
+> REQ-*.md 파일 기반의 구 Request 개념은 완전히 폐기되었고, `docs/requests/` 폴더는 미사용 상태다.
+> 태스크 생성(`/tasks/new`)과 태스크 상세(`/tasks/[id]`)도 모두 `/api/requests` 엔드포인트를 사용 중이다.
+> `/api/tasks`로의 경로 통일은 [TBD] 마이그레이션 예정이다.
 
 ---
 
