@@ -13,6 +13,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export PATH="$HOME/.local/bin:$PATH"
 
 source "$REPO_ROOT/scripts/lib/signal.sh"
+source "$REPO_ROOT/scripts/lib/sed-inplace.sh"
 source "$REPO_ROOT/scripts/lib/context-builder.sh"
 source "$REPO_ROOT/scripts/lib/model-selector.sh"
 
@@ -223,6 +224,14 @@ if echo "$RESULT" | head -1 | grep -q "^거절:"; then
   echo "$RESULT" > "$OUTPUT_DIR/${TASK_ID}-rejection-reason.txt"
   if [ "${SKIP_SIGNAL:-}" != "1" ]; then
     signal_create "$SIGNAL_DIR" "$TASK_ID" "task-rejected"
+  fi
+  # task 파일 status를 rejected로 직접 변경 (개별 실행 시 orchestrate.sh가 없으므로)
+  task_file=$(find "$REPO_ROOT/.orchestration/tasks" -name "${TASK_ID}-*" -type f 2>/dev/null | head -1)
+  if [ -n "$task_file" ]; then
+    sed_inplace "s/^status: .*/status: rejected/" "$task_file"
+    git -C "$REPO_ROOT" add "$task_file" 2>/dev/null || true
+    git -C "$REPO_ROOT" commit --only "$task_file" \
+      -m "chore(${TASK_ID}): status → rejected" 2>/dev/null || true
   fi
   echo "🚫 [job-task] ${TASK_ID} 거절됨 → task-rejected signal"
   exit 0
