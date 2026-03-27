@@ -122,36 +122,11 @@ ${layered_content}
 ${feedback}"
   fi
 
-  cat <<PROMPT
-## 작업 규칙
-- 이 Worktree 안에서만 코드를 수정한다
-- main 브랜치를 직접 수정하지 않는다
-- Task 상태를 완료 처리하지 않는다
-- 작업이 끝나면 변경사항을 커밋해라
-- orchestrate.sh, run-pipeline.sh, night-worker.sh를 절대 실행하지 않는다
-${scope_section}
-## 시간 제한
-이 작업은 최대 10분 안에 완료해야 한다. 10분 초과 시 강제 종료된다.
-- 불필요한 파일 탐색을 하지 마라. scope 파일에 집중해라.
-- 테스트 실행 → 실패 → 수정 루프를 3회 이상 반복하지 마라. 3회 안에 못 고치면 현재까지 작업을 커밋하고 종료해라.
-- 작업이 10분 안에 끝나지 않을 것 같으면 가장 핵심적인 부분만 완료하고 나머지는 후속 태스크로 남겨라.
-
-## 거절 판단
-이 Task가 아래 조건에 해당하면 작업하지 말고 결과의 첫 줄에 "거절:" 과 이유를 적어라:
-- 이미 완료된 내용이거나 변경할 필요가 없는 경우
-- 요청 자체가 모순되거나 실현 불가능한 경우
-- scope 파일이 존재하지 않거나 관련 없는 경우
-
-해당하지 않으면 정상적으로 작업을 수행해라.
-
-## Task 정의 (${task_filename})
-아래는 수행할 Task의 전체 내용이다. 완료 조건을 모두 충족하도록 작업해라.
-
-\`\`\`markdown
-${task_content}
-\`\`\`
-${feedback_section}
-PROMPT
+  render_template "prompt/worker-task.md" \
+    "scope_section=${scope_section}" \
+    "task_filename=${task_filename}" \
+    "task_content=${task_content}" \
+    "feedback_section=${feedback_section}"
 }
 
 # ── 계층형 context 빌드 (scope 파일 크기별 분류) ─────────
@@ -165,24 +140,55 @@ build_layered_context() {
 
   [ -z "$scope" ] && return
 
-  while IFS= read -r f; do
-    [ -z "$f" ] && continue
+  # scope의 glob 패턴을 실제 파일로 resolve
+  local resolved_files=""
+  while IFS= read -r pattern; do
+    [ -z "$pattern" ] && continue
 
-    # worktree 경로 기반으로 실제 파일 경로 결정
-    local real_path=""
-    if [ -n "$worktree_path" ] && [ -f "$worktree_path/$f" ]; then
-      real_path="$worktree_path/$f"
-    elif [ -f "$f" ]; then
-      real_path="$f"
+    # glob 패턴(** 포함)이면 find로 resolve
+    if echo "$pattern" | grep -q '\*'; then
+      local search_dir=""
+      local base_dir
+      base_dir=$(echo "$pattern" | sed 's/\*\*.*//;s/\*.*//;s|/$||')
+
+      if [ -n "$worktree_path" ] && [ -d "$worktree_path/$base_dir" ]; then
+        search_dir="$worktree_path/$base_dir"
+      elif [ -d "$base_dir" ]; then
+        search_dir="$base_dir"
+      fi
+
+      if [ -n "$search_dir" ]; then
+        local found
+        found=$(find "$search_dir" -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.sh" \) 2>/dev/null | grep -v node_modules | grep -v ".test." | grep -v ".spec." | grep -v ".stories." | sort | head -10)
+        if [ -n "$found" ]; then
+          resolved_files="${resolved_files}
+${found}"
+        fi
+      fi
+      continue
     fi
 
-    if [ -z "$real_path" ]; then
-      result="${result}
-### ${f}
-⚠️ 파일 없음 — 새로 생성이 필요할 수 있다.
+    # 일반 파일 경로
+    if [ -n "$worktree_path" ] && [ -f "$worktree_path/$pattern" ]; then
+      resolved_files="${resolved_files}
+$worktree_path/$pattern"
+    elif [ -f "$pattern" ]; then
+      resolved_files="${resolved_files}
+$pattern"
+    fi
+  done <<< "$scope"
 
-"
-      continue
+  resolved_files=$(echo "$resolved_files" | sed '/^$/d' | head -15)
+
+  [ -z "$resolved_files" ] && return
+
+  while IFS= read -r real_path; do
+    [ -z "$real_path" ] && continue
+
+    # 표시용 상대 경로
+    local f="$real_path"
+    if [ -n "$worktree_path" ]; then
+      f=$(echo "$real_path" | sed "s|^${worktree_path}/||")
     fi
 
     local lines
@@ -231,36 +237,8 @@ build_review_prompt() {
   local task_content
   task_content=$(embed_task_content "$task_file")
 
-  cat <<PROMPT
-## 리뷰 규칙
-- 코드를 직접 수정하지 않는다
-- Task 파일의 완료 조건을 기준으로 검증한다
-- git diff ${base_branch}에 나온 파일만 검증하라. 관련 없는 코드를 읽지 마라
-- 불필요한 파일 탐색을 하지 마라. 간결하게 리뷰하고 결론을 빠르게 내라
-
-## Task 정의 (${task_filename})
-\`\`\`markdown
-${task_content}
-\`\`\`
-
-다음 순서로 리뷰를 수행해라:
-
-1. 위 Task의 완료 조건을 확인해라
-2. 이 브랜치에서 변경된 코드를 git diff ${base_branch} 으로 확인해라
-3. 완료 조건을 하나씩 검증해라
-4. 테스트가 있으면 실행해서 통과 여부를 확인해라
-
-리뷰 결과를 다음 형식으로 출력해라:
-
-## 리뷰 결과: [승인 / 수정요청]
-
-### 완료 조건 체크
-- [ ] 또는 [x] 각 완료 조건 항목
-
-### 발견된 문제 (있을 경우)
-- 문제 설명
-
-### 총평
-- 한줄 요약
-PROMPT
+  render_template "prompt/worker-review.md" \
+    "base_branch=${base_branch}" \
+    "task_filename=${task_filename}" \
+    "task_content=${task_content}"
 }

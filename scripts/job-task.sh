@@ -183,14 +183,16 @@ model_args=()
 
 CONV_FILE="$OUTPUT_DIR/${TASK_ID}-task-conversation.jsonl"
 
-# stream-json: claude → stdout 실시간 파싱 (JSONL 파일 저장하지 않음)
+# stream-json: claude → CONV_FILE에 전체 저장 + stdout에 도구 호출 로그 출력
 echo "$prompt" | claude --output-format stream-json --verbose --dangerously-skip-permissions "${model_args[@]}" --system-prompt "$ROLE_PROMPT" \
   | tee "$CONV_FILE" | while IFS= read -r line; do
       type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
       case "$type" in
         assistant)
-          text=$(echo "$line" | jq -r '.message.content[]? | select(.type=="text") | .text // empty' 2>/dev/null)
-          [ -n "$text" ] && echo "🤖 $text"
+          # 도구 호출 로그 (Read, Edit, Bash, Write, Grep, Glob 등)
+          echo "$line" | jq -r '.message.content[]? | select(.type=="tool_use") | "🔧 \(.name): \(.input.command // .input.file_path // .input.pattern // .input.content[0:80] // "" | tostring | split("\n")[0])"' 2>/dev/null | while IFS= read -r tool_line; do
+            [ -n "$tool_line" ] && echo "$tool_line"
+          done
           ;;
         result)
           echo "━━━ Claude 작업 완료 ━━━"
