@@ -1,7 +1,9 @@
 ---
 id: TASK-271
 title: cost-parser.ts 정규식 매치 결과 타입 안전성 보강
-status: pending
+status: in_progress
+branch: task/task-271
+worktree: ../repo-wt-task-271
 priority: medium
 mode: night
 created: 2026-03-27
@@ -15,7 +17,9 @@ Good. `cost-parser.ts` has 5 type errors on lines 56-60 where regex match group 
 ---
 id: TASK-271
 title: cost-parser.ts 정규식 매치 결과 타입 안전성 보강
-status: pending
+status: in_progress
+branch: task/task-271
+worktree: ../repo-wt-task-271
 priority: medium
 mode: night
 created: 2026-03-27
