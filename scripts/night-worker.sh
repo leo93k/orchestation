@@ -233,7 +233,9 @@ scan_and_create_task() {
   fi
 
   local slug
-  slug=$(echo "$title" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9가-힣]/-/g' | sed 's/-\+/-/g' | head -c 50 | sed 's/-$//')
+  slug=$(echo "$title" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9가-힣]/-/g' | sed 's/-\+/-/g' | sed 's/-$//' | cut -c 1-50 | sed 's/-$//')
+  # slug가 빈 문자열이면 fallback
+  [ -z "$slug" ] && slug="untitled"
   local filename="${task_id}-${slug}.md"
   local filepath="$TASK_DIR/$filename"
 
