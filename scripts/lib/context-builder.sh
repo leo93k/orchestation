@@ -86,6 +86,7 @@ build_task_prompt() {
   local scope="$3"
   local feedback_file="${4:-}"
   local context="${5:-}"
+  local worktree_path="${6:-}"
 
   local task_content
   task_content=$(embed_task_content "$task_file")
@@ -99,7 +100,7 @@ build_task_prompt() {
 - ${f}"
     done <<< "$scope"
     local layered_content
-    layered_content=$(build_layered_context "$scope")
+    layered_content=$(build_layered_context "$scope" "$worktree_path")
     scope_section="
 ## 작업 범위 (수정할 파일)
 아래 파일들을 수정해라:${scope_list}
@@ -119,7 +120,7 @@ ${layered_content}
 - ${f}"
     done <<< "$context"
     local context_content
-    context_content=$(build_layered_context "$context")
+    context_content=$(build_layered_context "$context" "$worktree_path")
     scope_section="${scope_section}
 ## 참조 파일 (읽기 전용 — 수정 금지)
 아래 파일들을 반드시 읽고 참조해라. 단, 수정하지 마라:${context_list}

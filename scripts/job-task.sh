@@ -178,7 +178,7 @@ load_role_prompt "$ROLE" "general"
 setup_context_filter "$WORKTREE_PATH" "$REPO_ROOT"
 
 # 프롬프트 생성
-prompt=$(build_task_prompt "$TASK_FILE" "$TASK_FILENAME" "$SCOPE" "$FEEDBACK_FILE" "$CONTEXT")
+prompt=$(build_task_prompt "$TASK_FILE" "$TASK_FILENAME" "$SCOPE" "$FEEDBACK_FILE" "$CONTEXT" "$WORKTREE_PATH")
 if [ -n "$FEEDBACK_FILE" ] && [ -f "$FEEDBACK_FILE" ]; then
   echo "📝 이전 리뷰 피드백 포함"
 fi

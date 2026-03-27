@@ -77,7 +77,7 @@ export function getTaskRole(taskId: string): string {
 }
 
 /** 코드를 수정하지 않는 role은 review 스킵 */
-const SKIP_REVIEW_ROLES = ["prd-architect", "tech-writer"];
+const SKIP_REVIEW_ROLES = ["tech-writer"];
 
 export function shouldSkipReview(taskId: string): boolean {
   const role = getTaskRole(taskId);

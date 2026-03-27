@@ -600,7 +600,7 @@ process_signals_for_task() {
 
 # ── review 스킵 판단 ─────────────────────────────────────
 # 코드를 수정하지 않는 role은 리뷰 불필요
-SKIP_REVIEW_ROLES="prd-architect tech-writer"
+SKIP_REVIEW_ROLES="tech-writer"
 
 should_skip_review() {
   local role="$1"
