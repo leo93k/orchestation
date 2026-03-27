@@ -1,7 +1,9 @@
 ---
 id: TASK-269
 title: API route validStatuses 불일치 수정
-status: pending
+status: in_progress
+branch: task/task-269
+worktree: ../repo-wt-task-269
 priority: medium
 mode: night
 created: 2026-03-27
