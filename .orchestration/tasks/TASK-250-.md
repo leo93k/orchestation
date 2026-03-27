@@ -1,13 +1,13 @@
 ---
 id: TASK-250
 title: notices-api-file-io-error-handling-보고서-작성
-status: failed
+status: pending
 branch: task/task-250
 worktree: ../repo-wt-task-250
 priority: medium
 mode: night
 created: 2026-03-27
-updated: 2026-03-27
+updated: 2026-03-27 06:22:06
 depends_on: []
 scope:
   - src/frontend/src/app/api/notices/[id]/route.ts

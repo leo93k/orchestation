@@ -1,13 +1,13 @@
 ---
 id: TASK-249
 title: frontmatter-utils 유닛 테스트 작성
-status: failed
+status: pending
 branch: task/task-249
 worktree: ../repo-wt-task-249
 priority: medium
 mode: night
 created: 2026-03-27
-updated: 2026-03-27
+updated: 2026-03-27 06:22:09
 depends_on: []
 scope: []
 ---
