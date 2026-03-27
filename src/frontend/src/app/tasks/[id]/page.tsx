@@ -81,6 +81,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         if (data.status === "running") {
           setRunStatus("running");
         } else if (data.status === "completed" || data.status === "failed") {
+          // pending/stopped 상태인데 이전 run 결과가 남아있으면 무시
+          if (task && (task.status === "pending" || task.status === "stopped")) return;
           setRunStatus(data.status);
         }
       } catch {
@@ -88,7 +90,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       }
     }
     checkRunStatus();
-  }, [id]);
+  }, [id, task]);
 
   // Refetch task data when run finishes (status 반영)
   const handleRunStatusChange = useCallback(async (status: string) => {
