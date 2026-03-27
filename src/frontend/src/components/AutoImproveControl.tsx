@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Play, Square, Loader2 } from "lucide-react";
-import { HorseRunningIndicator } from "@/components/HorseRunningIndicator";
 import { getErrorMessage } from "@/lib/error-utils";
 import { useOrchestrationStore } from "@/store/orchestrationStore";
 
@@ -24,9 +23,6 @@ export default function AutoImproveControl({
   // Orchestration 상태를 store에서 직접 구독 (별도 polling 제거)
   const orchestrationStatus = useOrchestrationStore((s) => s.data.status);
   const exitCode = useOrchestrationStore((s) => s.data.exitCode);
-
-  const isRunning =
-    orchestrationStatus === "running" || runningTaskCount > 0;
 
   // isStarting 해제: running으로 바뀔 때만 해제
   const prevStatusRef = useRef(orchestrationStatus);

@@ -27,7 +27,7 @@ interface SuggestState {
 
 export const useSuggestStore = create<SuggestState>()(
   devtools(
-    (set, get) => ({
+    (set) => ({
       suggestions: [],
       selectedIndices: new Set(),
       isLoading: false,

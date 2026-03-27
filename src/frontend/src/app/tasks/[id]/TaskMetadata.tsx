@@ -8,7 +8,6 @@ import { TaskDetail, STATUS_DOT, STATUS_LABEL, PRIORITY_COLORS } from "./types";
 
 interface TaskMetadataProps {
   task: TaskDetail;
-  id: string;
   runStatus: "idle" | "running" | "completed" | "failed";
   isPipelineRunning: boolean;
   onStatusChange: (newStatus: string) => Promise<void>;
@@ -19,7 +18,6 @@ interface TaskMetadataProps {
 
 export function TaskMetadata({
   task,
-  id,
   runStatus,
   isPipelineRunning,
   onStatusChange,

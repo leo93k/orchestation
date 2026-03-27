@@ -34,7 +34,6 @@ export function TaskLogTab({ taskId, taskStatus }: TaskLogTabProps) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchLogs = useCallback(async () => {
@@ -77,9 +76,6 @@ export function TaskLogTab({ taskId, taskStatus }: TaskLogTabProps) {
   // Auto-scroll: 역순 표시이므로 최신 로그가 이미 상단에 위치 — 자동 스크롤 불필요
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
-    const el = containerRef.current;
-    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-    setAutoScroll(isAtBottom);
   }, []);
 
   if (isLoading) {
