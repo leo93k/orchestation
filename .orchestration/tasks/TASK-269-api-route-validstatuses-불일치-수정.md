@@ -1,7 +1,7 @@
 ---
 id: TASK-269
 title: API route validStatuses 불일치 수정
-status: in_progress
+status: rejected
 branch: task/task-269
 worktree: ../repo-wt-task-269
 priority: medium
