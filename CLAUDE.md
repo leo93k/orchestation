@@ -59,6 +59,11 @@
 - **이중 보더 금지**: 폼 요소(Input/Select 등)가 이미 보더를 가지므로, 바깥을 카드(border)로 감싸면 이중 테두리가 됨. 절대 금지
 - **구분**: 섹션 라벨(`<Label size="section">`)과 간격으로 구분. 디바이더나 카드 래퍼 불필요
 
+### 반복 패턴은 컴포넌트로 추출
+- 같은 구조가 3회 이상 반복되면 반드시 컴포넌트로 추출한다
+- 클래스명, props 등이 복붙으로 전파되는 구조는 실수의 원인이므로 허용하지 않는다
+- 예: 사이드바 항목, 필터 버튼 그룹, 폼 필드+라벨 조합 등
+
 ### 스타일 규칙
 - **입력 필드**: `bg-muted`, `border border-border`, `rounded-md`, `focus:border-primary`
 - **섹션 라벨**: `<Label size="section">` (11px, uppercase, tracking)
