@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTasks } from "@/hooks/useTasks";
 import { usePrds } from "@/hooks/usePrds";
@@ -18,7 +18,6 @@ import { RunningIndicator } from "@/components/RunningIndicator";
 import AutoImproveControl from "@/components/AutoImproveControl";
 import type { WaterfallTask } from "@/types/waterfall";
 import type { RequestItem } from "@/store/tasksStore";
-import { useState } from "react";
 
 /* ── Home Dashboard ── */
 

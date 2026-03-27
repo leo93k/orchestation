@@ -233,8 +233,7 @@ export function GlobalSearch({ requestItems, docTree }: Props) {
                       {hasBoth && <div className="search-group-label">Tasks</div>}
                       {taskItems.map((item) => {
                         const idx = sliced.indexOf(item);
-                        const iidx = globalIdx++;
-                        void iidx;
+                        globalIdx++;
                         return (
                           <button
                             key={`task-${item.id}`}
