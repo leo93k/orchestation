@@ -1,13 +1,17 @@
 ---
 id: TASK-261
 title: PRD 오케스트레이션 문서 현행화
-status: pending
+status: in_progress
 branch: task/task-261
 worktree: ../repo-wt-task-261
 priority: medium
 role: prd-architect
 scope:
   - docs/prd/**
+context:
+  - scripts/**
+  - src/frontend/src/lib/task-runner-manager.ts
+  - src/frontend/src/lib/orchestration-manager.ts
 created: 2026-03-27 17:08:37
 updated: 2026-03-27 17:08:37
 ---
