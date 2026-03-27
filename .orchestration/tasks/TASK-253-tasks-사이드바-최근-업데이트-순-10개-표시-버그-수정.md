@@ -1,7 +1,7 @@
 ---
 id: TASK-253
 title: Tasks 사이드바 최근 업데이트 순 10개 표시 버그 수정
-status: in_progress
+status: done
 branch: task/task-253
 worktree: ../repo-wt-task-253
 priority: high
@@ -11,7 +11,7 @@ scope:
   - src/frontend/src/stores/**
   - scripts/**
 created: 2026-03-27
-updated: 2026-03-27
+updated: 2026-03-27 04:51:44
 ---
 사이드바에 최근 updatedAt 기준 상위 10개 task가 표시되어야 하는데 2개만 나오는 버그를 수정한다. task 목록 조회 로직(필터링/정렬/슬라이싱)을 점검하고, updatedAt 내림차순 정렬 후 상위 10개를 올바르게 반환하도록 수정한다.
 

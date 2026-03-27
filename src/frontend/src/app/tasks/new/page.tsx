@@ -6,6 +6,7 @@ import { getErrorMessage } from "@/lib/error-utils";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Loader2, Pencil, Check, Plus, Sparkles } from "lucide-react";
 import { useSuggestStore } from "@/store/suggestStore";
+import { useTasksStore } from "@/store/tasksStore";
 import type { TaskOption } from "@/components/DependsOnSelector";
 import type { AnalyzedTask } from "./types";
 import { EFFORT_LABEL } from "./types";
@@ -61,6 +62,7 @@ export default function NewTaskPage() {
         });
       }
       useSuggestStore.getState().clear();
+      await useTasksStore.getState().fetchRequests();
       router.push("/tasks");
     } catch {
       useSuggestStore.setState({ error: "태스크 생성 실패" });
@@ -117,6 +119,7 @@ export default function NewTaskPage() {
         const created = await res.json();
         createdIds.push(created.id);
       }
+      await useTasksStore.getState().fetchRequests();
       router.push("/tasks");
     } catch (err) {
       setAnalyzeError(getErrorMessage(err, "Failed to create tasks"));

@@ -5,6 +5,7 @@ import path from "path";
 import { TASKS_DIR } from "@/lib/paths";
 import { generateNextTaskId } from "@/lib/task-id";
 import { getErrorMessage } from "@/lib/error-utils";
+import { renderTemplate } from "@/lib/template";
 
 export const dynamic = "force-dynamic";
 
@@ -61,25 +62,14 @@ export async function POST(request: Request) {
         ? `\nscope:\n${scopeArray.map((s: string) => `  - ${s}`).join("\n")}`
         : "";
 
-    const content = `---
-id: ${taskId}
-title: ${sanitizedTitle}
-status: pending
-priority: ${taskPriority}
-depends_on:${depsYaml}
-role: ${taskRole}${scopeYaml}
----
-
-# ${taskId}: ${sanitizedTitle}
-
-## 목표
-
-TBD
-
-## Completion Criteria
-
-- [ ] TBD
-`;
+    const content = renderTemplate("entity/task.md", {
+      task_id: taskId,
+      title: sanitizedTitle,
+      priority: taskPriority,
+      depends_on_yaml: depsYaml,
+      role: taskRole,
+      scope_yaml: scopeYaml,
+    });
 
     const filePath = path.join(TASKS_DIR, `${taskId}-${sanitizedTitle.toLowerCase().replace(/[^a-z0-9가-힣]+/g, "-").replace(/-+$/, "")}.md`);
     fs.writeFileSync(filePath, content, "utf-8");

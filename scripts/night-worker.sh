@@ -12,6 +12,7 @@ set -euo pipefail
 #   --instructions "..." 추가 지시
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+source "$REPO_ROOT/scripts/lib/common.sh"
 source "$REPO_ROOT/scripts/lib/sed-inplace.sh"
 source "$REPO_ROOT/scripts/lib/merge-resolver.sh"
 
@@ -156,38 +157,15 @@ scan_and_create_task() {
   local today
   today=$(date '+%Y-%m-%d')
 
-  local prompt="코드베이스를 스캔하여 이슈 1개를 찾고 아래 형식으로만 출력하세요.
+  local instructions_line=""
+  [ -n "${INSTRUCTIONS:-}" ] && instructions_line="추가 지시: $INSTRUCTIONS"
 
-${type_prompt}
-${INSTRUCTIONS:+추가 지시: $INSTRUCTIONS}
-
-규칙:
-- 경미한 수정만 (로직 변경 금지)
-- scope는 실제 존재하는 파일 경로만
-- 설명이나 인사말 없이 아래 형식만 출력
-
-이슈를 찾지 못했으면 NOT_FOUND 한 단어만 출력하세요.
-
-이슈를 찾았으면 반드시 아래 형식 그대로 출력하세요. --- 로 시작하고 --- 로 끝나는 frontmatter 블록이 반드시 있어야 합니다:
-
----
-id: ${task_id}
-title: 여기에-제목
-status: pending
-priority: medium
-mode: night
-created: ${today}
-updated: ${today}
-depends_on: []
-scope:
-  - 파일/경로
----
-여기에 태스크 설명을 작성합니다.
-
-## Completion Criteria
-- 완료 조건
-
-위 형식 외의 텍스트는 절대 출력하지 마세요. frontmatter 블록(---)으로 시작해야 합니다."
+  local prompt
+  prompt=$(render_template "prompt/night-scan.md" \
+    "type_prompt=${type_prompt}" \
+    "instructions=${instructions_line}" \
+    "task_id=${task_id}" \
+    "date=${today}")
 
   log "🔍 스캔 시작: $scan_type → 발견 시 ${task_id}로 생성"
   log "   프롬프트 길이: $(echo "$prompt" | wc -c | tr -d ' ')자"
@@ -268,20 +246,13 @@ scope:
     # id를 실제 task_id로 교체
     echo "$task_content" | sed "s/^id: .*/id: ${task_id}/" > "$filepath"
   else
-    cat > "$filepath" <<TASKEOF
----
-id: ${task_id}
-title: ${title}
-status: pending
-priority: medium
-mode: night
-created: $(date '+%Y-%m-%d')
-updated: $(date '+%Y-%m-%d')
-depends_on: []
-scope: []
----
-${task_content}
-TASKEOF
+    render_template "entity/task-night.md" \
+      "task_id=${task_id}" \
+      "title=${title}" \
+      "date=$(date '+%Y-%m-%d')" \
+      "scope= []" \
+      "content=${task_content}" \
+      "criteria=" > "$filepath"
   fi
   log "  ✅ 태스크 생성: $task_id - $title"
   log "     파일: $filename"

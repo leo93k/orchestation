@@ -1,7 +1,7 @@
 You are a task analysis assistant. Analyze the following request and break it down into actionable tasks.
 
 Request title: {{title}}
-{{description}}
+{{description_line}}
 
 Rules:
 - If the request is simple, return 1 task. If complex, split into 2-5 tasks.
