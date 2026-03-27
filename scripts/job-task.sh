@@ -229,7 +229,6 @@ TASK_STATUS=$(echo "$RESULT_JSON" | jq -r '.status // empty' 2>/dev/null)
 if [ "$TASK_STATUS" = "rejected" ] || echo "$RESULT_RAW" | head -1 | grep -q "^거절:"; then
   _signal_sent=true
   # JSON이면 reason 추출, 아니면 전체 텍스트
-  local reject_reason
   reject_reason=$(echo "$RESULT_JSON" | jq -r '.reason // empty' 2>/dev/null)
   [ -z "$reject_reason" ] && reject_reason="$RESULT_RAW"
   echo "$reject_reason" > "$OUTPUT_DIR/${TASK_ID}-rejection-reason.txt"
