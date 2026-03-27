@@ -36,7 +36,7 @@ WATCHDOG_PID=$!
 _signal_sent=false
 trap '_ec=$?
   kill "$WATCHDOG_PID" 2>/dev/null
-  if [ "$_signal_sent" = false ]; then
+  if [ "$_signal_sent" = false ] && [ "${SKIP_SIGNAL:-}" != "1" ]; then
     if [ -f "${SIGNAL_DIR}/${TASK_ID}-stop-request" ]; then
       rm -f "${SIGNAL_DIR}/${TASK_ID}-stop-request"
       signal_create "$SIGNAL_DIR" "$TASK_ID" "stopped"
@@ -77,8 +77,8 @@ find_task_file() {
 }
 
 parse_frontmatter() {
-  BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/branch: *//')
-  WORKTREE_REL=$(grep '^worktree:' "$TASK_FILE" | sed 's/worktree: *//')
+  BRANCH=$(grep '^branch:' "$TASK_FILE" | head -1 | sed 's/branch: *//')
+  WORKTREE_REL=$(grep '^worktree:' "$TASK_FILE" | head -1 | sed 's/worktree: *//')
   WORKTREE_PATH="$REPO_ROOT/$WORKTREE_REL"
   ROLE=$(grep '^role:' "$TASK_FILE" | sed 's/role: *//' || true)
   SCOPE=""
@@ -185,7 +185,7 @@ CONV_FILE="$OUTPUT_DIR/${TASK_ID}-task-conversation.jsonl"
 
 # stream-json: claude → stdout 실시간 파싱 (JSONL 파일 저장하지 않음)
 echo "$prompt" | claude --output-format stream-json --verbose --dangerously-skip-permissions "${model_args[@]}" --system-prompt "$ROLE_PROMPT" \
-  | while IFS= read -r line; do
+  | tee "$CONV_FILE" | while IFS= read -r line; do
       type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
       case "$type" in
         assistant)
@@ -199,8 +199,8 @@ echo "$prompt" | claude --output-format stream-json --verbose --dangerously-skip
     done
 
 # 파이프 exit code: PIPESTATUS[0]이 claude의 exit code
-CLAUDE_EXIT=${PIPESTATUS[0]}
-if [ "$CLAUDE_EXIT" -ne 0 ] && [ "$CLAUDE_EXIT" -ne "" ]; then
+CLAUDE_EXIT=${PIPESTATUS[0]:-0}
+if [ "$CLAUDE_EXIT" -ne 0 ]; then
   echo "❌ Claude 호출 실패 (exit=$CLAUDE_EXIT)" >&2
   exit 1
 fi
@@ -219,13 +219,17 @@ log_tokens "task"
 if echo "$RESULT" | head -1 | grep -q "^거절:"; then
   _signal_sent=true
   echo "$RESULT" > "$OUTPUT_DIR/${TASK_ID}-rejection-reason.txt"
-  signal_create "$SIGNAL_DIR" "$TASK_ID" "task-rejected"
+  if [ "${SKIP_SIGNAL:-}" != "1" ]; then
+    signal_create "$SIGNAL_DIR" "$TASK_ID" "task-rejected"
+  fi
   echo "🚫 [job-task] ${TASK_ID} 거절됨 → task-rejected signal"
   exit 0
 fi
 
 # 성공 signal
 _signal_sent=true
-signal_create "$SIGNAL_DIR" "$TASK_ID" "task-done"
+if [ "${SKIP_SIGNAL:-}" != "1" ]; then
+  signal_create "$SIGNAL_DIR" "$TASK_ID" "task-done"
+fi
 echo "✅ [job-task] ${TASK_ID} 완료 → task-done signal"
 exit 0

@@ -407,16 +407,28 @@ start_task() {
   local feedback_arg=""
   [ -n "$feedback_file" ] && [ -f "$feedback_file" ] && feedback_arg="$feedback_file"
 
-  if [ -n "$_api_key" ]; then
-    ANTHROPIC_API_KEY="${_api_key}" nohup bash "${REPO_ROOT}/scripts/job-task.sh" "${task_id}" "${SIGNAL_DIR}" "${feedback_arg}" \
-      > "${log_file}" 2>&1 &
+  local _env_prefix=""
+  [ -n "$_api_key" ] && _env_prefix="ANTHROPIC_API_KEY='${_api_key}' "
+
+  local _job_cmd="${_env_prefix}bash '${REPO_ROOT}/scripts/job-task.sh' '${task_id}' '${SIGNAL_DIR}' '${feedback_arg}'"
+
+  if [ "$WORKER_MODE" = "iterm" ]; then
+    # iTerm 탭에서 실행 (로그는 탭에서 직접 확인)
+    bash "${REPO_ROOT}/scripts/lib/iterm-run.sh" "🔧 ${task_id}" "${_job_cmd} 2>&1 | tee '${log_file}'; bash '${REPO_ROOT}/scripts/lib/close-iterm-session.sh'"
+    echo "  🔄 ${task_id}: iTerm 탭에서 실행 중 (로그: output/logs/${task_id}.log)"
   else
-    nohup bash "${REPO_ROOT}/scripts/job-task.sh" "${task_id}" "${SIGNAL_DIR}" "${feedback_arg}" \
-      > "${log_file}" 2>&1 &
+    # 백그라운드 실행
+    if [ -n "$_api_key" ]; then
+      ANTHROPIC_API_KEY="${_api_key}" nohup bash "${REPO_ROOT}/scripts/job-task.sh" "${task_id}" "${SIGNAL_DIR}" "${feedback_arg}" \
+        > "${log_file}" 2>&1 &
+    else
+      nohup bash "${REPO_ROOT}/scripts/job-task.sh" "${task_id}" "${SIGNAL_DIR}" "${feedback_arg}" \
+        > "${log_file}" 2>&1 &
+    fi
+    local pid=$!
+    echo "$pid" > "/tmp/worker-${task_id}.pid"
+    echo "  🔄 ${task_id}: job-task 실행 중 (PID=${pid}, 로그: output/logs/${task_id}.log)"
   fi
-  local pid=$!
-  echo "$pid" > "/tmp/worker-${task_id}.pid"
-  echo "  🔄 ${task_id}: job-task 실행 중 (PID=${pid}, 로그: output/logs/${task_id}.log)"
 }
 
 # review job 시작 헬퍼
@@ -433,16 +445,26 @@ start_review() {
     _api_key=$(awk -F'"' '/"claudeApiKey"/{print $4; exit}' "$CONFIG_FILE" 2>/dev/null || echo "")
   fi
 
-  if [ -n "$_api_key" ]; then
-    ANTHROPIC_API_KEY="${_api_key}" nohup bash "${REPO_ROOT}/scripts/job-review.sh" "${task_id}" "${SIGNAL_DIR}" \
-      > "${log_file}" 2>&1 &
+  local _env_prefix=""
+  [ -n "$_api_key" ] && _env_prefix="ANTHROPIC_API_KEY='${_api_key}' "
+
+  local _review_cmd="${_env_prefix}bash '${REPO_ROOT}/scripts/job-review.sh' '${task_id}' '${SIGNAL_DIR}'"
+
+  if [ "$WORKER_MODE" = "iterm" ]; then
+    bash "${REPO_ROOT}/scripts/lib/iterm-run.sh" "🔍 ${task_id} review" "${_review_cmd} 2>&1 | tee '${log_file}'; bash '${REPO_ROOT}/scripts/lib/close-iterm-session.sh'"
+    echo "  🔄 ${task_id}: iTerm 탭에서 review 실행 중"
   else
-    nohup bash "${REPO_ROOT}/scripts/job-review.sh" "${task_id}" "${SIGNAL_DIR}" \
-      > "${log_file}" 2>&1 &
+    if [ -n "$_api_key" ]; then
+      ANTHROPIC_API_KEY="${_api_key}" nohup bash "${REPO_ROOT}/scripts/job-review.sh" "${task_id}" "${SIGNAL_DIR}" \
+        > "${log_file}" 2>&1 &
+    else
+      nohup bash "${REPO_ROOT}/scripts/job-review.sh" "${task_id}" "${SIGNAL_DIR}" \
+        > "${log_file}" 2>&1 &
+    fi
+    local pid=$!
+    echo "$pid" > "/tmp/worker-${task_id}.pid"
+    echo "  🔄 ${task_id}: job-review 실행 중 (PID=${pid})"
   fi
-  local pid=$!
-  echo "$pid" > "/tmp/worker-${task_id}.pid"
-  echo "  🔄 ${task_id}: job-review 실행 중 (PID=${pid})"
 }
 
 # ── Retry 카운트 관리 (파일 기반, bash 3.2 호환) ────────

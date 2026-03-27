@@ -18,7 +18,7 @@ source "$REPO_ROOT/scripts/lib/model-selector.sh"
 # ─── Signal 안전장치 ──────────────────────────────────────────
 _signal_sent=false
 trap '_ec=$?
-  if [ "$_signal_sent" = false ]; then
+  if [ "$_signal_sent" = false ] && [ "${SKIP_SIGNAL:-}" != "1" ]; then
     if [ "$_ec" -ne 0 ]; then
       signal_create "$SIGNAL_DIR" "$TASK_ID" "review-rejected"
     fi
@@ -53,8 +53,8 @@ TASK_FILENAME=$(basename "$TASK_FILE")
 
 # ─── frontmatter 파싱 ─────────────────────────────────────────
 
-BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/branch: *//')
-WORKTREE_REL=$(grep '^worktree:' "$TASK_FILE" | sed 's/worktree: *//')
+BRANCH=$(grep '^branch:' "$TASK_FILE" | head -1 | sed 's/branch: *//')
+WORKTREE_REL=$(grep '^worktree:' "$TASK_FILE" | head -1 | sed 's/worktree: *//')
 WORKTREE_PATH="$REPO_ROOT/$WORKTREE_REL"
 REVIEWER_ROLE=$(grep '^reviewer_role:' "$TASK_FILE" | sed 's/reviewer_role: *//' || true)
 
@@ -127,13 +127,19 @@ _signal_sent=true
 
 if echo "$result" | grep -q "승인"; then
   if ! echo "$result" | grep -q "수정요청"; then
-    signal_create "$SIGNAL_DIR" "$TASK_ID" "review-approved"
+    _signal_sent=true
+    if [ "${SKIP_SIGNAL:-}" != "1" ]; then
+      signal_create "$SIGNAL_DIR" "$TASK_ID" "review-approved"
+    fi
     echo "✅ [job-review] ${TASK_ID} 승인 → review-approved signal"
     exit 0
   fi
 fi
 
 # 수정요청 또는 판단 불가 → rejected
-signal_create "$SIGNAL_DIR" "$TASK_ID" "review-rejected"
+_signal_sent=true
+if [ "${SKIP_SIGNAL:-}" != "1" ]; then
+  signal_create "$SIGNAL_DIR" "$TASK_ID" "review-rejected"
+fi
 echo "🔄 [job-review] ${TASK_ID} 수정요청 → review-rejected signal"
 exit 1

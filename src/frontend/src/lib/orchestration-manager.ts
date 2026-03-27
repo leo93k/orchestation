@@ -52,7 +52,8 @@ class OrchestrationManager {
 
   constructor() {
     this.events.setMaxListeners(50); // SSE 클라이언트 수만큼
-    this.cleanupZombies();
+    // 서버 시작 직후 요청과의 타이밍 충돌 방지를 위해 지연 실행
+    setTimeout(() => this.cleanupZombies(), 3000);
   }
 
   /** 상태 변경 시 SSE 클라이언트에 알림 */
@@ -356,6 +357,17 @@ class OrchestrationManager {
           } catch {
             try { fs.unlinkSync(pidFile); } catch { /* ignore */ }
           }
+        }
+
+        // TaskRunnerManager가 관리 중인 태스크는 건너뛰기
+        if (!alive) {
+          try {
+            const taskRunnerManager = (globalThis as Record<string, unknown>)["__taskRunnerManager__"] as { isRunning?: (id: string) => boolean } | undefined;
+            if (taskRunnerManager?.isRunning?.(taskId)) {
+              alive = true;
+              console.log(`[orchestrate] ${taskId}: TaskRunnerManager가 관리 중 → in_progress 유지`);
+            }
+          } catch { /* ignore */ }
         }
 
         // pgrep fallback

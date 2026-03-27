@@ -14,6 +14,7 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { useOrchestrationStore } from "@/store/orchestrationStore";
+import { useTasksStore } from "@/store/tasksStore";
 import type { OrchestrationStatusData } from "@/lib/orchestration-manager";
 
 const RECONNECT_DELAY = 3000;
@@ -42,6 +43,8 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
           if (!mountedRef.current) return;
           queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
           queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+          // zustand store도 갱신 (사이드바 등 store 구독 컴포넌트용)
+          useTasksStore.getState().fetchRequests();
         }, DEBOUNCE_DELAY);
       });
 

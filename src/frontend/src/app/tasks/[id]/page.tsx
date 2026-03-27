@@ -208,21 +208,28 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const [runStatus, setRunStatus] = useState<"idle" | "running" | "completed" | "failed">("idle");
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
 
-  useEffect(() => {
-    async function fetchTask() {
-      try {
-        const res = await fetch(`/api/requests/${id}`);
-        if (!res.ok) throw new Error("Task not found");
-        const data = await res.json();
-        setTask(data);
-      } catch (err) {
-        setError(getErrorMessage(err, "Failed to load task"));
-      } finally {
-        setIsLoading(false);
-      }
+  const fetchTask = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/requests/${id}`);
+      if (!res.ok) throw new Error("Task not found");
+      const data = await res.json();
+      setTask(data);
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to load task"));
+    } finally {
+      setIsLoading(false);
     }
-    fetchTask();
   }, [id]);
+
+  // 초기 로드
+  useEffect(() => { fetchTask(); }, [fetchTask]);
+
+  // SSE task-changed 이벤트 시 자동 refetch
+  useEffect(() => {
+    const es = new EventSource("/api/tasks/watch");
+    es.addEventListener("task-changed", () => { fetchTask(); });
+    return () => es.close();
+  }, [fetchTask]);
 
   // Lazy-load AI result
   useEffect(() => {
