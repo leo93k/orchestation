@@ -3,11 +3,11 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const textareaVariants = cva(
-  "bg-muted border border-border rounded outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed resize-none",
+  "bg-muted border border-border rounded-md outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-foreground placeholder:text-muted-foreground resize-y",
   {
     variants: {
       size: {
-        default: "w-full px-3 py-1.5 text-sm",
+        default: "w-full px-3 py-2.5 text-sm",
         sm: "w-full px-2.5 py-1.5 text-xs",
       },
     },

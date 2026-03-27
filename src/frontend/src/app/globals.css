@@ -828,65 +828,9 @@ button.timeline-task-label:hover {
   overflow: hidden;
 }
 
-/* ── Settings Page (OpenAI Playground style) ──────────── */
+/* ── Design System: Slider ──────────────────────────────── */
 
-.settings-section-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted-foreground);
-}
-
-.settings-input {
-  width: 100%;
-  background: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 14px;
-  color: var(--foreground);
-  outline: none;
-  transition: border-color 0.15s ease;
-}
-
-.settings-input:focus {
-  border-color: var(--primary);
-}
-
-.settings-input::placeholder {
-  color: var(--muted-foreground);
-}
-
-.settings-field-ro {
-  width: 100%;
-  background: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 14px;
-  color: var(--foreground);
-}
-
-.settings-ghost-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.settings-ghost-btn:hover {
-  background: var(--muted);
-  border-color: var(--muted-foreground);
-}
-
-/* Slider - thin track + small handle */
-.settings-slider {
+.ds-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -897,7 +841,7 @@ button.timeline-task-label:hover {
   cursor: pointer;
 }
 
-.settings-slider::-webkit-slider-thumb {
+.ds-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 16px;
@@ -910,11 +854,11 @@ button.timeline-task-label:hover {
   transition: transform 0.1s ease;
 }
 
-.settings-slider::-webkit-slider-thumb:hover {
+.ds-slider::-webkit-slider-thumb:hover {
   transform: scale(1.15);
 }
 
-.settings-slider::-moz-range-thumb {
+.ds-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -922,43 +866,4 @@ button.timeline-task-label:hover {
   border: 2px solid var(--background);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   cursor: pointer;
-}
-
-/* Select dropdown arrow color for dark mode */
-.settings-input option {
-  background: var(--muted);
-  color: var(--foreground);
-}
-
-/* Toggle switch */
-.settings-toggle {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
-  background: var(--border);
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  flex-shrink: 0;
-}
-
-.settings-toggle-active {
-  background: var(--primary);
-}
-
-.settings-toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--foreground);
-  transition: transform 0.2s ease;
-}
-
-.settings-toggle-active .settings-toggle-thumb {
-  transform: translateX(16px);
-  background: var(--primary-foreground);
 }

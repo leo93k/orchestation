@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft, Loader2, Pencil, Check, X, Plus, Trash2, GitMerge, Sparkles, CheckSquare, Square as SquareIcon } from "lucide-react";
 import { DependsOnSelector, type TaskOption } from "@/components/DependsOnSelector";
 import { useSuggestStore } from "@/store/suggestStore";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface AnalyzedTask {
   title: string;
@@ -349,15 +353,14 @@ export default function NewTaskPage() {
       {step === "input" && pageTab === "write" && (
         <div className="rounded-lg border border-border bg-card p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+            <Label size="sm" className="block mb-1.5">
               What needs to be done?
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               placeholder="Task title..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-muted border border-border rounded px-3 py-2 text-sm outline-none focus:border-primary"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && title.trim()) handleAnalyze();
               }}
@@ -366,23 +369,22 @@ export default function NewTaskPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+            <Label size="sm" className="block mb-1.5">
               Details (optional)
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               placeholder="Describe the task in detail..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
-              className="w-full bg-muted border border-border rounded px-3 py-2 text-sm outline-none focus:border-primary resize-y"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+            <Label size="sm" className="block mb-1.5 flex items-center gap-1.5">
               <GitMerge className="h-3 w-3" />
               Depends On (optional)
-            </label>
+            </Label>
             <DependsOnSelector
               selected={inputExternalDeps}
               onChange={setInputExternalDeps}
@@ -585,39 +587,37 @@ function TaskPreviewCard({
 
       {isEditing ? (
         <div className="space-y-2">
-          <input
+          <Input
             type="text"
             value={task.title}
             onChange={(e) => onUpdate({ title: e.target.value })}
             placeholder="Task title..."
-            className="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm outline-none focus:border-primary"
             autoFocus
           />
-          <textarea
+          <Textarea
             value={task.description}
             onChange={(e) => onUpdate({ description: e.target.value })}
             placeholder="Description..."
             rows={3}
-            className="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm outline-none focus:border-primary resize-y"
           />
-          <select
+          <Select
+            size="inline"
             value={task.priority}
             onChange={(e) =>
               onUpdate({ priority: e.target.value as AnalyzedTask["priority"] })
             }
-            className="bg-muted border border-border rounded px-2 py-1 text-xs outline-none"
           >
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
-          </select>
+          </Select>
 
           {/* Depends On (external) - edit */}
           <div>
-            <label className="block text-[11px] font-medium text-muted-foreground mb-1 flex items-center gap-1">
+            <Label size="sm" className="block mb-1 flex items-center gap-1 text-[11px]">
               <GitMerge className="h-3 w-3" />
               Depends On (existing tasks)
-            </label>
+            </Label>
             <DependsOnSelector
               selected={externalDeps}
               onChange={(ids) => onUpdate({ external_depends_on: ids })}
@@ -629,9 +629,9 @@ function TaskPreviewCard({
           {/* Within-batch deps - edit as checkboxes */}
           {totalTasks > 1 && (
             <div>
-              <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+              <Label size="sm" className="block mb-1 text-[11px]">
                 Within-batch dependencies
-              </label>
+              </Label>
               <div className="flex flex-wrap gap-1.5">
                 {Array.from({ length: totalTasks }, (_, i) => i).filter((i) => i !== index).map((i) => {
                   const checked = (task.depends_on ?? []).includes(i);
@@ -663,13 +663,14 @@ function TaskPreviewCard({
           )}
 
           <div>
-            <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+            <Label size="sm" className="block mb-1 text-[11px]">
               Completion Criteria
-            </label>
+            </Label>
             {task.criteria.map((c, ci) => (
               <div key={ci} className="flex items-center gap-1 mb-1">
                 <span className="text-muted-foreground text-xs">-</span>
-                <input
+                <Input
+                  size="sm"
                   type="text"
                   value={c}
                   onChange={(e) => {
@@ -677,7 +678,7 @@ function TaskPreviewCard({
                     newCriteria[ci] = e.target.value;
                     onUpdate({ criteria: newCriteria });
                   }}
-                  className="flex-1 bg-muted border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
+                  className="flex-1"
                 />
                 <button
                   type="button"
@@ -701,13 +702,14 @@ function TaskPreviewCard({
             </button>
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+            <Label size="sm" className="block mb-1 text-[11px]">
               Scope (작업 범위 파일)
-            </label>
+            </Label>
             {(task.scope ?? []).map((s, si) => (
               <div key={si} className="flex items-center gap-1 mb-1">
                 <span className="text-muted-foreground text-xs">-</span>
-                <input
+                <Input
+                  size="sm"
                   type="text"
                   value={s}
                   onChange={(e) => {
@@ -715,7 +717,7 @@ function TaskPreviewCard({
                     newScope[si] = e.target.value;
                     onUpdate({ scope: newScope });
                   }}
-                  className="flex-1 bg-muted border border-border rounded px-2 py-1 text-xs font-mono outline-none focus:border-primary"
+                  className="flex-1 font-mono"
                 />
                 <button
                   type="button"

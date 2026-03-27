@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Moon, Play, Square, Loader2, CheckCircle2 } from "lucide-react";
+import { Moon, Play, Square, Loader2, CheckCircle2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Toggle } from "@/components/ui/toggle";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type NightWorkerStatus = "idle" | "running" | "completed" | "stopped" | "failed";
 
@@ -20,7 +26,7 @@ export default function NightWorkerPage() {
   const [untilTime, setUntilTime] = useState("07:00");
   const [budget, setBudget] = useState("");
   const [unlimited, setUnlimited] = useState(true);
-  const [maxTasks, setMaxTasks] = useState("10");
+  const [maxTasks, setMaxTasks] = useState(10);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set(["typecheck", "lint", "review"]));
   const [status, setStatus] = useState<NightWorkerStatus>("idle");
   const [logs, setLogs] = useState<string[]>([]);
@@ -67,7 +73,7 @@ export default function NightWorkerPage() {
         body: JSON.stringify({
           until: untilTime,
           budget: unlimited ? undefined : parseFloat(budget),
-          maxTasks: parseInt(maxTasks, 10),
+          maxTasks,
           types: [...selectedTypes].join(","),
           instructions: instructions.trim(),
         }),
@@ -99,12 +105,16 @@ export default function NightWorkerPage() {
 
         {/* Name */}
         <div className="space-y-1.5">
-          <label className="text-sm text-muted-foreground">Name</label>
-          <div className="settings-field-ro flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Moon className="h-4 w-4 text-yellow-400" />
-              <span>Night Worker</span>
-            </div>
+          <Label>Name</Label>
+          <Input
+            value="Night Worker"
+            readOnly
+            className="cursor-default"
+          />
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground/60 font-mono">
+              {isRunning ? `${tasksCreated} tasks created / $${totalCost}` : "코드 스캔 후 이슈 태스크 자동 생성 · branch: nm/"}
+            </p>
             {isRunning && (
               <span className="flex items-center gap-1.5 text-[11px] text-yellow-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -121,60 +131,47 @@ export default function NightWorkerPage() {
               <span className="text-[11px] text-muted-foreground">Stopped</span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground/60 font-mono">
-            {isRunning ? `${tasksCreated} tasks created / $${totalCost}` : "코드 스캔 후 이슈 태스크 자동 생성 · branch: nm/"}
-          </p>
         </div>
 
-        {/* Instructions (like System instructions) */}
+        {/* Instructions */}
         <div className="space-y-1.5">
-          <label className="text-sm text-muted-foreground">System instructions</label>
-          <textarea
+          <Label>System instructions</Label>
+          <Textarea
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
             placeholder={"추가 지시가 있으면 작성하세요...\n예: src/frontend 폴더만 점검해줘"}
             rows={4}
             disabled={isRunning}
-            className="settings-input resize-y min-h-[100px] disabled:opacity-50"
+            className="min-h-[100px]"
           />
         </div>
 
         {/* Until Time */}
         <div className="space-y-1.5">
-          <label className="text-sm text-muted-foreground">Until</label>
-          <input
+          <Label>Until</Label>
+          <Input
             type="time"
             value={untilTime}
             onChange={(e) => setUntilTime(e.target.value)}
             disabled={isRunning}
-            className="settings-input disabled:opacity-50"
           />
         </div>
 
         {/* Divider */}
         <div className="border-t border-border/50" />
 
-        {/* TOOLS section - Task Types as toggles */}
+        {/* Task Types */}
         <div className="space-y-4">
-          <h2 className="settings-section-label">Task Types</h2>
+          <Label size="section">Task Types</Label>
 
           {TASK_TYPES.map((t) => (
             <div key={t.id} className="flex items-center justify-between">
               <span className="text-sm text-foreground">{t.label}</span>
-              <button
-                type="button"
-                onClick={() => toggleType(t.id)}
+              <Toggle
+                checked={selectedTypes.has(t.id)}
+                onChange={() => toggleType(t.id)}
                 disabled={isRunning}
-                className={cn(
-                  "settings-toggle",
-                  selectedTypes.has(t.id) && "settings-toggle-active",
-                  isRunning && "opacity-50 cursor-not-allowed",
-                )}
-                role="switch"
-                aria-checked={selectedTypes.has(t.id)}
-              >
-                <span className="settings-toggle-thumb" />
-              </button>
+              />
             </div>
           ))}
         </div>
@@ -182,26 +179,24 @@ export default function NightWorkerPage() {
         {/* Divider */}
         <div className="border-t border-border/50" />
 
-        {/* CONFIGURATION section */}
+        {/* Configuration */}
         <div className="space-y-6">
-          <h2 className="settings-section-label">Configuration</h2>
+          <Label size="section">Configuration</Label>
 
           {/* Budget */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-sm text-muted-foreground">Budget limit</label>
+              <Label>Budget limit</Label>
               <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={unlimited}
                   onChange={(e) => { setUnlimited(e.target.checked); if (e.target.checked) setBudget(""); }}
                   disabled={isRunning}
-                  className="rounded"
                 />
                 Unlimited
               </label>
             </div>
-            <input
+            <Input
               type="number"
               value={budget}
               onChange={(e) => { setBudget(e.target.value); if (e.target.value) setUnlimited(false); }}
@@ -209,36 +204,30 @@ export default function NightWorkerPage() {
               step="0.5"
               min="0"
               disabled={isRunning || unlimited}
-              className={cn("settings-input disabled:opacity-50", unlimited && "opacity-30")}
+              className={cn(unlimited && "opacity-30")}
             />
           </div>
 
-          {/* Max Tasks - Slider */}
+          {/* Max Tasks */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm text-muted-foreground">Max tasks</label>
+              <Label>Max tasks</Label>
               <span className="text-sm text-foreground tabular-nums">{maxTasks}</span>
             </div>
-            <input
-              type="range"
+            <Slider
               min={1}
               max={50}
               value={maxTasks}
-              onChange={(e) => setMaxTasks(e.target.value)}
+              onChange={setMaxTasks}
               disabled={isRunning}
-              className="settings-slider disabled:opacity-50"
             />
-            <div className="flex justify-between text-[10px] text-muted-foreground/50">
-              <span>1</span>
-              <span>50</span>
-            </div>
           </div>
         </div>
 
         {/* Divider */}
         <div className="border-t border-border/50" />
 
-        {/* Tabs: Config summary / Logs */}
+        {/* Summary / Logs Tabs */}
         <div className="space-y-4">
           <div className="flex gap-1">
             <button
@@ -268,7 +257,7 @@ export default function NightWorkerPage() {
           </div>
 
           {activeTab === "config" && (
-            <div className="settings-field-ro text-sm space-y-1">
+            <div className="bg-muted border border-border rounded-md p-3 text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Until</span>
                 <span>{untilTime}</span>
@@ -317,7 +306,7 @@ export default function NightWorkerPage() {
                 </div>
               </div>
             ) : (
-              <div className="settings-field-ro text-center py-8">
+              <div className="bg-muted border border-border rounded-md text-center py-8">
                 <Moon className="h-6 w-6 mx-auto mb-2 text-muted-foreground/30" />
                 <p className="text-sm text-muted-foreground">No logs yet</p>
               </div>

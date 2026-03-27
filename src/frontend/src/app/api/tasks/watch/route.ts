@@ -1,4 +1,6 @@
 import fs from "fs";
+import path from "path";
+import matter from "gray-matter";
 import { TASKS_DIR } from "@/lib/paths";
 import orchestrationManager from "@/lib/orchestration-manager";
 
@@ -7,9 +9,9 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/tasks/watch — SSE 엔드포인트
  *
- * 두 가지 이벤트를 스트리밍:
- * - event: task-changed       → 태스크 파일이 변경되었을 때
- * - event: orchestration-status → 오케스트레이션 상태가 변경되었을 때 (data = JSON)
+ * 이벤트:
+ * - event: task-changed          → { taskId, status, priority } (변경된 태스크 정보)
+ * - event: orchestration-status  → 오케스트레이션 상태 (JSON)
  */
 export async function GET() {
   const encoder = new TextEncoder();
@@ -26,15 +28,38 @@ export async function GET() {
         }
       };
 
-      // ── 태스크 파일 변경 감지 ──
+      // ── 태스크 파일 변경 감지 — debounce 없이 즉시 전송 ──
       let fsWatcher: fs.FSWatcher | null = null;
-      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
       try {
         fsWatcher = fs.watch(TASKS_DIR, { recursive: true }, (_event, filename) => {
           if (!filename?.endsWith(".md")) return;
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => send("task-changed", "changed"), 500);
+
+          // 변경된 파일에서 frontmatter 파싱
+          try {
+            const filePath = path.join(TASKS_DIR, filename);
+            if (!fs.existsSync(filePath)) {
+              // 파일 삭제 시
+              const idMatch = filename.match(/^(TASK-\d+)/);
+              if (idMatch) {
+                send("task-changed", JSON.stringify({ taskId: idMatch[1], deleted: true }));
+              }
+              return;
+            }
+            const content = fs.readFileSync(filePath, "utf-8");
+            const { data } = matter(content);
+            if (data.id) {
+              send("task-changed", JSON.stringify({
+                taskId: data.id,
+                status: data.status ?? "pending",
+                priority: data.priority ?? "medium",
+                title: data.title ?? "",
+              }));
+            }
+          } catch {
+            // 파싱 실패 시 fallback: 전체 refetch 트리거
+            send("task-changed", JSON.stringify({ full: true }));
+          }
         });
       } catch {
         // TASKS_DIR 없으면 무시
@@ -73,7 +98,6 @@ export async function GET() {
           fsWatcher?.close();
           orchestrationManager.events.off("status-changed", onStatusChanged);
           clearInterval(heartbeat);
-          if (debounceTimer) clearTimeout(debounceTimer);
           return Reflect.apply(target, thisArg, args);
         },
       });

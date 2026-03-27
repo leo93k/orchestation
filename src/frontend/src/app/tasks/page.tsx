@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Plus, Layers, Search, ArrowUpDown, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X, Link2 } from "lucide-react";
 import DAGCanvas from "@/components/DAGCanvas";
 import { RequestCard } from "@/components/RequestCard";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { PRIORITY_COLORS, STATUS_DOT, STATUS_ORDER, TAB_STACK, TAB_ALL, TABS, TAB_LABEL } from "./constants";
@@ -234,7 +235,7 @@ function TasksPageInner() {
       {showFilters && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <input type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); resetPage(); }} placeholder="ID, 제목, 내용으로 검색..." className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-3 py-2 text-xs outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50" />
+          <Input type="text" size="sm" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); resetPage(); }} placeholder="ID, 제목, 내용으로 검색..." className="bg-muted/50 rounded-lg pl-9 pr-3 py-2 placeholder:text-muted-foreground/50" />
         </div>
       )}
 
@@ -296,7 +297,7 @@ function TasksPageInner() {
       {false && activeTab === TAB_STACK && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ID, 제목, 내용으로 검색..." className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-3 py-2 text-xs outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50" />
+          <Input type="text" size="sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ID, 제목, 내용으로 검색..." className="bg-muted/50 rounded-lg pl-9 pr-3 py-2 placeholder:text-muted-foreground/50" />
         </div>
       )}
 

@@ -76,7 +76,7 @@ role: ${taskRole}${scopeYaml}
 
 TBD
 
-## 완료 조건
+## Completion Criteria
 
 - [ ] TBD
 `;

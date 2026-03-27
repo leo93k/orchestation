@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Pencil, Save, X, ChevronRight, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function DocsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -145,15 +147,15 @@ export default function DocsPage({ params }: { params: Promise<{ id: string }> }
 
       {/* Title - inline editable */}
       {isEditing ? (
-        <input
+        <Input
           type="text"
           value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}
-          className="text-lg font-semibold mb-4 w-full bg-muted border border-border rounded px-2 py-1 outline-none focus:border-primary"
+          className="text-lg font-semibold mb-4 px-2 py-1"
         />
       ) : isEditingTitle ? (
         <div className="mb-4">
-          <input
+          <Input
             type="text"
             value={editTitle}
             onChange={(e) => setEditTitle(e.target.value)}
@@ -166,7 +168,7 @@ export default function DocsPage({ params }: { params: Promise<{ id: string }> }
               else setIsEditingTitle(false);
             }}
             autoFocus
-            className="text-lg font-semibold w-full bg-muted border border-primary rounded px-2 py-1 outline-none"
+            className="text-lg font-semibold px-2 py-1 border-primary"
           />
         </div>
       ) : (
@@ -185,10 +187,10 @@ export default function DocsPage({ params }: { params: Promise<{ id: string }> }
       {/* Document content */}
       <div className="border-t border-border pt-4">
         {isEditing ? (
-          <textarea
+          <Textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-[60vh] bg-muted border border-border rounded-md p-3 text-sm font-mono leading-relaxed resize-none outline-none focus:border-primary"
+            className="h-[60vh] p-3 font-mono leading-relaxed resize-none"
             autoFocus
           />
         ) : (

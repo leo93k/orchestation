@@ -5,6 +5,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/components/ui/toast";
 import type { WorkerMode } from "@/lib/settings";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface AppSettings {
   apiKey: string;
@@ -73,10 +78,6 @@ export default function SettingsPage() {
 
   const isDirty = settings !== null && JSON.stringify(draft) !== JSON.stringify(settings);
 
-  const maskedKey = draft.apiKey
-    ? `${draft.apiKey.slice(0, 7)}${"*".repeat(Math.max(0, draft.apiKey.length - 11))}${draft.apiKey.slice(-4)}`
-    : "";
-
   return (
     <div className="max-w-[560px] mx-auto py-8 px-6">
       {loading ? (
@@ -87,12 +88,10 @@ export default function SettingsPage() {
       ) : (
         <div className="space-y-8">
 
-          {/* Name / Title */}
+          {/* Name */}
           <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Name</label>
-            <div className="settings-field-ro">
-              Orchestration
-            </div>
+            <Label>Name</Label>
+            <Input value="Orchestration" readOnly className="cursor-default" />
             <p className="text-xs text-muted-foreground/60 font-mono">
               sdadaniel/orchestation
             </p>
@@ -100,14 +99,14 @@ export default function SettingsPage() {
 
           {/* API Key */}
           <div className="space-y-1.5">
-            <label htmlFor="apiKey" className="text-sm text-muted-foreground">API Key</label>
-            <input
+            <Label htmlFor="apiKey">API Key</Label>
+            <Input
               id="apiKey"
               type="password"
               value={draft.apiKey}
               onChange={(e) => setDraft((prev) => ({ ...prev, apiKey: e.target.value }))}
               placeholder="sk-ant-api03-..."
-              className="settings-input font-mono"
+              className="font-mono"
             />
             <p className="text-xs text-muted-foreground/60">
               Anthropic API key for orchestrate.sh and Night Worker
@@ -116,128 +115,106 @@ export default function SettingsPage() {
 
           {/* Model */}
           <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Model</label>
-            <div className="relative">
-              <select
-                value={draft.model}
-                onChange={(e) => setDraft((prev) => ({ ...prev, model: e.target.value }))}
-                className="settings-input appearance-none cursor-pointer pr-8"
-              >
-                <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
-                <option value="claude-sonnet-4-6">claude-sonnet-4.6</option>
-                <option value="claude-opus-4-6">claude-opus-4.6</option>
-              </select>
-              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            </div>
+            <Label>Model</Label>
+            <Select
+              value={draft.model}
+              onChange={(e) => setDraft((prev) => ({ ...prev, model: e.target.value }))}
+            >
+              <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
+              <option value="claude-sonnet-4-6">claude-sonnet-4.6</option>
+              <option value="claude-opus-4-6">claude-opus-4.6</option>
+            </Select>
           </div>
 
           {/* Divider */}
           <div className="border-t border-border/50" />
 
-          {/* TOOLS section */}
-          <div className="space-y-5">
-            <h2 className="settings-section-label">Source Paths</h2>
+          {/* Source Paths */}
+          <div className="space-y-4">
+            <Label size="section">Source Paths</Label>
 
-            {/* Source Paths */}
             <div className="space-y-2">
               {draft.srcPaths.map((p, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <input
-                    type="text"
+                  <Input
                     value={p}
                     onChange={(e) => {
                       const next = [...draft.srcPaths];
                       next[i] = e.target.value;
                       setDraft((prev) => ({ ...prev, srcPaths: next }));
                     }}
-                    className="settings-input font-mono flex-1"
+                    className="font-mono flex-1"
                     placeholder="src/"
                   />
                   {draft.srcPaths.length > 1 && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setDraft((prev) => ({ ...prev, srcPaths: prev.srcPaths.filter((_, j) => j !== i) }))}
-                      className="settings-ghost-btn text-muted-foreground hover:text-red-400"
+                      className="text-muted-foreground hover:text-red-400"
                     >
                       <X className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setDraft((prev) => ({ ...prev, srcPaths: [...prev.srcPaths, ""] }))}
-                className="settings-ghost-btn text-xs text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>Add Path</span>
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Divider */}
           <div className="border-t border-border/50" />
 
-          {/* MODEL CONFIGURATION section */}
+          {/* Configuration */}
           <div className="space-y-6">
-            <h2 className="settings-section-label">Configuration</h2>
+            <Label size="section">Configuration</Label>
 
             {/* Worker Mode */}
             <div className="space-y-1.5">
-              <label className="text-sm text-muted-foreground">Worker mode</label>
-              <div className="relative">
-                <select
-                  value={draft.workerMode}
-                  onChange={(e) => setDraft((prev) => ({ ...prev, workerMode: e.target.value as WorkerMode }))}
-                  className="settings-input appearance-none cursor-pointer pr-8"
-                >
-                  <option value="background">background</option>
-                  <option value="iterm">iterm</option>
-                </select>
-                <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </div>
-              </div>
+              <Label>Worker mode</Label>
+              <Select
+                value={draft.workerMode}
+                onChange={(e) => setDraft((prev) => ({ ...prev, workerMode: e.target.value as WorkerMode }))}
+              >
+                <option value="background">background</option>
+                <option value="iterm">iterm</option>
+              </Select>
             </div>
 
-            {/* Max Parallel Tasks - Slider */}
+            {/* Max Parallel Tasks */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-muted-foreground">Max parallel tasks</label>
+                <Label>Max parallel tasks</Label>
                 <span className="text-sm text-foreground tabular-nums">{draft.maxParallel}</span>
               </div>
-              <input
-                type="range"
+              <Slider
                 min={1}
                 max={10}
                 value={draft.maxParallel}
-                onChange={(e) => setDraft((prev) => ({ ...prev, maxParallel: parseInt(e.target.value, 10) }))}
-                className="settings-slider"
+                onChange={(v) => setDraft((prev) => ({ ...prev, maxParallel: v }))}
               />
-              <div className="flex justify-between text-[10px] text-muted-foreground/50">
-                <span>1</span>
-                <span>10</span>
-              </div>
             </div>
 
-            {/* Max Review Retry - Slider */}
+            {/* Max Review Retry */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-muted-foreground">Max review retry</label>
+                <Label>Max review retry</Label>
                 <span className="text-sm text-foreground tabular-nums">{draft.maxReviewRetry}</span>
               </div>
-              <input
-                type="range"
+              <Slider
                 min={0}
                 max={5}
                 value={draft.maxReviewRetry}
-                onChange={(e) => setDraft((prev) => ({ ...prev, maxReviewRetry: parseInt(e.target.value, 10) }))}
-                className="settings-slider"
+                onChange={(v) => setDraft((prev) => ({ ...prev, maxReviewRetry: v }))}
               />
-              <div className="flex justify-between text-[10px] text-muted-foreground/50">
-                <span>0</span>
-                <span>5</span>
-              </div>
             </div>
           </div>
 

@@ -55,6 +55,7 @@ interface TasksState {
   deleteRequest: (id: string) => Promise<void>;
   reorderRequest: (id: string, direction: "up" | "down") => Promise<void>;
   stopTask: (id: string) => Promise<void>;
+  patchRequest: (id: string, patch: Partial<Pick<RequestItem, "status" | "priority" | "title">>) => void;
 }
 
 export const useTasksStore = create<TasksState>()(
@@ -211,6 +212,18 @@ export const useTasksStore = create<TasksState>()(
           // process may not exist
         }
         await get().updateRequest(id, { status: "stopped" });
+      },
+
+      patchRequest: (id, patch) => {
+        set(
+          (state) => ({
+            requests: state.requests.map((r) =>
+              r.id === id ? { ...r, ...patch } : r,
+            ),
+          }),
+          false,
+          "tasks/patchRequest",
+        );
       },
     }),
     { name: "TasksStore" },

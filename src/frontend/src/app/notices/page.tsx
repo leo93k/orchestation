@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useNotices } from "@/hooks/useNotices";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import { Info, AlertTriangle, AlertCircle, MessageSquare, Trash2, Check, Search } from "lucide-react";
 import { MarkdownContent } from "@/components/MarkdownContent";
 
@@ -41,7 +42,7 @@ export default function NoticesPage() {
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="검색..." className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-3 py-2 text-xs outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50" />
+        <Input type="text" size="sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="검색..." className="pl-9 rounded-lg bg-muted/50 placeholder:text-muted-foreground/50" />
       </div>
 
       {/* Type Filter */}

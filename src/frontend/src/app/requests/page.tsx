@@ -5,6 +5,9 @@ import { useRequests, type RequestItem } from "@/hooks/useRequests";
 import { cn } from "@/lib/utils";
 import { Plus, ChevronDown, ChevronRight, Pencil, Trash2, X } from "lucide-react";
 import AutoImproveControl from "@/components/AutoImproveControl";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-red-500/15 text-red-500 border-red-500/30",
@@ -88,28 +91,28 @@ function RequestCard({
         <div className="mt-2 pt-2 border-t border-border">
           {editing ? (
             <div className="space-y-2">
-              <input
+              <Input
                 type="text"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full bg-muted border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary"
+                size="sm"
               />
-              <textarea
+              <Textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 rows={4}
-                className="w-full bg-muted border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary resize-y"
+                size="sm"
               />
               <div className="flex items-center gap-2">
-                <select
+                <Select
                   value={editPriority}
                   onChange={(e) => setEditPriority(e.target.value as RequestItem["priority"])}
-                  className="bg-muted border border-border rounded px-2 py-1 text-xs outline-none"
+                  size="sm"
                 >
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
-                </select>
+                </Select>
                 <button
                   type="button"
                   onClick={handleSave}
@@ -213,32 +216,30 @@ export default function RequestsPage() {
 
       {showForm && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-          <input
+          <Input
             type="text"
             placeholder="Task title..."
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            className="w-full bg-muted border border-border rounded px-3 py-2 text-sm outline-none focus:border-primary"
             onKeyDown={(e) => { if (e.key === "Enter" && newTitle.trim()) handleCreate(); }}
             autoFocus
           />
-          <textarea
+          <Textarea
             placeholder="Describe the task..."
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}
             rows={4}
-            className="w-full bg-muted border border-border rounded px-3 py-2 text-sm outline-none focus:border-primary resize-y"
           />
           <div className="flex items-center gap-3">
-            <select
+            <Select
               value={newPriority}
               onChange={(e) => setNewPriority(e.target.value as "high" | "medium" | "low")}
-              className="bg-muted border border-border rounded px-2 py-1.5 text-xs outline-none"
+              size="sm"
             >
               <option value="high">High</option>
               <option value="medium">Medium</option>
               <option value="low">Low</option>
-            </select>
+            </Select>
             <button
               type="button"
               onClick={handleCreate}

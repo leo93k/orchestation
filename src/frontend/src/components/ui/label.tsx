@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
 const labelVariants = cva("font-medium text-muted-foreground", {
   variants: {
     size: {
-      default: "text-xs",
-      sm: "text-[10px] uppercase tracking-wider",
+      default: "text-sm",
+      sm: "text-xs",
+      section: "text-[11px] font-semibold uppercase tracking-[0.08em]",
     },
   },
   defaultVariants: {

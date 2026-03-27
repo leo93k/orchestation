@@ -7,6 +7,9 @@ import { ChevronDown, ChevronRight, ChevronUp, Pencil, Trash2, Square, Bot, Term
 import { type RequestItem } from "@/hooks/useRequests";
 import { PRIORITY_COLORS, STATUS_DOT } from "@/app/tasks/constants";
 import { MarkdownContent } from "@/components/MarkdownContent";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
 
 interface ExecutionLog {
   subtype?: string;
@@ -148,10 +151,10 @@ export const RequestCard = memo(function RequestCard({ req, onUpdate, onDelete, 
             <div style={{ maxHeight: 260, scrollbarWidth: "none" }} className="overflow-y-auto px-1">
               {editing ? (
                 <div className="space-y-2">
-                  <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full bg-muted border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary" />
-                  <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={4} className="w-full bg-muted border border-border rounded px-2 py-1 text-sm outline-none focus:border-primary resize-y" />
+                  <Input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-sm" />
+                  <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={4} className="text-sm resize-y" />
                   <div className="flex items-center gap-2">
-                    <select value={editPriority} onChange={(e) => setEditPriority(e.target.value as RequestItem["priority"])} className="bg-muted border border-border rounded px-2 py-1 text-xs outline-none"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+                    <Select size="inline" value={editPriority} onChange={(e) => setEditPriority(e.target.value as RequestItem["priority"])}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></Select>
                     <button type="button" onClick={async () => { await onUpdate(req.id, { title: editTitle, content: editContent, priority: editPriority }); setEditing(false); }} className="filter-pill active text-xs">Save</button>
                     <button type="button" onClick={() => { setEditing(false); setEditTitle(req.title); setEditContent(req.content); setEditPriority(req.priority); }} className="filter-pill text-xs">Cancel</button>
                   </div>
