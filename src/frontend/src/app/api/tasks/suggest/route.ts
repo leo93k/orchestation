@@ -1,33 +1,92 @@
 import { NextResponse } from "next/server";
-import { runClaudeSync } from "@/lib/claude-cli";
-import { getErrorMessage } from "@/lib/error-utils";
+import { spawnClaude, ClaudeChildProcess } from "@/lib/claude-cli";
 import { readTemplate } from "@/lib/template";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
+
+const SUGGEST_TIMEOUT_MS = 120_000;
 
 export async function POST() {
-  try {
-    const prompt = readTemplate("prompt/task-suggest.md");
+  const prompt = readTemplate("prompt/task-suggest.md");
 
-    // stdin pipe 방식으로 실행하여 셸 인젝션 위험 제거
-    const text = runClaudeSync(prompt, {
-      timeout: 120_000,
+  return new Promise<Response>((resolve) => {
+    const child: ClaudeChildProcess = spawnClaude(prompt, {
+      timeout: SUGGEST_TIMEOUT_MS,
       extraArgs: ["--dangerously-skip-permissions"],
     });
 
-    // JSON 추출
-    const jsonMatch = text.match(/\{[\s\S]*"suggestions"[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json({
-        suggestions: [],
-        error: "추천 결과를 파싱할 수 없습니다.",
-      });
-    }
+    let stdout = "";
+    let stderr = "";
 
-    const data = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(data);
-  } catch (err) {
-    const msg = getErrorMessage(err, String(err));
-    return NextResponse.json({ suggestions: [], error: msg }, { status: 500 });
-  }
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+
+    let timedOut = false;
+    const timeoutTimer = setTimeout(() => {
+      timedOut = true;
+      resolve(
+        NextResponse.json(
+          { suggestions: [], error: "추천 요청이 타임아웃되었습니다. 다시 시도해주세요." },
+          { status: 504 },
+        ),
+      );
+    }, SUGGEST_TIMEOUT_MS);
+
+    child.on("close", (code) => {
+      clearTimeout(timeoutTimer);
+      if (timedOut) return;
+
+      if (code !== 0) {
+        console.error("Claude CLI stderr:", stderr);
+        resolve(
+          NextResponse.json(
+            { suggestions: [], error: "AI 분석 실패. 다시 시도해주세요." },
+            { status: 500 },
+          ),
+        );
+        return;
+      }
+
+      try {
+        const jsonMatch = stdout.match(/\{[\s\S]*"suggestions"[\s\S]*\}/);
+        if (!jsonMatch) {
+          resolve(
+            NextResponse.json({
+              suggestions: [],
+              error: "추천 결과를 파싱할 수 없습니다.",
+            }),
+          );
+          return;
+        }
+
+        const data = JSON.parse(jsonMatch[0]);
+        resolve(NextResponse.json(data));
+      } catch {
+        console.error("Failed to parse suggest response:", stdout);
+        resolve(
+          NextResponse.json({
+            suggestions: [],
+            error: "추천 결과를 파싱할 수 없습니다.",
+          }),
+        );
+      }
+    });
+
+    child.on("error", (err) => {
+      clearTimeout(timeoutTimer);
+      console.error("Claude CLI spawn error:", err.message);
+      resolve(
+        NextResponse.json(
+          { suggestions: [], error: "AI 호출 실패. 다시 시도해주세요." },
+          { status: 500 },
+        ),
+      );
+    });
+  });
 }

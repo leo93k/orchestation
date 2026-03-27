@@ -22,6 +22,8 @@ function buildClaudeEnv(): NodeJS.ProcessEnv {
 export interface SpawnClaudeOptions {
   model?: string;
   timeout?: number;
+  /** additional CLI flags (e.g. ["--dangerously-skip-permissions"]) */
+  extraArgs?: string[];
 }
 
 /**
@@ -38,10 +40,11 @@ export function spawnClaude(
 ): ClaudeChildProcess {
   const model = options.model ?? CLAUDE_DEFAULT_MODEL;
   const timeoutMs = options.timeout ?? CLAUDE_DEFAULT_TIMEOUT_MS;
+  const extraArgs = options.extraArgs ?? [];
 
   const child = spawn(
     "claude",
-    ["--print", "--model", model, "--output-format", "text"],
+    ["--print", "--model", model, "--output-format", "text", ...extraArgs],
     {
       cwd: PROJECT_ROOT,
       env: buildClaudeEnv(),
