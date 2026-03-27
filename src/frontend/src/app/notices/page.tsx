@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Info, AlertTriangle, AlertCircle, MessageSquare, Trash2, Check, Search } from "lucide-react";
 import { MarkdownContent } from "@/components/MarkdownContent";
+import { PageLayout, PageHeader } from "@/components/ui/page-layout";
 
 const TYPE_CONFIG: Record<string, { icon: typeof Info; dot: string; label: string; badge: string }> = {
   info: { icon: Info, dot: "bg-blue-500", label: "Info", badge: "bg-blue-500/15 text-blue-500 border-blue-500/30" },
@@ -36,8 +37,8 @@ export default function NoticesPage() {
   if (error) return <div className="p-4 text-sm text-red-500">{error}</div>;
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-semibold">Notices</h1>
+    <PageLayout>
+      <PageHeader title="Notices" />
 
       {/* Search */}
       <div className="relative">
@@ -99,6 +100,6 @@ export default function NoticesPage() {
           <p className="text-sm">알림이 없습니다.</p>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }

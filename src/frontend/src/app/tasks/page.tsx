@@ -10,6 +10,7 @@ import { RequestCard } from "@/components/RequestCard";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { PageLayout, PageHeader } from "@/components/ui/page-layout";
 import { PRIORITY_COLORS, STATUS_DOT, STATUS_ORDER, TAB_STACK, TAB_ALL, TABS, TAB_LABEL } from "./constants";
 
 function ChainGroup({ items, onUpdate, onDelete, onReorder, isFirst, isLast }: { items: RequestItem[]; onUpdate: (id: string, updates: Partial<Pick<RequestItem, "status" | "title" | "content" | "priority">>) => Promise<void>; onDelete: (id: string) => Promise<void>; onReorder?: (id: string, direction: "up" | "down") => Promise<void>; isFirst?: boolean; isLast?: boolean }) {
@@ -206,12 +207,11 @@ function TasksPageInner() {
   if (error) return <div className="p-4 text-sm text-red-500">{error}</div>;
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto pb-16">
+    <PageLayout>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4"><h1 className="text-lg font-semibold">Tasks</h1></div>
+      <PageHeader title="Tasks">
         <button type="button" onClick={() => router.push("/tasks/new")} className="filter-pill active flex items-center gap-1"><Plus className="h-3 w-3" />New Task</button>
-      </div>
+      </PageHeader>
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-border">
@@ -439,7 +439,7 @@ function TasksPageInner() {
           </span>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }
 

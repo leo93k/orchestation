@@ -52,13 +52,17 @@
 | `Dialog` | 모달 다이얼로그 | Radix 기반 |
 | `Sheet` | 사이드 패널 | `side` |
 
+### 레이아웃 규칙
+- **모든 페이지**: `<PageLayout>` + `<PageHeader title="...">` 사용 (max-w-3xl, space-y-4, pb-16)
+- **페이지 헤더**: 좌측 `text-lg font-semibold` 제목 + 우측 액션 버튼 (`filter-pill active`)
+- **섹션 그룹핑**: `<div className="rounded-lg border border-border bg-card p-4 space-y-4">` (카드)
+- **구분**: 카드 사이 간격(space-y-4)으로 분리, 디바이더 사용 지양
+
 ### 스타일 규칙
 - **입력 필드**: `bg-muted`, `border border-border`, `rounded-md`, `focus:border-primary`
 - **섹션 라벨**: `<Label size="section">` (11px, uppercase, tracking)
 - **필드 라벨**: `<Label>` (14px, text-muted-foreground)
 - **슬라이더**: globals.css의 `.ds-slider` 클래스 사용
-- **레이아웃**: 설정 페이지는 `max-w-[560px] mx-auto`, 간격 `space-y-8`
-- **구분선**: `<div className="border-t border-border/50" />` (구분선 없이 간격 선호)
 
 ### Storybook
 - 모든 UI 컴포넌트는 `.stories.tsx` 파일 필수

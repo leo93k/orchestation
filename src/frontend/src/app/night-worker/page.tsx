@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Moon, Play, Square, Loader2, CheckCircle2, Plus } from "lucide-react";
+import { Moon, Play, Square, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PageLayout, PageHeader } from "@/components/ui/page-layout";
 
 type NightWorkerStatus = "idle" | "running" | "completed" | "stopped" | "failed";
 
@@ -100,68 +101,90 @@ export default function NightWorkerPage() {
   const isRunning = status === "running";
 
   return (
-    <div className="max-w-[560px] mx-auto py-8 px-6">
-      <div className="space-y-8">
+    <PageLayout>
+      <PageHeader title="Night Worker">
+        {!isRunning ? (
+          <button
+            type="button"
+            onClick={handleStart}
+            className="filter-pill active flex items-center gap-1 bg-yellow-500/15 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/25"
+          >
+            <Play className="h-3.5 w-3.5" />
+            Start
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleStop}
+            className="filter-pill active flex items-center gap-1 bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
+          >
+            <Square className="h-3.5 w-3.5" />
+            Stop
+          </button>
+        )}
+      </PageHeader>
 
-        {/* Name */}
-        <div className="space-y-1.5">
-          <Label>Name</Label>
-          <Input
-            value="Night Worker"
-            readOnly
-            className="cursor-default"
-          />
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground/60 font-mono">
-              {isRunning ? `${tasksCreated} tasks created / $${totalCost}` : "코드 스캔 후 이슈 태스크 자동 생성 · branch: nm/"}
-            </p>
-            {isRunning && (
-              <span className="flex items-center gap-1.5 text-[11px] text-yellow-400">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Running
-              </span>
-            )}
-            {status === "completed" && (
-              <span className="flex items-center gap-1.5 text-[11px] text-emerald-400">
-                <CheckCircle2 className="h-3 w-3" />
-                Completed
-              </span>
-            )}
-            {status === "stopped" && (
-              <span className="text-[11px] text-muted-foreground">Stopped</span>
-            )}
+      <div className="space-y-4">
+
+        {/* Card 1: Name + Instructions + Until */}
+        <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+          {/* Name */}
+          <div className="space-y-1.5">
+            <Label>Name</Label>
+            <Input
+              value="Night Worker"
+              readOnly
+              className="cursor-default"
+            />
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground/60 font-mono">
+                {isRunning ? `${tasksCreated} tasks created / $${totalCost}` : "코드 스캔 후 이슈 태스크 자동 생성 · branch: nm/"}
+              </p>
+              {isRunning && (
+                <span className="flex items-center gap-1.5 text-[11px] text-yellow-400">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Running
+                </span>
+              )}
+              {status === "completed" && (
+                <span className="flex items-center gap-1.5 text-[11px] text-emerald-400">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Completed
+                </span>
+              )}
+              {status === "stopped" && (
+                <span className="text-[11px] text-muted-foreground">Stopped</span>
+              )}
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="space-y-1.5">
+            <Label>System instructions</Label>
+            <Textarea
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder={"추가 지시가 있으면 작성하세요...\n예: src/frontend 폴더만 점검해줘"}
+              rows={4}
+              disabled={isRunning}
+              className="min-h-[100px]"
+            />
+          </div>
+
+          {/* Until Time */}
+          <div className="space-y-1.5">
+            <Label>Until</Label>
+            <Input
+              type="time"
+              value={untilTime}
+              onChange={(e) => setUntilTime(e.target.value)}
+              disabled={isRunning}
+            />
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="space-y-1.5">
-          <Label>System instructions</Label>
-          <Textarea
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            placeholder={"추가 지시가 있으면 작성하세요...\n예: src/frontend 폴더만 점검해줘"}
-            rows={4}
-            disabled={isRunning}
-            className="min-h-[100px]"
-          />
-        </div>
-
-        {/* Until Time */}
-        <div className="space-y-1.5">
-          <Label>Until</Label>
-          <Input
-            type="time"
-            value={untilTime}
-            onChange={(e) => setUntilTime(e.target.value)}
-            disabled={isRunning}
-          />
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-border/50" />
-
-        {/* Task Types */}
-        <div className="space-y-4">
+        {/* Card 2: Task Types */}
+        <div className="rounded-lg border border-border bg-card p-4 space-y-4">
           <Label size="section">Task Types</Label>
 
           {TASK_TYPES.map((t) => (
@@ -176,11 +199,8 @@ export default function NightWorkerPage() {
           ))}
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-border/50" />
-
-        {/* Configuration */}
-        <div className="space-y-6">
+        {/* Card 3: Configuration (Budget + Max Tasks) */}
+        <div className="rounded-lg border border-border bg-card p-4 space-y-4">
           <Label size="section">Configuration</Label>
 
           {/* Budget */}
@@ -223,9 +243,6 @@ export default function NightWorkerPage() {
             />
           </div>
         </div>
-
-        {/* Divider */}
-        <div className="border-t border-border/50" />
 
         {/* Summary / Logs Tabs */}
         <div className="space-y-4">
@@ -314,30 +331,7 @@ export default function NightWorkerPage() {
           )}
         </div>
 
-        {/* Action Button */}
-        <div className="pt-2">
-          {!isRunning ? (
-            <button
-              type="button"
-              onClick={handleStart}
-              className="w-full flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/25 transition-all"
-            >
-              <Play className="h-4 w-4" />
-              Start Night Worker
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleStop}
-              className="w-full flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-all"
-            >
-              <Square className="h-4 w-4" />
-              Stop Night Worker
-            </button>
-          )}
-        </div>
-
       </div>
-    </div>
+    </PageLayout>
   );
 }

@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { PageLayout, PageHeader } from "@/components/ui/page-layout";
 
 interface AppSettings {
   apiKey: string;
@@ -79,58 +80,73 @@ export default function SettingsPage() {
   const isDirty = settings !== null && JSON.stringify(draft) !== JSON.stringify(settings);
 
   return (
-    <div className="max-w-[560px] mx-auto py-8 px-6">
+    <PageLayout>
+      <PageHeader title="Settings">
+        <button
+          onClick={handleSave}
+          disabled={!isDirty || saving}
+          className={cn(
+            isDirty
+              ? "filter-pill active flex items-center gap-1"
+              : "filter-pill flex items-center gap-1 opacity-50 pointer-events-none"
+          )}
+        >
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save
+        </button>
+      </PageHeader>
+
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Loading...</span>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-4">
 
-          {/* Name */}
-          <div className="space-y-1.5">
-            <Label>Name</Label>
-            <Input value="Orchestration" readOnly className="cursor-default" />
-            <p className="text-xs text-muted-foreground/60 font-mono">
-              sdadaniel/orchestation
-            </p>
+          {/* API Section */}
+          <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+            {/* Name */}
+            <div className="space-y-1.5">
+              <Label>Name</Label>
+              <Input value="Orchestration" readOnly className="cursor-default" />
+              <p className="text-xs text-muted-foreground/60 font-mono">
+                sdadaniel/orchestation
+              </p>
+            </div>
+
+            {/* API Key */}
+            <div className="space-y-1.5">
+              <Label htmlFor="apiKey">API Key</Label>
+              <Input
+                id="apiKey"
+                type="password"
+                value={draft.apiKey}
+                onChange={(e) => setDraft((prev) => ({ ...prev, apiKey: e.target.value }))}
+                placeholder="sk-ant-api03-..."
+                className="font-mono"
+              />
+              <p className="text-xs text-muted-foreground/60">
+                Anthropic API key for orchestrate.sh and Night Worker
+              </p>
+            </div>
+
+            {/* Model */}
+            <div className="space-y-1.5">
+              <Label>Model</Label>
+              <Select
+                value={draft.model}
+                onChange={(e) => setDraft((prev) => ({ ...prev, model: e.target.value }))}
+              >
+                <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
+                <option value="claude-sonnet-4-6">claude-sonnet-4.6</option>
+                <option value="claude-opus-4-6">claude-opus-4.6</option>
+              </Select>
+            </div>
           </div>
-
-          {/* API Key */}
-          <div className="space-y-1.5">
-            <Label htmlFor="apiKey">API Key</Label>
-            <Input
-              id="apiKey"
-              type="password"
-              value={draft.apiKey}
-              onChange={(e) => setDraft((prev) => ({ ...prev, apiKey: e.target.value }))}
-              placeholder="sk-ant-api03-..."
-              className="font-mono"
-            />
-            <p className="text-xs text-muted-foreground/60">
-              Anthropic API key for orchestrate.sh and Night Worker
-            </p>
-          </div>
-
-          {/* Model */}
-          <div className="space-y-1.5">
-            <Label>Model</Label>
-            <Select
-              value={draft.model}
-              onChange={(e) => setDraft((prev) => ({ ...prev, model: e.target.value }))}
-            >
-              <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
-              <option value="claude-sonnet-4-6">claude-sonnet-4.6</option>
-              <option value="claude-opus-4-6">claude-opus-4.6</option>
-            </Select>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-border/50" />
 
           {/* Source Paths */}
-          <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-card p-4 space-y-4">
             <Label size="section">Source Paths</Label>
 
             <div className="space-y-2">
@@ -170,11 +186,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-border/50" />
-
           {/* Configuration */}
-          <div className="space-y-6">
+          <div className="rounded-lg border border-border bg-card p-4 space-y-4">
             <Label size="section">Configuration</Label>
 
             {/* Worker Mode */}
@@ -218,24 +231,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Save Button */}
-          <div className="pt-2">
-            <button
-              onClick={handleSave}
-              disabled={!isDirty || saving}
-              className={cn(
-                "w-full flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all",
-                isDirty
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                  : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
-              )}
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save Changes
-            </button>
-          </div>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }

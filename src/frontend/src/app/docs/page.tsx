@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Folder, FolderOpen, FileText, ChevronRight, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { PageLayout, PageHeader } from "@/components/ui/page-layout";
 
 function TreeNode({ node, depth = 0 }: { node: DocNode; depth?: number }) {
   const [expanded, setExpanded] = useState(true);
@@ -72,9 +73,9 @@ export default function DocsPage() {
   const totalDocs = countDocs(tree);
 
   return (
-    <div className="space-y-4">
+    <PageLayout>
+      <PageHeader title="Documents" />
       <div className="flex items-center justify-between">
-        <h1 className="text-sm font-semibold text-foreground">Documents</h1>
         <span className="text-[10px] text-muted-foreground">{totalDocs} documents</span>
       </div>
 
@@ -85,7 +86,7 @@ export default function DocsPage() {
           tree.map((node) => <TreeNode key={node.id} node={node} />)
         )}
       </div>
-    </div>
+    </PageLayout>
   );
 }
 

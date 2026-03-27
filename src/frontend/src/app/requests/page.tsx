@@ -8,6 +8,7 @@ import AutoImproveControl from "@/components/AutoImproveControl";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
+import { PageLayout, PageHeader } from "@/components/ui/page-layout";
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-red-500/15 text-red-500 border-red-500/30",
@@ -198,12 +199,9 @@ export default function RequestsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold">Tasks</h1>
-          <AutoImproveControl />
-        </div>
+    <PageLayout>
+      <PageHeader title="Tasks">
+        <AutoImproveControl />
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
@@ -212,7 +210,7 @@ export default function RequestsPage() {
           {showForm ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
           {showForm ? "Cancel" : "New Task"}
         </button>
-      </div>
+      </PageHeader>
 
       {showForm && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
@@ -287,6 +285,6 @@ export default function RequestsPage() {
           <p className="text-sm">No tasks yet. Click "New Task" to create a task.</p>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }
