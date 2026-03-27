@@ -1,7 +1,9 @@
 ---
 id: TASK-268
 title: 미사용 변수 및 중복 import 정리
-status: pending
+status: in_progress
+branch: task/task-268
+worktree: ../repo-wt-task-268
 priority: medium
 mode: night
 created: 2026-03-27
