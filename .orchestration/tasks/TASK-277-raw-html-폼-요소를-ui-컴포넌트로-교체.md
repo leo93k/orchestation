@@ -1,7 +1,7 @@
 ---
 id: TASK-277
 title: raw HTML 폼 요소를 UI 컴포넌트로 교체
-status: in_progress
+status: done
 branch: task/task-277
 worktree: ../repo-wt-task-277
 priority: medium
@@ -17,7 +17,7 @@ scope:  []
 ---
 id: TASK-277
 title: raw HTML 폼 요소를 UI 컴포넌트로 교체
-status: in_progress
+status: done
 branch: task/task-277
 worktree: ../repo-wt-task-277
 priority: medium
