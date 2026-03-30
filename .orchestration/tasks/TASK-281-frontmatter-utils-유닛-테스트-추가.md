@@ -1,7 +1,7 @@
 ---
 id: TASK-281
 title: frontmatter-utils 유닛 테스트 추가
-status: in_progress
+status: done
 branch: task/task-281
 worktree: ../repo-wt-task-281
 priority: medium
