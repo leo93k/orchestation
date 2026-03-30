@@ -1,7 +1,9 @@
 ---
 id: TASK-282
 title: task-runner-utils 불필요 console.log 제거
-status: pending
+status: in_progress
+branch: task/task-282
+worktree: ../repo-wt-task-282
 priority: medium
 mode: night
 created: 2026-03-28
@@ -15,7 +17,9 @@ TASK-282 is reserved (empty). I'll use TASK-283.
 ---
 id: TASK-283
 title: task-runner-utils 불필요 console.log 제거
-status: pending
+status: in_progress
+branch: task/task-282
+worktree: ../repo-wt-task-282
 priority: medium
 mode: night
 created: 2026-03-28
