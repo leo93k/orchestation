@@ -8,14 +8,12 @@ import { useDocTree } from "@/hooks/useDocTree";
 import { useOrchestrationStore } from "@/store/orchestrationStore";
 import { useTasksStore } from "@/store/tasksStore";
 import { TaskSidebar } from "@/components/sidebar";
-import { TaskLogModal } from "@/components/TaskLogModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { ChatBot } from "@/components/ChatBot";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { useNotices } from "@/hooks/useNotices";
 import AutoImproveControl from "@/components/AutoImproveControl";
-import type { WaterfallTask } from "@/types/waterfall";
 import type { RequestItem } from "@/store/tasksStore";
 
 /* ── Home Dashboard ── */
@@ -141,7 +139,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     fetchTree,
   } = useDocTree();
   const { addToast } = useToast();
-  const [logModalTask, setLogModalTask] = useState<WaterfallTask | null>(null);
 
   // 초기 데이터 로드 — 이후 변경 감지는 SseProvider가 SSE로 처리
   useEffect(() => {
@@ -308,14 +305,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ChatBot */}
       <ChatBot />
-
-      {/* Task Log Modal */}
-      {logModalTask && (
-        <TaskLogModal
-          task={logModalTask}
-          onClose={() => setLogModalTask(null)}
-        />
-      )}
     </div>
   );
 }
