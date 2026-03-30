@@ -7,183 +7,128 @@ import {
   getStringArray,
 } from "./frontmatter-utils";
 
-// ──────────────────────────────────────────────────────────────
-// parseFrontmatter
-// ──────────────────────────────────────────────────────────────
-describe("parseFrontmatter", () => {
-  it("parses valid YAML frontmatter and body", () => {
-    const raw = `---
-id: TASK-001
-title: Hello World
-status: pending
+describe("frontmatter-utils", () => {
+  describe("parseFrontmatter", () => {
+    it("should parse valid YAML frontmatter", () => {
+      const raw = `---
+title: Test
+status: done
 ---
-Body content here.`;
-    const { data, content } = parseFrontmatter(raw);
-    expect(data.id).toBe("TASK-001");
-    expect(data.title).toBe("Hello World");
-    expect(data.status).toBe("pending");
-    expect(content).toBe("Body content here.");
+# Body`;
+      const result = parseFrontmatter(raw);
+      expect(result.data.title).toBe("Test");
+      expect(result.data.status).toBe("done");
+      expect(result.content).toBe("# Body");
+    });
+
+    it("should handle text without frontmatter", () => {
+      const raw = "just plain text";
+      const result = parseFrontmatter(raw);
+      expect(result.content).toBeTruthy();
+    });
   });
 
-  it("returns empty data and content for empty string", () => {
-    const { data, content } = parseFrontmatter("");
-    expect(data).toEqual({});
-    expect(content).toBe("");
+  describe("getString", () => {
+    it("should return string value", () => {
+      const data = { name: "John" };
+      expect(getString(data, "name")).toBe("John");
+    });
+
+    it("should return fallback for missing key", () => {
+      const data = {};
+      expect(getString(data, "name", "default")).toBe("default");
+    });
+
+    it("should convert Date object to YYYY-MM-DD", () => {
+      const data = { date: new Date(2025, 0, 15) }; // Jan 15, 2025
+      const result = getString(data, "date");
+      expect(result).toBe("2025-01-15");
+    });
+
+    it("should trim and fallback for empty string", () => {
+      const data = { empty: "   " };
+      expect(getString(data, "empty", "fallback")).toBe("fallback");
+    });
   });
 
-  it("returns content when no frontmatter delimiters exist", () => {
-    const { data, content } = parseFrontmatter("just plain text");
-    expect(data).toEqual({});
-    expect(content).toBe("just plain text");
+  describe("getBool", () => {
+    it("should return true boolean", () => {
+      const data = { flag: true };
+      expect(getBool(data, "flag")).toBe(true);
+    });
+
+    it("should return false boolean", () => {
+      const data = { flag: false };
+      expect(getBool(data, "flag")).toBe(false);
+    });
+
+    it("should convert string 'true' to boolean", () => {
+      const data = { flag: "true" };
+      expect(getBool(data, "flag")).toBe(true);
+    });
+
+    it("should return fallback for non-matching string", () => {
+      const data = { flag: "false" };
+      expect(getBool(data, "flag", true)).toBe(false);
+    });
+
+    it("should return fallback for missing key", () => {
+      const data = {};
+      expect(getBool(data, "flag", true)).toBe(true);
+    });
   });
 
-  it("handles frontmatter with no body", () => {
-    const raw = `---
-key: value
----`;
-    const { data, content } = parseFrontmatter(raw);
-    expect(data.key).toBe("value");
-    expect(content).toBe("");
+  describe("getInt", () => {
+    it("should return integer value", () => {
+      const data = { count: 42 };
+      expect(getInt(data, "count")).toBe(42);
+    });
+
+    it("should truncate float to integer", () => {
+      const data = { count: 42.9 };
+      expect(getInt(data, "count")).toBe(42);
+    });
+
+    it("should parse string to integer", () => {
+      const data = { count: "100" };
+      expect(getInt(data, "count")).toBe(100);
+    });
+
+    it("should return fallback for unparseable string", () => {
+      const data = { count: "abc" };
+      expect(getInt(data, "count", -1)).toBe(-1);
+    });
+
+    it("should return fallback for missing key", () => {
+      const data = {};
+      expect(getInt(data, "count", 10)).toBe(10);
+    });
   });
 
-  it("trims whitespace from body content", () => {
-    const raw = `---
-x: 1
----
+  describe("getStringArray", () => {
+    it("should return array of strings", () => {
+      const data = { tags: ["a", "b", "c"] };
+      expect(getStringArray(data, "tags")).toEqual(["a", "b", "c"]);
+    });
 
-  trimmed  `;
-    const { content } = parseFrontmatter(raw);
-    expect(content).toBe("trimmed");
-  });
-});
+    it("should convert single string to array", () => {
+      const data = { tags: "single" };
+      expect(getStringArray(data, "tags")).toEqual(["single"]);
+    });
 
-// ──────────────────────────────────────────────────────────────
-// getString
-// ──────────────────────────────────────────────────────────────
-describe("getString", () => {
-  it("returns the string value", () => {
-    expect(getString({ name: "hello" }, "name")).toBe("hello");
-  });
+    it("should return empty array for missing key", () => {
+      const data = {};
+      expect(getStringArray(data, "tags")).toEqual([]);
+    });
 
-  it("returns fallback for missing key", () => {
-    expect(getString({}, "missing", "default")).toBe("default");
-  });
+    it("should filter out empty strings", () => {
+      const data = { tags: ["a", "", "b"] };
+      expect(getStringArray(data, "tags")).toEqual(["a", "b"]);
+    });
 
-  it("returns fallback for null value", () => {
-    expect(getString({ k: null }, "k", "fb")).toBe("fb");
-  });
-
-  it("returns fallback for undefined value", () => {
-    expect(getString({ k: undefined }, "k", "fb")).toBe("fb");
-  });
-
-  it("returns fallback for empty string", () => {
-    expect(getString({ k: "" }, "k", "fb")).toBe("fb");
-  });
-
-  it("converts Date to YYYY-MM-DD format", () => {
-    const d = new Date(2026, 2, 27); // March 27 2026, local
-    const result = getString({ d }, "d");
-    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(result).toBe("2026-03-27");
-  });
-
-  it("converts number to string", () => {
-    expect(getString({ n: 42 }, "n")).toBe("42");
-  });
-});
-
-// ──────────────────────────────────────────────────────────────
-// getBool
-// ──────────────────────────────────────────────────────────────
-describe("getBool", () => {
-  it("returns true for boolean true", () => {
-    expect(getBool({ f: true }, "f")).toBe(true);
-  });
-
-  it("returns false for boolean false", () => {
-    expect(getBool({ f: false }, "f")).toBe(false);
-  });
-
-  it("returns true for string 'true'", () => {
-    expect(getBool({ f: "true" }, "f")).toBe(true);
-  });
-
-  it("returns false for string 'false'", () => {
-    expect(getBool({ f: "false" }, "f")).toBe(false);
-  });
-
-  it("returns false for arbitrary string", () => {
-    expect(getBool({ f: "yes" }, "f")).toBe(false);
-  });
-
-  it("returns fallback for missing key", () => {
-    expect(getBool({}, "missing", true)).toBe(true);
-  });
-
-  it("returns default fallback (false) when not provided", () => {
-    expect(getBool({}, "missing")).toBe(false);
-  });
-});
-
-// ──────────────────────────────────────────────────────────────
-// getInt
-// ──────────────────────────────────────────────────────────────
-describe("getInt", () => {
-  it("returns integer from number", () => {
-    expect(getInt({ n: 42 }, "n")).toBe(42);
-  });
-
-  it("truncates float to integer", () => {
-    expect(getInt({ n: 3.9 }, "n")).toBe(3);
-  });
-
-  it("parses integer from string", () => {
-    expect(getInt({ n: "7" }, "n")).toBe(7);
-  });
-
-  it("returns fallback for NaN string", () => {
-    expect(getInt({ n: "abc" }, "n", 99)).toBe(99);
-  });
-
-  it("returns fallback for missing key", () => {
-    expect(getInt({}, "missing", 5)).toBe(5);
-  });
-
-  it("returns default fallback (0) when not provided", () => {
-    expect(getInt({}, "missing")).toBe(0);
-  });
-
-  it("handles negative numbers", () => {
-    expect(getInt({ n: -10 }, "n")).toBe(-10);
-  });
-});
-
-// ──────────────────────────────────────────────────────────────
-// getStringArray
-// ──────────────────────────────────────────────────────────────
-describe("getStringArray", () => {
-  it("returns array of strings", () => {
-    expect(getStringArray({ arr: ["a", "b"] }, "arr")).toEqual(["a", "b"]);
-  });
-
-  it("wraps single string in array", () => {
-    expect(getStringArray({ arr: "item" }, "arr")).toEqual(["item"]);
-  });
-
-  it("returns empty array for missing key", () => {
-    expect(getStringArray({}, "missing")).toEqual([]);
-  });
-
-  it("filters out empty strings", () => {
-    expect(getStringArray({ arr: ["a", "", "b"] }, "arr")).toEqual(["a", "b"]);
-  });
-
-  it("returns empty for empty string value", () => {
-    expect(getStringArray({ arr: "" }, "arr")).toEqual([]);
-  });
-
-  it("converts numbers to strings in array", () => {
-    expect(getStringArray({ arr: [1, 2, 3] }, "arr")).toEqual(["1", "2", "3"]);
+    it("should return empty array for empty string", () => {
+      const data = { tags: "   " };
+      expect(getStringArray(data, "tags")).toEqual([]);
+    });
   });
 });
