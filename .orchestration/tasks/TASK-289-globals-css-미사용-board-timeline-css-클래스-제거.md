@@ -1,7 +1,9 @@
 ---
 id: TASK-289
 title: globals.css 미사용 Board/Timeline CSS 클래스 제거
-status: pending
+status: in_progress
+branch: task/task-289
+worktree: ../repo-wt-task-289
 priority: medium
 mode: night
 created: 2026-03-28
