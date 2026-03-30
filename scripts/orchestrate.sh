@@ -175,6 +175,16 @@ wait_for_signal() {
 
 # ── 헬퍼 함수 ─────────────────────────────────────────
 
+read_api_key() {
+  local _api_key=""
+  if [ -f "$CONFIG_FILE" ] && command -v jq &>/dev/null; then
+    _api_key=$(jq -r '.claudeApiKey // ""' "$CONFIG_FILE" 2>/dev/null || echo "")
+  elif [ -f "$CONFIG_FILE" ]; then
+    _api_key=$(awk -F'"' '/"claudeApiKey"/{print $4; exit}' "$CONFIG_FILE" 2>/dev/null || echo "")
+  fi
+  echo "$_api_key"
+}
+
 get_task_ids() {
   # docs/task/ + docs/requests/ 둘 다 스캔
   # 완료(done)/in_progress 태스크는 조기 제외하여 불필요한 처리 방지
@@ -490,11 +500,7 @@ start_task() {
 
   # ── config.json에서 ANTHROPIC_API_KEY 읽기 ──
   local _api_key=""
-  if [ -f "$CONFIG_FILE" ] && command -v jq &>/dev/null; then
-    _api_key=$(jq -r '.claudeApiKey // ""' "$CONFIG_FILE" 2>/dev/null || echo "")
-  elif [ -f "$CONFIG_FILE" ]; then
-    _api_key=$(awk -F'"' '/"claudeApiKey"/{print $4; exit}' "$CONFIG_FILE" 2>/dev/null || echo "")
-  fi
+  _api_key=$(read_api_key)
 
   # job-task.sh 실행 (단발성 — 1회 실행 후 종료)
   local feedback_arg=""
@@ -546,11 +552,7 @@ start_review() {
   local log_file="$REPO_ROOT/output/logs/${task_id}-review.log"
 
   local _api_key=""
-  if [ -f "$CONFIG_FILE" ] && command -v jq &>/dev/null; then
-    _api_key=$(jq -r '.claudeApiKey // ""' "$CONFIG_FILE" 2>/dev/null || echo "")
-  elif [ -f "$CONFIG_FILE" ]; then
-    _api_key=$(awk -F'"' '/"claudeApiKey"/{print $4; exit}' "$CONFIG_FILE" 2>/dev/null || echo "")
-  fi
+  _api_key=$(read_api_key)
 
   local _env_prefix=""
   [ -n "$_api_key" ] && _env_prefix="ANTHROPIC_API_KEY='${_api_key}' "
