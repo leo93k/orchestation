@@ -1,7 +1,7 @@
 ---
 id: TASK-283
 title: "orchestrate.sh API키 읽기 로직 중복 제거"
-status: in_progress
+status: done
 branch: task/task-283
 worktree: ../repo-wt-task-283
 priority: medium
@@ -17,7 +17,7 @@ scope:  []
 ---
 id: TASK-283
 title: "orchestrate.sh API키 읽기 로직 중복 제거"
-status: in_progress
+status: done
 branch: task/task-283
 worktree: ../repo-wt-task-283
 priority: medium
