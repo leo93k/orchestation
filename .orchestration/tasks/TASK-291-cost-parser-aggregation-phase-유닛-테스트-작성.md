@@ -1,7 +1,9 @@
 ---
 id: TASK-291
 title: cost-parser/aggregation/phase 유닛 테스트 작성
-status: pending
+status: in_progress
+branch: task/task-291
+worktree: ../repo-wt-task-291
 priority: medium
 mode: night
 created: 2026-03-28
