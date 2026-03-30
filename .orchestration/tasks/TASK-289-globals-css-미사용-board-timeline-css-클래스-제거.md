@@ -1,7 +1,7 @@
 ---
 id: TASK-289
 title: globals.css 미사용 Board/Timeline CSS 클래스 제거
-status: in_progress
+status: rejected
 branch: task/task-289
 worktree: ../repo-wt-task-289
 priority: medium
