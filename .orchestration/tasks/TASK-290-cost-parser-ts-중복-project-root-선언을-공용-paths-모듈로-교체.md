@@ -1,7 +1,9 @@
 ---
 id: TASK-290
 title: cost-parser.ts 중복 PROJECT_ROOT 선언을 공용 paths 모듈로 교체
-status: pending
+status: rejected
+branch: task/task-290
+worktree: ../repo-wt-task-290
 priority: medium
 mode: night
 created: 2026-03-28
@@ -15,7 +17,9 @@ Now output in the exact format requested:
 ---
 id: TASK-290
 title: cost-parser.ts 중복 PROJECT_ROOT 선언을 공용 paths 모듈로 교체
-status: pending
+status: rejected
+branch: task/task-290
+worktree: ../repo-wt-task-290
 priority: medium
 mode: night
 created: 2026-03-28
