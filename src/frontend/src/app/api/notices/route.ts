@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import { parseAllNotices, getNoticesDir } from "@/lib/notice-parser";
 import { getErrorMessage } from "@/lib/error-utils";
+import { generateSlug } from "@/lib/slug-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -58,10 +59,7 @@ updated: ${today}
 ${bodyContent}
 `;
 
-    const slug = sanitizedTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9가-힣]+/g, "-")
-      .replace(/-+$/, "");
+    const slug = generateSlug(sanitizedTitle);
     const filePath = `${dir}/${noticeId}-${slug}.md`;
     fs.writeFileSync(filePath, fileContent, "utf-8");
 

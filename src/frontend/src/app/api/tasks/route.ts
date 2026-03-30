@@ -6,6 +6,7 @@ import { TASKS_DIR } from "@/lib/paths";
 import { generateNextTaskId } from "@/lib/task-id";
 import { getErrorMessage } from "@/lib/error-utils";
 import { renderTemplate } from "@/lib/template";
+import { generateSlug } from "@/lib/slug-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,8 @@ export async function POST(request: Request) {
       scope_yaml: scopeYaml,
     });
 
-    const filePath = path.join(TASKS_DIR, `${taskId}-${sanitizedTitle.toLowerCase().replace(/[^a-z0-9가-힣]+/g, "-").replace(/-+$/, "")}.md`);
+    const slug = generateSlug(sanitizedTitle);
+    const filePath = path.join(TASKS_DIR, `${taskId}-${slug}.md`);
     fs.writeFileSync(filePath, content, "utf-8");
 
     return NextResponse.json(
