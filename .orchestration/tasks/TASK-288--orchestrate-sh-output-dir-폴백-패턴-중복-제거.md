@@ -1,7 +1,9 @@
 ---
 id: TASK-288
 title: "orchestrate.sh output_dir 폴백 패턴 중복 제거"
-status: pending
+status: in_progress
+branch: task/task-288
+worktree: ../repo-wt-task-288
 priority: medium
 mode: night
 created: 2026-03-28
@@ -15,7 +17,9 @@ Confirmed. The `output_dir` fallback pattern is duplicated at lines 535-540 and 
 ---
 id: TASK-288
 title: "orchestrate.sh output_dir 폴백 패턴 중복 제거"
-status: pending
+status: in_progress
+branch: task/task-288
+worktree: ../repo-wt-task-288
 priority: medium
 mode: night
 created: 2026-03-28
