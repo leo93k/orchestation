@@ -4,6 +4,7 @@ import path from "path";
 import { findRequestFile, parseRequestFile, parseAllRequests, getRequestsDir } from "@/lib/request-parser";
 import { getErrorMessage } from "@/lib/error-utils";
 import { OUTPUT_DIR } from "@/lib/paths";
+import { generateSlug } from "@/lib/slug-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -152,7 +153,7 @@ export async function PUT(
 
     // If title changed, rename file
     if (body.title && typeof body.title === "string") {
-      const slug = body.title.trim().toLowerCase().replace(/[^a-z0-9가-힣]+/g, "-").replace(/-+$/, "");
+      const slug = generateSlug(body.title.trim());
       const newPath = `${getRequestsDir()}/${id}-${slug}.md`;
       fs.writeFileSync(newPath, fileContent, "utf-8");
       if (newPath !== filePath) {
@@ -164,7 +165,7 @@ export async function PUT(
 
     // Return updated data
     const updated = body.title
-      ? parseRequestFile(`${getRequestsDir()}/${id}-${body.title.trim().toLowerCase().replace(/[^a-z0-9가-힣]+/g, "-").replace(/-+$/, "")}.md`)
+      ? parseRequestFile(`${getRequestsDir()}/${id}-${generateSlug(body.title.trim())}.md`)
       : parseRequestFile(filePath);
 
     return NextResponse.json(updated || { ok: true });

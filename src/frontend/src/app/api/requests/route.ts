@@ -5,6 +5,7 @@ import { parseAllRequests, getRequestsDir } from "@/lib/request-parser";
 import { generateNextTaskId } from "@/lib/task-id";
 import { getErrorMessage } from "@/lib/error-utils";
 import { PROJECT_ROOT } from "@/lib/paths";
+import { generateSlug } from "@/lib/slug-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -71,12 +72,7 @@ ${bodyContent}
 `;
 
     const MAX_SLUG_LENGTH = 50;
-    const slug = sanitizedTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9가-힣]+/g, "-")
-      .replace(/-+$/, "")
-      .slice(0, MAX_SLUG_LENGTH)
-      .replace(/-+$/, "");
+    const slug = generateSlug(sanitizedTitle, MAX_SLUG_LENGTH);
 
     const fileName = `${taskId}-${slug}.md`;
     if (fileName.length > 255) {
