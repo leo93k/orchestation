@@ -1,7 +1,9 @@
 ---
 id: TASK-275
 title: 프론트엔드 console 디버그 문 정리
-status: pending
+status: in_progress
+branch: task/task-275
+worktree: ../repo-wt-task-275
 priority: medium
 mode: night
 created: 2026-03-27
