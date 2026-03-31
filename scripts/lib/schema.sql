@@ -74,9 +74,19 @@ CREATE TABLE IF NOT EXISTS notices (
   created TEXT DEFAULT (datetime('now','localtime'))
 );
 
+-- Docs (replaces docs/**/*.md file scanning)
+CREATE TABLE IF NOT EXISTS docs (
+  id TEXT PRIMARY KEY,            -- 파일 경로 (예: architecture/packaging-guide.md)
+  title TEXT,
+  content TEXT,                   -- 마크다운 본문
+  category TEXT,                  -- architecture, prd, plan, roles, report, errors, todo 등
+  updated TEXT DEFAULT (datetime('now','localtime'))
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_task_events_task_id ON task_events(task_id);
 CREATE INDEX IF NOT EXISTS idx_token_usage_task_id ON token_usage(task_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_task_id ON conversations(task_id);
 CREATE INDEX IF NOT EXISTS idx_notices_notice_id ON notices(notice_id);
+CREATE INDEX IF NOT EXISTS idx_docs_category ON docs(category);

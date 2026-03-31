@@ -381,6 +381,50 @@ fi
 
 echo "  -> $conv_count conversation lines migrated ($conv_errors errors)"
 
+# ── 5. Docs ──────────────────────────────────────────
+echo ""
+echo "--- Migrating docs ---"
+DOCS_DIR="$PROJ_ROOT/docs"
+doc_count=0
+doc_errors=0
+
+if [ -d "$DOCS_DIR" ]; then
+  while IFS= read -r doc_file; do
+    [ -f "$doc_file" ] || continue
+    # 상대 경로 (docs/ 이후)
+    rel_path="${doc_file#$DOCS_DIR/}"
+    # 카테고리 = 첫 번째 디렉토리
+    category=$(echo "$rel_path" | cut -d'/' -f1)
+    # 제목 = 첫 번째 # 헤딩 또는 파일명
+    title=$(grep -m1 '^# ' "$doc_file" 2>/dev/null | sed 's/^# //' || true)
+    if [ -z "$title" ]; then
+      title=$(basename "$doc_file" .md)
+    fi
+    # 내용 전체
+    content=$(cat "$doc_file" 2>/dev/null || true)
+    # updated = 파일 수정 시간
+    if [[ "$(uname)" == "Darwin" ]]; then
+      file_updated=$(stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$doc_file" 2>/dev/null || echo "")
+    else
+      file_updated=$(stat -c '%y' "$doc_file" 2>/dev/null | cut -d'.' -f1 || echo "")
+    fi
+
+    # SQL 이스케이프
+    esc_title="${title//\'/\'\'}"
+    esc_content="${content//\'/\'\'}"
+    esc_rel="${rel_path//\'/\'\'}"
+    esc_cat="${category//\'/\'\'}"
+
+    if sqlite3 "$DB_FILE" "INSERT OR REPLACE INTO docs(id, title, content, category, updated) VALUES('${esc_rel}', '${esc_title}', '${esc_content}', '${esc_cat}', '${file_updated}');" 2>/dev/null; then
+      doc_count=$((doc_count + 1))
+    else
+      doc_errors=$((doc_errors + 1))
+    fi
+  done < <(find "$DOCS_DIR" -name "*.md" -type f 2>/dev/null)
+fi
+
+echo "  -> $doc_count docs migrated ($doc_errors errors)"
+
 # ── Summary ──────────────────────────────────────────
 echo ""
 echo "=== Migration Complete ==="
@@ -388,5 +432,6 @@ echo "  Tasks:          $task_count"
 echo "  Notices:        $notice_count"
 echo "  Token usage:    $token_count"
 echo "  Conversations:  $conv_count"
+echo "  Docs:           $doc_count"
 echo "  Database:       $DB_FILE"
 echo "  Size:           $(du -h "$DB_FILE" | cut -f1)"
