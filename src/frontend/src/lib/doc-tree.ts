@@ -257,9 +257,13 @@ export function readDocContent(fileRelPath: string): string {
   return "";
 }
 
-/** Write doc content — only for PRD docs */
+/** Write doc content */
 export function writeDocContent(fileName: string, content: string, title?: string): void {
-  const filePath = path.join(PRD_DIR, fileName);
+  // DOCS_DIR 기준으로 먼저 시도, 없으면 PRD_DIR 폴백
+  let filePath = path.join(DOCS_DIR, fileName);
+  if (!fs.existsSync(filePath)) {
+    filePath = path.join(PRD_DIR, fileName);
+  }
 
   if (fs.existsSync(filePath)) {
     const existing = fs.readFileSync(filePath, "utf-8");
@@ -279,7 +283,11 @@ export function writeDocContent(fileName: string, content: string, title?: strin
 }
 
 export function deleteDocFile(fileName: string): void {
-  const filePath = path.join(PRD_DIR, fileName);
+  // DOCS_DIR 기준으로 먼저 시도, 없으면 PRD_DIR 폴백
+  let filePath = path.join(DOCS_DIR, fileName);
+  if (!fs.existsSync(filePath)) {
+    filePath = path.join(PRD_DIR, fileName);
+  }
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
   }
