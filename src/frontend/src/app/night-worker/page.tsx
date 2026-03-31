@@ -101,7 +101,7 @@ export default function NightWorkerPage() {
   const isRunning = status === "running";
 
   return (
-    <PageLayout className="max-w-2xl mx-auto">
+    <PageLayout>
       <PageHeader title="Night Worker">
         {!isRunning ? (
           <button
