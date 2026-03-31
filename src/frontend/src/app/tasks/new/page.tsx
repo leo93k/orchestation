@@ -87,8 +87,17 @@ export default function NewTaskPage() {
         body: JSON.stringify({ title: title.trim(), description: description.trim() }),
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Analysis failed");
+        let errMsg = `Analysis failed (HTTP ${res.status})`;
+        try {
+          const data = await res.json();
+          errMsg = data.error || errMsg;
+        } catch {
+          // non-JSON error response
+        }
+        if (res.status === 500) {
+          errMsg += "\n\nClaude CLI가 설치되어 있고 인증되었는지 확인하세요. (터미널에서 'claude --version' 실행)";
+        }
+        throw new Error(errMsg);
       }
       const data = await res.json();
       const analyzedTasks: AnalyzedTask[] = data.tasks;

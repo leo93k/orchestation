@@ -193,9 +193,14 @@ export async function POST(request: Request) {
     child.on("error", (err) => {
       clearTimeout(timeoutTimer);
       console.error("Claude CLI spawn error:", err.message);
+      const isNotFound = err.message.includes("ENOENT");
       resolve(
         new Response(
-          JSON.stringify({ error: "Failed to call AI. Please try again." }),
+          JSON.stringify({
+            error: isNotFound
+              ? "Claude CLI not found. Install it first: https://docs.anthropic.com/en/docs/claude-cli"
+              : `Claude CLI error: ${err.message}`,
+          }),
           { status: 500, headers: { "Content-Type": "application/json" } },
         ),
       );
